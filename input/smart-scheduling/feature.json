@@ -1,0 +1,13 @@
+{
+  "$comment": "Sidecar of feature.md. Example feature for the fictional example brand.",
+  "slug": "smart-scheduling",
+  "name": "Smart Scheduling",
+  "status": "live",
+  "audience": "Sales and support teams that book meetings over text",
+  "pill": null,
+  "sections": 4,
+  "cta": null,
+  "assets": [],
+  "links": {},
+  "target": "demo-app"
+}

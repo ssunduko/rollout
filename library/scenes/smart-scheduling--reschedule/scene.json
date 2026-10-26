@@ -1,0 +1,52 @@
+{
+  "title": "Customer texts reschedule and receives fresh time slots",
+  "description": "A text thread (coming soon): the booking reminder and the customer's \"Reschedule\" reply are already there; a typing indicator, then new suggested times arrive automatically. PDF: 840x667, window edge to edge with a composer under the thread. Web: its own 600x344 layout (scene \"web\", .web css) with 22px bubbles and large slot chips, composer dropped; the web version opens with the typing indicator already showing, then the reply bubble arrives and the two slot chips appear one after another.",
+  "tags": [
+    "chat",
+    "thread",
+    "reschedule",
+    "time-slots",
+    "automation",
+    "coming-soon",
+    "scheduling",
+    "composer",
+    "web-layout"
+  ],
+  "feature": "smart-scheduling",
+  "size": {
+    "width": 840,
+    "height": 667
+  },
+  "cursor": false,
+  "animation": {
+    "duration": 1700,
+    "holdEnd": 2000,
+    "steps": [
+      {
+        "at": 600,
+        "show": "#typing"
+      },
+      {
+        "at": 1600,
+        "hide": "#typing"
+      },
+      {
+        "at": 1600,
+        "show": "#new"
+      },
+      {
+        "at": 900,
+        "addClass": "w1",
+        "sel": "#thread"
+      },
+      {
+        "at": 1300,
+        "addClass": "w2",
+        "sel": "#thread"
+      }
+    ]
+  },
+  "gifBackground": "#ffffff",
+  "web": {},
+  "css": "/* web layout: 600x344, thread and slot chips at ~22px, no composer */.web #stage{zoom:1 !important;width:600px !important;height:344px !important}.web #head{padding:10px 20px 2px !important;gap:10px}.web #head .avatar.sm{width:34px;height:34px;font-size:14px}.web #head .strong{font-size:20px}.web #head .small{font-size:16px}.web #head .badge{font-size:15px;padding:3px 10px}.web #thread{gap:12px !important;padding:12px 20px 0 !important}.web .bubble{font-size:22px;line-height:1.3;padding:10px 14px;max-width:100% !important}.web .bubble .meta{font-size:15px;margin-top:0}.web #new .row{gap:10px !important;margin-top:6px !important}.web .chip{font-size:20px;padding:4px 12px;gap:8px;border-radius:8px}.web .chip svg{width:20px;height:20px}.web #composer{display:none !important}/* web-only sequence (w1/w2 classes have no PDF styling): typing from t=0; at 0.9s the reply bubble arrives without chips; chip 1 at 1.3s; chip 2 at 1.6s */.web #typing.is-hidden{display:block !important}.web #thread.w1 #typing{display:none !important}.web #thread.w1 #new.is-hidden{display:block !important}.web #thread:not(.w2) #new .chip{visibility:hidden}.web #new.is-hidden .chip:nth-child(2){visibility:hidden}.web #thread:not(.w1){gap:18px !important;padding-top:18px !important}.web #typing{font-size:26px;padding:8px 18px;letter-spacing:2px}"
+}

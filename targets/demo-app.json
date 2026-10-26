@@ -1,0 +1,22 @@
+{
+  "name": "demo-app",
+  "description": "the example application in demo-app/ (start it with npm run demo-app)",
+  "app": "env:DEMO_APP_URL",
+  "startUrl": "/conversations",
+  "viewport": { "width": 1280, "height": 800 },
+  "//hideSelectors": "the notifications banner across the top of every page has nothing to do with any feature",
+  "hideSelectors": ["[data-testid=\"system-banner\"]"],
+  "//blurSelectors": "contact names and phone numbers",
+  "blurSelectors": ["[data-pii]"],
+  "auth": {
+    "mode": "form",
+    "username": "env:DEMO_APP_USERNAME",
+    "password": "env:DEMO_APP_PASSWORD",
+    "selectors": {
+      "username": "input[name=\"email\"]",
+      "password": "input[name=\"password\"]",
+      "submit": "button[type=\"submit\"]",
+      "signedIn": "[data-testid=\"user-menu\"]"
+    }
+  }
+}

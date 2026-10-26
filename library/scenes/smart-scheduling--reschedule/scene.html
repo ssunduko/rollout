@@ -1,0 +1,30 @@
+<!-- 1.26:1 for the PDF panel (840x667: laid out at 480x381 and zoomed 1.75, so text stays large on the web).
+     The window fills the scene edge to edge with no border or shadow, and the GIF background is white,
+     and the web layout (scene.json "web", .web rules in "css") re-lays the same thread at 600x344 with large text. -->
+<div id="stage" class="abs" style="left:0;top:0;width:480px;height:381px;zoom:1.75">
+<div class="window bleed flat abs" style="left:0;top:0;right:0;bottom:0;border:0;padding:0;display:flex;flex-direction:column">
+  <div id="head" class="row" style="padding:12px 18px 4px">
+    <div class="avatar sm" style="--c:#f97316">SP</div>
+    <div class="strong">Sam Patel</div><span class="small muted">Demo · Thu 9:00 AM</span>
+    <span class="grow"></span><span class="badge new">Coming soon</span>
+  </div>
+  <div id="thread" class="thread grow" style="gap:8px;padding:12px 18px 0;overflow:hidden">
+    <div class="bubble out" style="max-width:84%">Reminder: your demo is tomorrow, Thu 9:00 AM.<span class="meta">8:00 am</span></div>
+    <div id="ask" class="bubble in">Something came up. Reschedule<span class="meta">8:04 am</span></div>
+    <div id="typing" class="bubble out is-hidden" style="color:var(--muted)">• • •</div>
+    <div id="new" class="bubble out is-hidden" style="max-width:84%">No problem! Pick a new time:
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">
+        <span class="chip"><i data-icon="calendar" class="accent"></i>1 · Thu 3:00 PM</span>
+        <span class="chip"><i data-icon="calendar" class="accent"></i>2 · Fri 10:30 AM</span>
+      </div><span class="meta">8:05 am</span></div>
+  </div>
+  <div id="composer" class="composer" style="margin:0 18px 14px;gap:8px;padding:8px 12px">
+    <div class="placeholder" style="color:var(--muted)">Type a message…</div>
+    <div class="row" style="gap:12px;color:var(--muted)">
+      <i data-icon="plus"></i><i data-icon="smile"></i><i data-icon="calendar" class="accent"></i>
+      <span class="grow"></span>
+      <span class="btn primary" style="padding:5px 10px"><i data-icon="send"></i></span>
+    </div>
+  </div>
+</div>
+</div>

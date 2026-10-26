@@ -1,0 +1,21 @@
+# Scans dependencies (package-lock.json) for known vulnerabilities on every
+# push to main, using Google's OSV-Scanner reusable workflow; results go to
+# Security > Code scanning. No scheduled scan.
+# https://google.github.io/osv-scanner/github-action/
+name: OSV-Scanner Push Scan
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  # Required to upload SARIF file to CodeQL. See: https://github.com/github/codeql-action/issues/2117
+  actions: read
+  # Require writing security events to upload SARIF file to security tab
+  security-events: write
+  # Only need to read contents
+  contents: read
+
+jobs:
+  scan-push:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0"

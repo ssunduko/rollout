@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="178" height="40" viewBox="0 0 178 40" fill="none">
+  <rect x="0" y="2" width="36" height="36" rx="10" fill="#ffffff"/>
+  <path d="M10 27.5 18 11l8 16.5h-4.4L18 19.8l-3.6 7.7H10Z" fill="#5b4cf5"/>
+  <circle cx="27.5" cy="12.5" r="3" fill="#10b981"/>
+  <text x="46" y="28.5" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5" fill="#ffffff">acme</text>
+  <text x="108" y="28.5" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5" fill="#dcd8ff">cloud</text>
+</svg>

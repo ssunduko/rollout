@@ -1,0 +1,24 @@
+# Scans dependencies (package-lock.json) for known vulnerabilities on every
+# pull request, using Google's OSV-Scanner reusable workflow. Only
+# vulnerabilities the PR introduces fail the check; results go to
+# Security > Code scanning.
+# https://google.github.io/osv-scanner/github-action/
+name: OSV-Scanner PR Scan
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    branches: [main]
+
+permissions:
+  # Required to upload SARIF file to CodeQL. See: https://github.com/github/codeql-action/issues/2117
+  actions: read
+  # Require writing security events to upload SARIF file to security tab
+  security-events: write
+  # Only need to read contents
+  contents: read
+
+jobs:
+  scan-pr:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.7.0"

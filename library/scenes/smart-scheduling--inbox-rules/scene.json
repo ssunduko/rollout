@@ -1,0 +1,67 @@
+{
+  "title": "Booking rules per inbox: meeting types and a pre-booking question (captured)",
+  "description": "Captured from the app: Booking rules for an inbox with Demo, Onboarding and Quarterly review meeting types and durations; a question to ask before booking is typed in.",
+  "tags": [
+    "capture",
+    "settings",
+    "inbox",
+    "rules",
+    "meeting-types",
+    "durations",
+    "questions",
+    "form",
+    "scheduling"
+  ],
+  "feature": "smart-scheduling",
+  "source": "capture",
+  "start": "/settings/booking-rules",
+  "setup": [
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"booking-rules-card\"]"
+    }
+  ],
+  "steps": [
+    {
+      "op": "hold",
+      "ms": 300
+    },
+    {
+      "op": "type",
+      "sel": "[data-testid=\"booking-question\"]",
+      "text": "How many people will join the call?"
+    },
+    {
+      "op": "hold",
+      "ms": 500
+    },
+    {
+      "op": "move",
+      "to": [
+        560,
+        226
+      ]
+    },
+    {
+      "op": "still"
+    }
+  ],
+  "clip": "[data-testid=\"booking-rules-card\"]",
+  "pad": 14,
+  "aspect": 1.26,
+  "anchor": "top",
+  "web": {
+    "clip": {
+      "x": 96,
+      "y": 156,
+      "width": 560,
+      "height": 323
+    },
+    "width": 560,
+    "align": "top-left"
+  },
+  "viewport": {
+    "width": 656,
+    "height": 800
+  }
+}

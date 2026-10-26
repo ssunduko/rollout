@@ -1,0 +1,70 @@
+{
+  "title": "Scheduling settings: connected calendars, working hours, round-robin (captured)",
+  "description": "Captured from the app: the Scheduling settings card with two connected calendars, working hours and meeting length; the cursor switches on round-robin assignment and a note confirms it.",
+  "tags": [
+    "capture",
+    "settings",
+    "calendar",
+    "integrations",
+    "connected",
+    "working-hours",
+    "round-robin",
+    "toggle",
+    "scheduling"
+  ],
+  "feature": "smart-scheduling",
+  "source": "capture",
+  "start": "/settings/scheduling",
+  "setup": [
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"scheduling-card\"]"
+    }
+  ],
+  "steps": [
+    {
+      "op": "hold",
+      "ms": 500
+    },
+    {
+      "op": "click",
+      "sel": "[data-testid=\"round-robin\"]"
+    },
+    {
+      "op": "wait",
+      "sel": "#rr-note"
+    },
+    {
+      "op": "hold",
+      "ms": 600
+    },
+    {
+      "op": "move",
+      "to": [
+        500,
+        478
+      ]
+    },
+    {
+      "op": "still"
+    }
+  ],
+  "clip": "[data-testid=\"scheduling-card\"]",
+  "pad": 14,
+  "aspect": 1.26,
+  "anchor": "top",
+  "web": {
+    "clip": {
+      "x": 96,
+      "y": 203,
+      "width": 540,
+      "height": 309
+    },
+    "width": 540,
+    "align": "top-left"
+  },
+  "viewport": {
+    "width": 680,
+    "height": 800
+  }
+}

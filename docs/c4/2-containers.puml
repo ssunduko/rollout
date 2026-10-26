@@ -1,0 +1,61 @@
+@startuml containers
+' C4 level 2 — Containers: the agents, the pipeline CLI and the sidecar stores.
+' Agents write sidecars; the core renders them (docs/rules.md).
+' Render: see docs/c4/README.md
+!include <C4/C4_Container>
+
+title Rollout — Containers
+
+Person(author, "Product marketer", "Writes the feature description, approves mutations and QA fixes.")
+
+System_Boundary(rollout, "Rollout") {
+  Container(skill, "feature-rollout skill", "Claude Code skill", "Orchestrates one rollout: input → copy → visuals → build → QA → serve.")
+  Container(copywriter, "rollout-copywriter", "Claude Code agent", "Writes the brief: headline, lead, intro, sections, scene ids, SEO — within the layout limits.")
+  Container(designer, "rollout-visual-designer", "Claude Code agent", "Probes the signed-in app, writes capture and kit scenes, inspects stills, GIFs and web cuts.")
+  Container(qa_agent, "rollout-qa", "Claude Code agent, read-only", "Reviews PDF pages and the served web page; returns PASS/FAIL with proposed fixes.")
+
+  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, qa, serve, probe, login, library. Never writes copy or invents visuals.")
+  Container(kit, "Scene kit", "CSS + seekable JS runtime", "pipeline/kit/: branded HTML scenes for the hero and coming-soon UI, rendered frame-exactly.")
+  Container(demo, "Example app", "Node.js HTTP server, demo-app/", "A stand-in product with a real login, for trying the pipeline end to end.")
+
+  ContainerDb(input, "Feature input", "Markdown + JSON, input/{slug}/", "feature.md, feature.json sidecar, optional assets — written by a person.")
+  ContainerDb(brand, "Brand sidecars", "JSON + assets, brand/{id}/", "brand.json (colours, fonts, voice, rules, web chrome), logos, icons, fonts, integration logos.")
+  ContainerDb(config, "Deployment config", ".env, targets/, profiles/", "Which brand, render settings; target apps, sign-in, blur/hide; signed-in Chrome profiles (gitignored).")
+  ContainerDb(library, "Library", "JSON + HTML + PNG/GIF, library/", "Durable: features/{slug}/brief.json, scenes/{id}/, content-addressed renders/{hash}/ (still, anim.gif, web.gif), derived index.json.")
+  ContainerDb(output, "Build output", "PDF + HTML + JSON, output/{slug}/", "Regenerable: {Feature} One-Pager.pdf, web/ (index.html, page.json, assets), build.json, qa/.")
+}
+
+System_Ext(app, "Product application", "Logged-in SaaS app; captures look, never touch.")
+System_Ext(chrome, "Headless Chrome", "puppeteer-core over CDP")
+System_Ext(ffmpeg, "ffmpeg", "GIF encoding, frame checks")
+System_Ext(browser, "User's browser", "Previews the served page")
+
+Rel(author, skill, "'roll out {slug}'", "Claude Code")
+Rel(author, input, "Writes")
+Rel(skill, copywriter, "Runs")
+Rel(skill, designer, "Runs")
+Rel(skill, qa_agent, "Runs")
+Rel(skill, cli, "build, qa, serve", "shell")
+
+Rel(copywriter, input, "Reads")
+Rel(copywriter, brand, "Reads voice and rules", "rollout.mjs brand {slug}")
+Rel(copywriter, library, "Writes brief.json")
+Rel(designer, library, "Writes scenes/{id}/")
+Rel(designer, cli, "probe, scene {id}", "shell")
+Rel(qa_agent, cli, "qa {slug}", "shell")
+Rel(qa_agent, output, "Reads screenshots and web/")
+
+Rel(cli, input, "Reads")
+Rel(cli, brand, "Reads")
+Rel(cli, config, "Reads")
+Rel(cli, library, "Reads briefs and scenes; writes renders and index")
+Rel(cli, kit, "Renders kit scenes with")
+Rel(cli, output, "Writes PDF, web/, build.json, qa/")
+Rel(cli, chrome, "Renders, captures, screenshots", "CDP")
+Rel(cli, ffmpeg, "Encodes GIFs", "process")
+Rel(cli, app, "Signs in, runs steps, records", "HTTPS + CDP screencast")
+Rel(cli, demo, "Same, for the example target", "HTTP")
+Rel(browser, cli, "Loads the page from rollout.mjs serve", "HTTP :WEB_PORT")
+
+SHOW_LEGEND()
+@enduml

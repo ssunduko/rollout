@@ -1,0 +1,25 @@
+{
+  "name": "rollout",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-authored feature rollout assets: a branded one-pager PDF and a matching web page, built from a plain-English feature description. Brand, feature and visuals are JSON sidecars; the pipeline itself is brand-agnostic.",
+  "scripts": {
+    "rollout": "node pipeline/rollout.mjs",
+    "init": "node pipeline/rollout.mjs init",
+    "validate": "node pipeline/rollout.mjs validate",
+    "scenes": "node pipeline/rollout.mjs scenes",
+    "build": "node pipeline/rollout.mjs build",
+    "qa": "node pipeline/rollout.mjs qa",
+    "library": "node pipeline/rollout.mjs library",
+    "demo-app": "node demo-app/server.mjs",
+    "targets": "node pipeline/rollout.mjs targets",
+    "probe": "node pipeline/rollout.mjs probe"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.14.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

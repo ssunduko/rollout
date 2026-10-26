@@ -1,0 +1,36 @@
+node_modules/
+.env
+# Build products: always regenerable from input/ + library/
+output/*
+!output/.gitkeep
+# Render caches are content-addressed and can't be told apart by brand or
+# customer, and index.json is derived from the folders: keep both local
+library/renders/
+library/index.json
+# capture targets: secrets and signed-in browser profiles never leave this machine
+targets/*.local.json
+profiles/
+
+# Nothing brand- or customer-specific is committed (docs/rules.md): only the
+# fictional example — the example brand, the demo-app target and the
+# smart-scheduling feature. Every other brand, target and feature stays on
+# this machine by default.
+brand/*
+!brand/example/
+targets/*
+!targets/_template.json
+!targets/demo-app.json
+input/*
+!input/_template/
+!input/smart-scheduling/
+library/features/*
+!library/features/smart-scheduling/
+library/scenes/*
+!library/scenes/smart-scheduling--*/
+# real rollouts and pages used as layout references
+examples/*
+!examples/.gitkeep
+# working files (screenshots of real apps end up here)
+scratch/
+# per-user IDE state
+.idea/workspace.xml

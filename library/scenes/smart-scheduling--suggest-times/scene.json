@@ -1,0 +1,81 @@
+{
+  "title": "Composer: Suggest times menu inserts open slots into a reply (captured)",
+  "description": "Captured from the app: in a conversation the rep opens the Scheduling menu in the composer, picks Suggest times, and three open slots are inserted into the draft reply. The rep's earlier reply is hidden so the customer's question leads straight into the suggested times; a 900x500 viewport keeps the thread and composer filling the panel.",
+  "tags": [
+    "capture",
+    "composer",
+    "chat",
+    "menu",
+    "scheduling",
+    "time-slots",
+    "suggest",
+    "reply",
+    "calendar"
+  ],
+  "feature": "smart-scheduling",
+  "source": "capture",
+  "start": "/conversations",
+  "setup": [
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"composer-input\"]"
+    },
+    {
+      "op": "move",
+      "to": [
+        610,
+        500
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "op": "click",
+      "sel": "[data-testid=\"composer-schedule\"]"
+    },
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"schedule-menu\"]"
+    },
+    {
+      "op": "hold",
+      "ms": 500
+    },
+    {
+      "op": "click",
+      "sel": "[role=\"menuitem\"][data-action=\"suggest\"]"
+    },
+    {
+      "op": "hold",
+      "ms": 1500
+    },
+    {
+      "op": "hover",
+      "sel": "[data-testid=\"composer-send\"]"
+    },
+    {
+      "op": "still"
+    }
+  ],
+  "clip": "[data-testid=\"conversation\"]",
+  "viewport": {
+    "width": 900,
+    "height": 500
+  },
+  "pad": 0,
+  "aspect": 1.26,
+  "anchor": "bottom",
+  "web": {
+    "clip": {
+      "x": 412,
+      "y": 165,
+      "width": 472,
+      "height": 270
+    },
+    "width": 472,
+    "align": "top-left"
+  },
+  "hide": [
+    "[data-testid=\"thread\"] > .bubble.out:nth-child(2)"
+  ]
+}

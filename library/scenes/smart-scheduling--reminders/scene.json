@@ -1,0 +1,70 @@
+{
+  "title": "Upcoming meetings: a reminder goes out and the status flips to Reminded (captured)",
+  "description": "Captured from the app: the Upcoming meetings list with Booked, Rescheduled and No-show statuses; Send due reminders flips the first meeting to Reminded and a toast shows the reminder text.",
+  "tags": [
+    "capture",
+    "list",
+    "meetings",
+    "status",
+    "badges",
+    "reminders",
+    "confirmation",
+    "automation",
+    "toast"
+  ],
+  "feature": "smart-scheduling",
+  "source": "capture",
+  "start": "/meetings",
+  "setup": [
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"meetings\"]"
+    }
+  ],
+  "steps": [
+    {
+      "op": "hold",
+      "ms": 300
+    },
+    {
+      "op": "click",
+      "sel": "[data-testid=\"send-reminders\"]"
+    },
+    {
+      "op": "wait",
+      "sel": "[data-testid=\"toast\"]"
+    },
+    {
+      "op": "hold",
+      "ms": 500
+    },
+    {
+      "op": "move",
+      "to": [
+        400,
+        580
+      ]
+    },
+    {
+      "op": "still"
+    }
+  ],
+  "clip": "[data-testid=\"meetings\"]",
+  "pad": 14,
+  "aspect": 1.26,
+  "anchor": "top",
+  "web": {
+    "clip": {
+      "x": 78,
+      "y": 126,
+      "width": 560,
+      "height": 320
+    },
+    "width": 560,
+    "align": "top-left"
+  },
+  "viewport": {
+    "width": 640,
+    "height": 800
+  }
+}

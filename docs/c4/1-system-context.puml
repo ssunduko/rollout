@@ -1,0 +1,28 @@
+@startuml system-context
+' C4 level 1 — System context: Rollout and the people and systems around it.
+' Render: see docs/c4/README.md
+!include <C4/C4_Context>
+
+title Rollout — System Context
+
+Person(author, "Product marketer", "Describes a feature in plain English, approves data-changing captures and QA fixes, receives the outputs.")
+Person(reader, "Customer / prospect", "Reads the one-pager and the feature page.")
+
+System(rollout, "Rollout", "Turns a feature description into a branded one-pager PDF and a matching web feature page. Agents author JSON sidecars; a brand-agnostic Node pipeline renders them.")
+
+System_Ext(claude, "Claude Code", "Runs the feature-rollout skill and the copywriter, visual-designer and QA agents.")
+System_Ext(app, "Product application", "The logged-in SaaS app the feature lives in. Visuals are captured from it (look, don't touch).")
+System_Ext(site, "Marketing website / CMS", "Hosts the feature page. Receives web/ or page.json only when the user asks to publish.")
+System_Ext(tools, "Chrome + ffmpeg", "Headless Chrome (puppeteer-core) renders and captures; ffmpeg encodes GIFs.")
+
+Rel(author, claude, "Asks to roll out a feature, approves", "chat")
+Rel(author, rollout, "Writes input/{slug}/feature.md; previews the page", "files, rollout.mjs serve")
+Rel(claude, rollout, "Authors briefs and scenes; runs build and qa", "files, CLI")
+Rel(rollout, app, "Signs in through a target, records the feature", "HTTPS, CDP screencast")
+Rel(rollout, tools, "Renders PDF, stills, GIFs, screenshots", "CDP, process")
+Rel(author, site, "Publishes the page (on request)", "CMS import")
+Rel(site, reader, "Serves the feature page", "HTTPS")
+Rel(author, reader, "Shares the one-pager PDF", "email, sales")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,76 @@
+@startuml components-pipeline
+' C4 level 3 — Components of the Pipeline CLI (pipeline/*.mjs).
+' Render: see docs/c4/README.md
+!include <C4/C4_Component>
+
+title Rollout — Pipeline CLI components
+
+Container_Ext(agents, "Agents / skill", "Claude Code", "Drive the CLI and author sidecars.")
+ContainerDb_Ext(stores, "Sidecar stores", "input/, brand/, .env, targets/, library/", "Everything that varies.")
+ContainerDb_Ext(output, "Build output", "output/{slug}/")
+System_Ext(app, "Product application")
+System_Ext(chrome, "Headless Chrome", "puppeteer-core")
+System_Ext(ffmpeg, "ffmpeg")
+
+Container_Boundary(cli, "Pipeline CLI (node pipeline/rollout.mjs)") {
+  Component(rollout, "rollout.mjs", "CLI entry", "Commands: init, status, validate, targets, login, probe, scene(s), build, qa, serve, library, brand.")
+  Component(env, "env.mjs", "Config", ".env loading, folders, per-feature paths.")
+  Component(brandc, "brand.mjs", "Brand loader", "brand.json → colours, fonts, marks, CSS custom properties, web chrome; per-feature brand.")
+  Component(brief, "brief.mjs", "Brief", "Feature input, brief defaults, LIMITS and validation.")
+  Component(library, "library.mjs", "Library", "Scenes, content-addressed render hashes, derived index, search, fork.")
+  Component(scenes, "scenes.mjs", "Scene renderer", "Dispatches captures; renders kit scenes (still, GIF, web version); resolves scene: embeds; render cache.")
+  Component(target, "target.mjs", "Targets", "Target sidecars, env: references, secrets.")
+  Component(capture, "capture.mjs", "Capture engine", "Sign-in, steps with eased cursor, screencast, clip, GIF + web cut encoding; probe, login.")
+  Component(kit, "kit/", "Scene kit", "kit.css + seekable runtime.js.")
+  Component(onepager, "onepager.mjs", "One-pager", "Brief + renders → paginated HTML → PDF.")
+  Component(webpage, "webpage.mjs", "Web page", "Brief + brand web block → feature-page HTML + page.json; poster; title case.")
+  Component(webmedia, "webmedia.mjs", "Web media", "Framed 1180×676 web GIFs (from frames or fitted), frame overlay, video poster.")
+  Component(qa, "qa.mjs", "Measured QA", "Overflow, images, mobile scroll, web requests/errors, animation, forbidden terms; screenshots.")
+  Component(serve, "serve.mjs", "Static server", "Serves output/{slug}/web for QA and preview; opens the browser.")
+  Component(chromec, "chrome.mjs", "Browser", "Finds Chrome, launches headless, settles pages.")
+}
+
+Rel(agents, rollout, "Runs commands", "shell")
+Rel(rollout, brief, "Validates, loads")
+Rel(rollout, brandc, "Resolves the feature's brand")
+Rel(rollout, scenes, "Renders scenes")
+Rel(rollout, onepager, "Builds PDF")
+Rel(rollout, webpage, "Builds web folder")
+Rel(rollout, qa, "Runs measured checks")
+Rel(rollout, serve, "Serves preview")
+Rel(rollout, capture, "probe, login")
+
+Rel(scenes, library, "Hashes, caches renders")
+Rel(scenes, capture, "Capture scenes")
+Rel(scenes, kit, "Kit scenes")
+Rel(scenes, target, "Resolves target")
+Rel(scenes, webmedia, "Kit web versions")
+Rel(capture, target, "Credentials, look")
+Rel(capture, webmedia, "Web cut encoding")
+Rel(capture, app, "Sign in, record", "CDP screencast")
+Rel(webpage, webmedia, "Fitted cuts, poster")
+Rel(webpage, brandc, "CSS, web chrome")
+Rel(onepager, brandc, "CSS, marks")
+Rel(qa, serve, "Loads page over HTTP")
+Rel(qa, brief, "Re-validates")
+
+Rel(env, stores, "Reads .env, paths")
+Rel(brandc, stores, "Reads brand/")
+Rel(brief, stores, "Reads input/, brief.json")
+Rel(library, stores, "Reads/writes library/")
+Rel(target, stores, "Reads targets/")
+Rel(onepager, output, "Writes PDF")
+Rel(webpage, output, "Writes web/")
+Rel(qa, output, "Writes qa/")
+
+Rel(chromec, chrome, "Launches", "puppeteer-core")
+Rel(scenes, chromec, "Uses")
+Rel(onepager, chromec, "Uses")
+Rel(qa, chromec, "Uses")
+Rel(webmedia, chromec, "Uses")
+Rel(capture, ffmpeg, "Encodes")
+Rel(webmedia, ffmpeg, "Encodes")
+Rel(qa, ffmpeg, "Counts GIF frames")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,38 @@
+@startuml dynamic-rollout
+' C4 dynamic diagram — one rollout, from description to served page.
+' Approval gates (mutating captures, QA fixes) go through the person.
+' Render: see docs/c4/README.md
+!include <C4/C4_Dynamic>
+
+title Rollout — Dynamic: "roll out {slug}"
+
+Person(author, "Product marketer")
+Container(skill, "feature-rollout skill", "Claude Code")
+Container(copywriter, "rollout-copywriter", "agent")
+Container(designer, "rollout-visual-designer", "agent")
+Container(cli, "Pipeline CLI", "Node.js")
+Container(qa_agent, "rollout-qa", "agent, read-only")
+ContainerDb(library, "Library", "library/")
+ContainerDb(output, "Build output", "output/{slug}/")
+System_Ext(app, "Product application")
+System_Ext(browser, "User's browser")
+
+Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
+Rel(skill, copywriter, "Write the brief")
+Rel(copywriter, library, "brief.json (validated)")
+Rel(skill, designer, "Capture the scenes")
+Rel(designer, cli, "probe / scene {id}")
+Rel(cli, app, "Sign in, run steps, record screencast")
+Rel(designer, library, "scenes/{id}/ + renders/{hash}/ (still, anim.gif, web.gif)")
+Rel(skill, cli, "build {slug}")
+Rel(cli, output, "PDF, web/ (page.json, assets), build.json")
+Rel(skill, cli, "qa {slug}")
+Rel(cli, output, "qa/qa.json + PDF and web screenshots (page served over HTTP)")
+Rel(skill, qa_agent, "QA {slug}")
+Rel(qa_agent, skill, "PASS / FAIL with proposed fixes")
+Rel(skill, author, "Shows verdict; asks before applying fixes")
+Rel(skill, cli, "serve {slug} --open")
+Rel(cli, browser, "Opens the page at http://localhost:WEB_PORT")
+
+SHOW_LEGEND()
+@enduml

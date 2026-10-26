@@ -1,0 +1,22 @@
+Example Brand Style Guide (human-readable; brand.json is the machine-readable sidecar the pipeline reads)
+
+Typography
+Hero headlines: Inter Display Bold, letter-spacing -1%
+Section headings: Inter Bold
+Labels and UI text: Inter Medium / Semi Bold
+Body text: Inter Regular
+
+Colors
+Primary (accent, headline highlight, pills, links): #5b4cf5
+CTA button: #10b981
+Headline and body text: #111827
+Footer and meta text: #6b7280
+Callout text: #1e1b4b
+Panels and cards: #f4f3ff
+Hero band: radial gradient from white (left) to #dcd8ff (right)
+Background: #ffffff
+
+Layout
+Hero band on page one: logo, pill topic label, two-tone headline, intro.
+Feature rows alternate visual-left / visual-right on soft rounded panels.
+Last page: CTA band and footer with logo, website / phone, social icons.

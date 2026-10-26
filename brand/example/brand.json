@@ -1,0 +1,279 @@
+{
+  "$comment": "Brand sidecar. The pipeline reads only this file (plus the files it names) to paint a brand; nothing about a brand is hard-coded in pipeline/. Paths are relative to this folder. Any BRAND_* variable in .env overrides the matching value here (see .env.example). This is a fictional example brand.",
+  "id": "example",
+  "name": "Acme Cloud",
+  "website": "https://www.acme.example",
+  "websiteLabel": "acme.example",
+  "phone": "(555) 010-0199",
+  "email": "hello@acme.example",
+  "tagline": "Customer conversations, simplified",
+  "social": [
+    {
+      "name": "YouTube",
+      "icon": "youtube",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "name": "X",
+      "icon": "x",
+      "url": "https://x.com/"
+    },
+    {
+      "name": "Facebook",
+      "icon": "facebook",
+      "url": "https://www.facebook.com/"
+    },
+    {
+      "name": "LinkedIn",
+      "icon": "linkedin",
+      "url": "https://www.linkedin.com/"
+    },
+    {
+      "name": "Instagram",
+      "icon": "instagram",
+      "url": "https://www.instagram.com/"
+    }
+  ],
+  "nav": [
+    {
+      "label": "Platform",
+      "url": "/platform"
+    },
+    {
+      "label": "Integrations",
+      "url": "/integrations"
+    },
+    {
+      "label": "Pricing",
+      "url": "/pricing"
+    },
+    {
+      "label": "Blog",
+      "url": "/blog"
+    }
+  ],
+  "legal": [
+    {
+      "label": "Terms",
+      "url": "/terms"
+    },
+    {
+      "label": "Privacy",
+      "url": "/privacy"
+    }
+  ],
+  "colors": {
+    "primary": "#5b4cf5",
+    "primaryDark": "#4636e0",
+    "cta": "#10b981",
+    "ink": "#111827",
+    "muted": "#6b7280",
+    "navy": "#1e1b4b",
+    "surface": "#f4f3ff",
+    "heroTint": "#dcd8ff",
+    "white": "#ffffff",
+    "success": "#16a34a",
+    "danger": "#ef4444",
+    "warning": "#f59e0b"
+  },
+  "fonts": {
+    "display": {
+      "family": "Inter Display",
+      "weight": 700,
+      "fallback": [
+        "Inter",
+        "Arial"
+      ],
+      "faces": [
+        {
+          "weight": 700,
+          "file": "fonts/InterDisplay-Bold.woff2"
+        }
+      ]
+    },
+    "body": {
+      "family": "Inter",
+      "fallback": [
+        "Arial"
+      ],
+      "faces": [
+        {
+          "weight": 400,
+          "file": "fonts/Inter-Regular.woff2"
+        },
+        {
+          "weight": 500,
+          "file": "fonts/Inter-Medium.woff2"
+        },
+        {
+          "weight": 600,
+          "file": "fonts/Inter-SemiBold.woff2"
+        },
+        {
+          "weight": 700,
+          "file": "fonts/Inter-Bold.woff2"
+        }
+      ]
+    }
+  },
+  "logos": {
+    "primary": "logo/logo.svg",
+    "reversed": "logo/logo-reversed.svg",
+    "icon": "logo/icon.svg"
+  },
+  "icons": {
+    "info": "icons/info-circle.svg",
+    "youtube": "icons/youtube.svg",
+    "x": "icons/x.svg",
+    "facebook": "icons/facebook.svg",
+    "linkedin": "icons/linkedin.svg",
+    "instagram": "icons/instagram.svg"
+  },
+  "voice": [
+    "Clear, confident and friendly; written for busy customer-facing teams.",
+    "Lead with the customer outcome, then the feature that delivers it.",
+    "Short sentences, active voice, no jargon; numbers beat adjectives."
+  ],
+  "rules": [
+    "Hero headline in the display font, ink colour, with one to three words highlighted in the primary colour.",
+    "Primary colour is the accent for highlights, pills and links; the CTA colour is reserved for a single call-to-action button.",
+    "Muted colour only for footers and small meta text.",
+    "Light radial hero band (white to heroTint) with the logo and a pill-shaped topic label; soft surface panels with rounded corners; no divider rules; generous white space.",
+    "Last page: closing call-to-action band and a footer with logo, website / phone and social icons."
+  ],
+  "web": {
+    "$comment": "The site chrome of the web page (pipeline/webpage.mjs): header, sign-up card, section buttons, closing note and footer. Labels and links only; the copy comes from the brief.",
+    "header": {
+      "contact": {
+        "label": "Questions? Call us",
+        "value": "(555) 010-0199",
+        "url": "tel:+15550100199"
+      },
+      "nav": [
+        {
+          "label": "Platform",
+          "url": "https://www.acme.example/platform",
+          "menu": true
+        },
+        {
+          "label": "Integrations",
+          "url": "https://www.acme.example/integrations"
+        },
+        {
+          "label": "Pricing",
+          "url": "https://www.acme.example/pricing"
+        },
+        {
+          "label": "Resources",
+          "url": "https://www.acme.example/blog",
+          "menu": true
+        }
+      ],
+      "signIn": {
+        "label": "Sign In",
+        "url": "https://www.acme.example/login"
+      },
+      "buttons": [
+        {
+          "label": "Get a Demo",
+          "url": "https://www.acme.example/demo",
+          "style": "primary"
+        },
+        {
+          "label": "Sign Up",
+          "url": "https://www.acme.example/signup",
+          "style": "cta"
+        }
+      ]
+    },
+    "back": {
+      "label": "All features",
+      "url": "https://www.acme.example/features"
+    },
+    "signup": {
+      "title": "Start Your [Free 14-Day] Trial",
+      "subtitle": "Create your account in a minute.",
+      "placeholder": "Work Email Address*",
+      "button": "Get started",
+      "field": "email",
+      "action": "https://www.acme.example/signup"
+    },
+    "sectionButton": {
+      "label": "Start Your 14-Day Trial",
+      "url": "https://www.acme.example/signup"
+    },
+    "closing": {
+      "note": "Still have questions? Call us: (555) 010-0199"
+    },
+    "footer": {
+      "columns": [
+        {
+          "title": "Product",
+          "links": [
+            {
+              "label": "Platform",
+              "url": "https://www.acme.example/platform"
+            },
+            {
+              "label": "Integrations",
+              "url": "https://www.acme.example/integrations"
+            },
+            {
+              "label": "Pricing",
+              "url": "https://www.acme.example/pricing"
+            },
+            {
+              "label": "Request a Demo",
+              "url": "https://www.acme.example/demo"
+            }
+          ]
+        },
+        {
+          "title": "Company",
+          "links": [
+            {
+              "label": "About us",
+              "url": "https://www.acme.example/about"
+            },
+            {
+              "label": "Careers",
+              "url": "https://www.acme.example/careers"
+            },
+            {
+              "label": "Contact us",
+              "url": "https://www.acme.example/contact"
+            }
+          ]
+        },
+        {
+          "title": "Resources",
+          "links": [
+            {
+              "label": "Blog",
+              "url": "https://www.acme.example/blog"
+            },
+            {
+              "label": "Help Center",
+              "url": "https://www.acme.example/help"
+            },
+            {
+              "label": "Status Page",
+              "url": "https://www.acme.example/status"
+            }
+          ]
+        }
+      ],
+      "copyright": "Acme Cloud, Inc. All rights reserved.",
+      "legal": [
+        {
+          "label": "Terms",
+          "url": "https://www.acme.example/terms"
+        },
+        {
+          "label": "Privacy",
+          "url": "https://www.acme.example/privacy"
+        }
+      ]
+    }
+  }
+}

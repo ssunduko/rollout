@@ -1,0 +1,12 @@
+{
+  "$comment": "Sidecar of feature.md: machine-readable facts the agents and the pipeline read. Every field is optional except slug and name.",
+  "slug": "",
+  "name": "",
+  "status": "live",
+  "audience": "",
+  "pill": null,
+  "sections": 4,
+  "cta": null,
+  "assets": [],
+  "links": {}
+}

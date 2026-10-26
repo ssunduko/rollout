@@ -1,0 +1,41 @@
+{
+  "//": "Template for a capture target - copy to targets/<name>.json. Secrets go in targets/<name>.local.json (gitignored) or .env via env: references.",
+  "name": "my-app",
+  "description": "the production web app, as a demo admin",
+
+  "app": "env:MY_APP_URL",
+  "//startUrl": "where captures start when a scene names no start (relative to app)",
+  "startUrl": "/",
+  "viewport": { "width": 1440, "height": 900 },
+
+  "//pageUrlMatch": "extra hosts that still count as the app (SSO, identity provider)",
+  "pageUrlMatch": [],
+  "//blockUrls": "kept from loading during a capture: chat widgets, surveys",
+  "blockUrls": ["*intercom.io*", "*hotjar.com*"],
+  "//hideSelectors": "hidden with CSS: banners unrelated to any feature",
+  "hideSelectors": [],
+  "//blurSelectors": "blurred with CSS: contact names, phone numbers, emails - anything personal",
+  "blurSelectors": [],
+
+  "//profile": "Chrome profile holding the signed-in session. Default profiles/<name>/. For SSO apps sign in once by hand: node pipeline/rollout.mjs login <name>",
+
+  "auth": {
+    "//mode": "'none': use the profile's session (SSO). 'form': fill the login form off camera whenever it appears.",
+    "mode": "form",
+    "username": "env:MY_APP_USERNAME",
+    "password": "env:MY_APP_PASSWORD",
+    "//selectors": "puppeteer selectors or 'btn:Exact text'. signedIn proves the app has loaded.",
+    "selectors": {
+      "signInLink": "btn:Sign in",
+      "username": "input[type=\"email\"]",
+      "password": "input[type=\"password\"]",
+      "submit": "button[type=\"submit\"]",
+      "signedIn": "[aria-label=\"Account\"]"
+    }
+  },
+
+  "//secrets": "values filled into {name} placeholders in scene URLs, e.g. start: /workspaces/{workspaceId}/settings",
+  "secrets": {
+    "workspaceId": "env:MY_APP_WORKSPACE_ID"
+  }
+}

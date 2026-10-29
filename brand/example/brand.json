@@ -275,5 +275,9 @@
         }
       ]
     }
+  },
+  "socialPack": {
+    "$comment": "Defaults for the social pack (pipeline/social.mjs, docs/social.md).",
+    "button": "See how it works"
   }
 }

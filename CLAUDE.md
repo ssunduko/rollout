@@ -18,7 +18,10 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 - Agent-authored, kept forever: `library/features/<slug>/brief.json`,
   `library/scenes/<id>/`. Renders are cached in `library/renders/<hash>/`;
   `library/index.json` is derived — never edit it.
-- Build products, regenerable: `output/<slug>/`. Never edit by hand.
+- Build products, regenerable: `output/<slug>/`. Never edit by hand. The
+  social pack (cover, carousel, thumbnails, email and signature images) is
+  built into `output/<slug>/assets/social/` from
+  `library/features/<slug>/social.json`: `docs/social.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - Visuals are captured from the logged-in application: `docs/capture.md`.

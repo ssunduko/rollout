@@ -10,7 +10,8 @@ in `.env`.
 *Why:* the pipeline must serve any brand by configuration (2026-10-26).
 
 ### Agents write sidecars, the core renders
-Agents edit only `library/features/*/brief.json` and `library/scenes/*`. They
+Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`
+and `library/scenes/*`. They
 never edit `pipeline/` or hand-edit anything in `output/`.
 *Why:* every build must be reproducible from the sidecars alone (2026-10-26).
 

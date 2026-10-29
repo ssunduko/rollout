@@ -158,7 +158,9 @@ ${last ? `<footer class="cta">
 // Write output/<slug>/onepager.html (+ assets/) and print it to PDF.
 export async function buildOnepager({ brief, brand, renders, outDir }) {
   const assets = path.join(outDir, 'assets');
-  fs.rmSync(assets, { recursive: true, force: true });
+  // empty it rather than remove it: Windows refuses to remove a folder that is open somewhere
+  fs.mkdirSync(assets, { recursive: true });
+  for (const f of fs.readdirSync(assets)) fs.rmSync(path.join(assets, f), { recursive: true, force: true });
   const stills = {};
   for (const [id, r] of Object.entries(renders)) {
     stills[id] = {

@@ -15,6 +15,15 @@ pipeline builds:
   data for a CMS)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
+- `output/<slug>/copy/` — the copy pack: subfeature descriptions, page
+  header, the launch email (text and HTML), Facebook/LinkedIn, Instagram, X
+  and in-app posts, and the podcast brief, all in `rollout-copy.md` ready to
+  paste (`docs/copy.md`)
+
+It can start from tickets instead of a description: give it an umbrella
+ticket, a rollout parent ticket or a rollout wiki page, and the
+`rollout-scope` agent turns them into use cases for you to confirm, then
+writes the feature input.
 
 Where the animation shows: the web page and `onepager.html` in a browser. The
 PDF itself is a print format and always carries the stills.
@@ -49,9 +58,14 @@ node pipeline/rollout.mjs init my-feature --name "My Feature"
 # describe it in input/my-feature/feature.md (optional: screenshots in assets/)
 ```
 
-Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
+Then ask Claude Code: **"roll out my-feature"** (or **"roll out <ticket
+key>"** to start from the tracker). The `feature-rollout` skill:
 
-1. `rollout-copywriter` writes `library/features/my-feature/brief.json`
+0. from a ticket or page: `rollout-scope` reads the tickets (read-only),
+   proposes use-case subheadlines with their tickets, and once you confirm,
+   writes `input/my-feature/feature.md` and its `sources`
+1. `rollout-copywriter` writes `library/features/my-feature/brief.json`,
+   then `copy.json` (email, posts, podcast brief)
 2. `rollout-visual-designer` probes the signed-in app and writes a capture
    scene per section (state to reach, steps to record, clip), records stills +
    GIFs; asks before anything that would change live data
@@ -78,6 +92,8 @@ example brand (`brand/example/`), captured from the example app
 | `scenes <slug> [--force] [--allow-mutations]` | Every scene the brief uses |
 | `build <slug> [--force] [--allow-mutations]` | Scenes → PDF → web page, `build.json` |
 | `social <slug> [--force]` | Only the social pack, into `output/<slug>/assets/social/` (`docs/social.md`); `build` makes it too |
+| `copy <slug>` | Only the copy pack, into `output/<slug>/copy/` (`docs/copy.md`); `build` makes it too |
+| `tracker` | Where the scope agent reads tickets (`TRACKER_*`) |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
@@ -89,13 +105,13 @@ All are `node pipeline/rollout.mjs <command>`.
 
 | Folder | Holds | Written by |
 |---|---|---|
-| `input/<slug>/` | `feature.md`, `feature.json` sidecar, optional `assets/` | a person |
+| `input/<slug>/` | `feature.md`, `feature.json` sidecar, optional `assets/` | a person, or the scope agent from confirmed tickets |
 | `input/_template/` | the template `init` copies | — |
 | `brand/<id>/` | one folder per brand (e.g. `example`): `brand.json`, logos, icons, fonts, `StyleGuide.txt` | a person, once per brand |
 | `targets/` | applications captures log into (`*.local.json` gitignored) | a person, once per app |
 | `profiles/` | signed-in Chrome profiles (gitignored) | `login` / captures |
 | `demo-app/` | example application with a login, for trying the pipeline | — |
-| `library/features/` | briefs | copywriter agent |
+| `library/features/` | briefs and copy packs (`brief.json`, `copy.json`), social packs (`social.json`) | copywriter and visual-designer agents |
 | `library/scenes/` | capture scenes (`scene.json`) and kit scenes (+ `scene.html`) | visual-designer agent |
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
@@ -121,6 +137,7 @@ All are `node pipeline/rollout.mjs <command>`.
 | `STILL_SCALE` | `2` | Pixel density of stills |
 | `GIF_FPS`, `GIF_SCALE` | `12`, `1` | GIF frame rate and scale |
 | `QA_FORBIDDEN_TERMS` | | Comma list QA fails on (e.g. another brand's name) |
+| `TRACKER_SITE_ID`, `TRACKER_ROLLOUT_PROJECT`, `TRACKER_ENGINEERING_PROJECTS`, `TRACKER_SHIPPED_STATUSES` | | Where the scope agent reads tickets |
 | `CAPTURE_TARGET` | | Default target for captures |
 | `CAPTURE_HEADLESS` | `true` | `false` to watch captures |
 | `CAPTURE_SCALE` | `2` | Pixel density of captured stills |
@@ -142,4 +159,6 @@ brand; the previous brand's renders stay in the library.
 - `docs/brief.md` — the copy format and limits, the reference layout
 - `docs/capture.md` — targets, probing, capture scenes, live-data and blur rules
 - `docs/scene-kit.md` — kit scenes (hero composition, coming soon)
+- `docs/social.md` — the social pack
+- `docs/copy.md` — the copy pack (email, posts, podcast brief) and the brand's copy rules
 - `docs/rules.md` — standing rules

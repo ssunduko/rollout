@@ -10,8 +10,10 @@
 //                                                                    signed-in screenshot + element list, for choosing selectors
 //   node pipeline/rollout.mjs scene <id> [--force] [--allow-mutations]   render or capture one scene, print its files
 //   node pipeline/rollout.mjs scenes <slug> [--force]               render every scene the brief uses
-//   node pipeline/rollout.mjs build <slug> [--force] [--allow-mutations]   scenes -> PDF -> web page -> social pack
+//   node pipeline/rollout.mjs build <slug> [--force] [--allow-mutations]   scenes -> PDF -> web page -> social pack -> copy pack
 //   node pipeline/rollout.mjs social <slug> [--force]               the social pack only (needs library/features/<slug>/social.json)
+//   node pipeline/rollout.mjs copy <slug>                           the copy pack only: email, posts, podcast brief (needs library/features/<slug>/copy.json)
+//   node pipeline/rollout.mjs tracker                               where the scope agent reads tickets (TRACKER_* in .env)
 //   node pipeline/rollout.mjs qa <slug>                             measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
@@ -22,7 +24,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, INPUT_DIR, LIBRARY_DIR, featurePaths, assertSlug, readJson, writeJson, envNumber } from './env.mjs';
+import { ROOT, INPUT_DIR, LIBRARY_DIR, featurePaths, assertSlug, readJson, writeJson, env, envNumber } from './env.mjs';
 import { loadBrand, brandForFeature } from './brand.mjs';
 import { loadFeature, loadBrief, validateBrief } from './brief.mjs';
 import { renderScenes } from './scenes.mjs';
@@ -30,6 +32,7 @@ import { buildOnepager } from './onepager.mjs';
 import { buildWebpage } from './webpage.mjs';
 import { runQa } from './qa.mjs';
 import { buildSocial, loadSocial, socialSceneIds, validateSocial } from './social.mjs';
+import { buildCopy, validateCopy, copyFile } from './copy.mjs';
 import { serveDir, openInBrowser } from './serve.mjs';
 import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir } from './library.mjs';
 import { loadTarget, listTargets } from './target.mjs';
@@ -58,8 +61,15 @@ function printSocialValidation(slug, brief, brand) {
   return errors.length === 0;
 }
 
+function printCopyValidation(slug, brief, brand) {
+  const { errors, warnings } = validateCopy(slug, brief, brand);
+  errors.forEach((m) => console.log(`  error  copy: ${m}`));
+  warnings.forEach((m) => console.log(`  warn   copy: ${m}`));
+  return errors.length === 0;
+}
+
 function printValidation(slug) {
-  const { errors, warnings } = validateBrief(slug);
+  const { errors, warnings } = validateBrief(slug, brandForFeature(slug));
   errors.forEach((m) => console.log(`  error  ${m}`));
   warnings.forEach((m) => console.log(`  warn   ${m}`));
   if (!errors.length && !warnings.length) console.log('  brief OK');
@@ -85,11 +95,13 @@ const commands = {
     const has = (f) => fs.existsSync(f);
     const line = (ok, label, detail = '') => console.log(`  ${ok ? '✓' : '·'} ${label}${detail ? `  ${detail}` : ''}`);
     line(has(p.description), 'input', rel(p.description));
+    const sources = has(p.sidecar) ? readJson(p.sidecar).sources ?? [] : [];
+    if (sources.length) line(true, 'sources', sources.map((x) => x.ref).join(', '));
     const assets = has(p.inputAssets) ? fs.readdirSync(p.inputAssets).filter((f) => !f.startsWith('.') && f !== 'README.md') : [];
     line(true, 'input assets', assets.length ? assets.join(', ') : 'none (agents create every visual)');
     line(has(p.brief), 'brief', has(p.brief) ? rel(p.brief) : 'next: copywriter agent');
     if (!has(p.brief)) return;
-    const { errors } = validateBrief(slug);
+    const { errors } = validateBrief(slug, brandForFeature(slug));
     const brief = readJson(p.brief);
     const ids = [brief.hero?.scene, ...(brief.sections ?? []).map((s) => s.scene)].filter(Boolean);
     const missing = ids.filter((id) => !has(path.join(sceneDir(id), 'scene.json')));
@@ -97,6 +109,7 @@ const commands = {
     if (captures.length) line(true, 'captures', `${captures.length} from target ${[...new Set(captures.map(targetNameFor))].join(', ')}`);
     line(!missing.length, 'scenes', missing.length ? `missing: ${missing.join(', ')} — next: visual-designer agent` : `${ids.length} authored`);
     line(!errors.length, 'brief valid', errors.length ? `${errors.length} error(s) — run validate` : '');
+    line(has(copyFile(slug)), 'copy', has(copyFile(slug)) ? rel(copyFile(slug)) : 'next: copywriter agent (email, posts, podcast brief)');
     const build = path.join(p.output, 'build.json');
     line(has(build), 'built', has(build) ? readJson(build).builtAt : 'next: rollout.mjs build');
     const qa = path.join(p.qa, 'qa.json');
@@ -135,7 +148,17 @@ const commands = {
     const slug = assertSlug(args[0]);
     loadFeature(slug);
     if (!printValidation(slug)) process.exitCode = 1;
-    else if (!printSocialValidation(slug, loadBrief(slug, brandForFeature(slug)), brandForFeature(slug))) process.exitCode = 1;
+    // the social pack and the copy pack need only a readable brief, not a finished one
+    const brand = brandForFeature(slug);
+    let brief;
+    try {
+      brief = loadBrief(slug, brand);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(brief.sections) || !brief.hero) return;
+    if (!printSocialValidation(slug, brief, brand)) process.exitCode = 1;
+    if (!printCopyValidation(slug, brief, brand)) process.exitCode = 1;
   },
 
   async scene() {
@@ -166,6 +189,7 @@ const commands = {
     fs.mkdirSync(p.output, { recursive: true });
 
     if (!printSocialValidation(slug, brief, brand)) throw new Error('social.json has errors — fix them before building');
+    if (!printCopyValidation(slug, brief, brand)) throw new Error('copy.json has errors — fix them before building');
     console.log(`scenes (brand ${brand.id})`);
     const renders = await renderScenes(allSceneIds(slug, brief, brand), brand, renderOpts());
 
@@ -183,11 +207,17 @@ const commands = {
     console.log(social ? `social pack
   ${rel(social.dir)}/  (${social.files.length} files)` : 'social pack  skipped — no social.json');
 
+    // after the social pack: the posts name the images to attach
+    const copy = buildCopy({ slug, brief, brand });
+    console.log(copy ? `copy pack
+  ${rel(copy.dir)}/  (${copy.files.length} files)` : 'copy pack  skipped — no copy.json');
+
     writeJson(path.join(p.output, 'build.json'), {
       $comment: 'Sidecar of this build: what it was made from. Generated by pipeline/rollout.mjs.',
       slug, brand: brand.id, brandHash: brand.hash,
       pdf: path.basename(pdf.pdfFile), pages: pdf.pages, web: 'web/index.html', webFitted: web.fitted,
       social: social ? social.files.map((f) => `assets/social/${f}`) : [],
+      copy: copy ? copy.files.map((f) => `copy/${f}`) : [],
       scenes: Object.fromEntries(Object.entries(renders).map(([id, r]) => [id, r.hash])),
       builtAt: new Date().toISOString(),
     });
@@ -206,10 +236,33 @@ const commands = {
     console.log(`  -> ${rel(r.dir)}/`);
   },
 
+  copy() {
+    const slug = assertSlug(args[0]);
+    const brand = brandForFeature(slug);
+    const brief = loadBrief(slug, brand);
+    if (!fs.existsSync(copyFile(slug))) throw new Error(`no library/features/${slug}/copy.json — the copywriter writes it (docs/copy.md)`);
+    if (!printCopyValidation(slug, brief, brand)) throw new Error('copy.json has errors');
+    const r = buildCopy({ slug, brief, brand });
+    console.log('copy pack');
+    r.files.forEach((f) => console.log(`  ${f}`));
+    console.log(`  -> ${rel(r.dir)}/`);
+  },
+
+  tracker() {
+    const list = (key) => env(key, '').split(',').map((x) => x.trim()).filter(Boolean);
+    console.log(JSON.stringify({
+      site: env('TRACKER_SITE_ID', null),
+      rolloutProject: env('TRACKER_ROLLOUT_PROJECT', null),
+      engineeringProjects: list('TRACKER_ENGINEERING_PROJECTS'),
+      shippedStatuses: list('TRACKER_SHIPPED_STATUSES'),
+    }, null, 2));
+  },
+
   async qa() {
     const slug = assertSlug(args[0]);
-    const brief = loadBrief(slug, brandForFeature(slug));
-    const r = await runQa({ slug, brief, paths: featurePaths(slug) });
+    const brand = brandForFeature(slug);
+    const brief = loadBrief(slug, brand);
+    const r = await runQa({ slug, brief, brand, paths: featurePaths(slug) });
     console.log(`VERDICT (measured): ${r.verdict}  ${r.fails} fail, ${r.warns} warn`);
     r.findings.forEach((f) => console.log(`  ${f.level.padEnd(4)} [${f.check}] ${f.message}`));
     console.log('screenshots for the layout-qa agent:');

@@ -130,7 +130,10 @@
     "instagram": "icons/instagram.svg"
   },
   "voice": [
-    "Clear, confident and friendly; written for busy customer-facing teams.",
+    "Casual but slightly formal: warm and conversational, like a knowledgeable colleague, yet polished. Full sentences, no slang or text-speak.",
+    "Contractions are fine (you'll, it's, don't); avoid hype, exclamation marks and superlatives. Confident, not salesy.",
+    "At most one emoji per subject line or post opener; none in body paragraphs.",
+    "Clear and friendly; written for busy customer-facing teams.",
     "Lead with the customer outcome, then the feature that delivers it.",
     "Short sentences, active voice, no jargon; numbers beat adjectives."
   ],
@@ -279,5 +282,29 @@
   "socialPack": {
     "$comment": "Defaults for the social pack (pipeline/social.mjs, docs/social.md).",
     "button": "See how it works"
+  },
+  "copy": {
+    "$comment": "House style and channel defaults for the copy pack (pipeline/copy.mjs, docs/copy.md). forbidden and bannedOpeners also apply to the brief.",
+    "sender": "Team Acme Cloud",
+    "signoff": "The Acme Cloud Team",
+    "ctaPrefix": "👉",
+    "linkInBio": "Link in bio",
+    "greeting": "Hi {{First Name}},",
+    "bullets": { "feed": "🔷", "instagram": "🔷", "x": "✅", "inApp": "🔷" },
+    "hashtags": ["AcmeCloud", "CustomerExperience", "SalesTools", "ProductUpdate"],
+    "forbidden": ["—", "–"],
+    "bannedOpeners": ["Introducing", "We're excited to", "We are excited to", "Today we're announcing"],
+    "labels": { "inApp": "In-app post" },
+    "podcast": {
+      "hosts": [
+        { "label": "Host A", "persona": "The skeptic: asks how it works and what it costs the team" },
+        { "label": "Host B", "persona": "The storyteller: ties it back to a customer's day" }
+      ]
+    },
+    "notes": [
+      "Titles start with an action verb.",
+      "Address the reader as you and your team.",
+      "Lead with what the user gains, not how the feature works technically."
+    ]
   }
 }

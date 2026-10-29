@@ -72,8 +72,9 @@ flowchart LR
 | `brand/<id>/brand.json` | logos, icons, fonts | a person, once per brand | every stage | name, contact, social, nav, colours, fonts, voice, rules |
 | `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials |
 | `targets/<name>.json` | `profiles/<name>/` | a person, once per app | `target.mjs`, `capture.mjs` | app URL, sign-in, viewport, hide/blur/block, secrets (as `env:` refs) |
-| `input/<slug>/feature.json` | `feature.md`, `assets/` | a person (from the template) | agents, `brief.mjs` | name, status, audience, section count, overrides, asset list |
-| `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what |
+| `input/<slug>/feature.json` | `feature.md`, `assets/` | a person (from the template), or the scope agent | agents, `brief.mjs` | name, status, audience, section count, overrides, asset list, `sources` (tickets), `rollout` (parent and deliverables) |
+| `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs`, `copy.mjs` | all copy, which scene illustrates what |
+| `library/features/<slug>/copy.json` | the brief | copywriter agent | `copy.mjs` | the launch email, posts and podcast brief, as parts |
 | `library/scenes/<id>/scene.json` | (`scene.html` for kit scenes) | visual-designer agent | `scenes.mjs`, `capture.mjs` | capture: target, start, setup, steps, clip · kit: size, animation · both: still moment, tags |
 | `library/renders/<hash>/render.json` | `still.png`, `anim.gif`, `web.gif` (captures) | `scenes.mjs` | `library.mjs` | which scene, which brand, settings, when |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
@@ -116,13 +117,15 @@ flowchart LR
 
 ## Flow
 
-1. A person writes `input/<slug>/feature.md` (+ optional assets).
-2. `rollout-copywriter` → `brief.json` (checks `validate`).
+1. A person writes `input/<slug>/feature.md` (+ optional assets), or
+   `rollout-scope` reads the tickets, the user confirms the use cases, and
+   it writes `feature.md` and its `sources`.
+2. `rollout-copywriter` → `brief.json`, then `copy.json` (checks `validate`).
 3. `rollout-visual-designer` → probes the signed-in app, writes capture
    scenes, records and inspects them (`scene <id>`); data-changing steps
    wait for the user's approval.
 4. `rollout.mjs build` → renders missing scenes, prints the PDF, writes the
-   web folder, records `build.json`.
+   web folder, the social pack and the copy pack, records `build.json`.
 5. `rollout.mjs qa` + `rollout-qa` → PASS/FAIL on the PDF and the served web
    page, with fixes; the user approves fixes, which go back to the owning agent.
 6. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
@@ -146,6 +149,8 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/onepager.mjs` | brief → paginated HTML → PDF |
 | `pipeline/webpage.mjs` | brief + brand `web` block → the site's feature-page layout + page.json |
 | `pipeline/webmedia.mjs` | the web cut format: framed 1180×676 GIFs (from capture frames, or fitted) |
+| `pipeline/social.mjs` | social.json + brief + stills → the social images and carousel PDF |
+| `pipeline/copy.mjs` | copy.json + brief + brand copy rules → the copy pack: email, posts, podcast brief |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |
 | `pipeline/chrome.mjs` | headless Chrome (puppeteer-core) |

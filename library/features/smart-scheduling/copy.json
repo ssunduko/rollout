@@ -1,0 +1,113 @@
+{
+  "$comment": "Launch copy for the smart-scheduling rollout (email, posts, podcast brief), written by the rollout-copywriter agent from the brief. Composed into output/smart-scheduling/copy/ by pipeline/copy.mjs.",
+  "email": {
+    "subject": "📅 Book meetings right inside the conversation",
+    "preview": "Offer open times in the thread, sync team calendars and send reminders automatically.",
+    "opener": "Finding a time that works shouldn't take five texts and a lost lead.",
+    "paragraphs": [
+      "With Smart Scheduling, you click Suggest times in the composer and drop three open slots into your reply. Your customer answers with a number or a tap, and the meeting is booked on the spot.",
+      "Connect your team's Google or Microsoft calendars once, let round-robin share bookings evenly, and give every inbox its own meeting types. Confirmations and reminders go out on their own."
+    ],
+    "closing": "Spend less time on back-and-forth and more time on the conversations that close deals.",
+    "cta": { "label": "See how it works" }
+  },
+  "posts": {
+    "feed": {
+      "hook": "📅 \"What time works for you?\" now has a one-tap answer.",
+      "intro": "Smart Scheduling lets your customers book a meeting without ever leaving the text conversation.",
+      "bullets": [
+        "Drop three open times into any reply",
+        "Sync your team's Google or Microsoft calendars",
+        "Share bookings evenly with round-robin",
+        "Send confirmations and reminders automatically",
+        "Set meeting types and questions for every inbox"
+      ],
+      "closing": "You'll lose fewer leads to back-and-forth and book more meetings.",
+      "cta": "See how it works:",
+      "hashtags": ["AcmeCloud", "SalesTools", "Scheduling", "CustomerExperience", "ProductUpdate"]
+    },
+    "instagram": {
+      "hook": "📅 Book meetings right inside the conversation.",
+      "intro": "Offer open times in the thread, let customers pick one, and the meeting books itself, with confirmations and reminders included.",
+      "closing": "Swipe to see how it works.",
+      "hashtags": ["AcmeCloud", "SalesTools", "Scheduling", "ProductUpdate"]
+    },
+    "x": {
+      "hook": "📅 Book meetings without leaving the text thread.",
+      "bullets": [
+        "Suggest open times in one click",
+        "Sync team calendars",
+        "Automatic reminders"
+      ],
+      "cta": "See how:",
+      "hashtags": ["SalesTools", "Scheduling"]
+    },
+    "inApp": {
+      "intro": "Your customers can now book a meeting right inside the conversation with Smart Scheduling.",
+      "bullets": [
+        "Click Suggest times in the composer to offer three open slots",
+        "Connect your team's calendars in Settings > Scheduling",
+        "Confirmations and reminders go out automatically"
+      ],
+      "closing": "Every meeting gets booked in the thread where the conversation already is.",
+      "cta": "Open Settings > Scheduling to connect your calendar."
+    }
+  },
+  "podcast": {
+    "title": "Smart Scheduling: from \"what time works?\" to booked in one reply",
+    "status": "Live for all plans; rescheduling by text is coming soon",
+    "duration": "8 to 10 minutes",
+    "description": "Smart Scheduling lets customers book a meeting without leaving the text conversation. The rep offers open times from the team's connected calendars, and the customer picks one by replying. The meeting is then created, confirmed and reminded automatically. Each inbox can set its own meeting types and booking questions.",
+    "audience": "Sales and support teams that book demos, consultations or service visits over text.",
+    "value": {
+      "proposition": "Turn the back-and-forth of finding a time into a meeting booked in one reply.",
+      "before": "A rep texts a link or a list of times, the customer goes quiet, and the lead cools while both sides trade messages.",
+      "after": "The rep drops three open slots into the reply, the customer answers \"2\", and the meeting is booked, confirmed and on the calendar."
+    },
+    "steps": [
+      "Connect Google or Microsoft calendars in Settings > Scheduling and set working hours, buffers and meeting length.",
+      "Click Suggest times in the composer to insert three open slots into a reply.",
+      "The customer answers with a number or taps a slot, and the meeting is created.",
+      "A confirmation goes out right away, with reminders 24 hours and 1 hour before."
+    ],
+    "standout": [
+      "Customers book inside the text thread, with no link to open and no form to fill in.",
+      "Round-robin hands each booking to the next available rep.",
+      "Every inbox gets its own meeting types, from a 30 minute demo to a 45 minute onboarding."
+    ],
+    "useCases": {
+      "primary": "A sales rep books a demo with an inbound lead in the same thread the lead texted in on.",
+      "secondary": [
+        "A support team schedules an onboarding call with the right meeting type for that inbox.",
+        "A service business confirms appointments and sends reminders without manual follow-up."
+      ]
+    },
+    "focus": [
+      "Booking inside the conversation instead of sending a link",
+      "Team calendars and round-robin",
+      "Automatic confirmations and reminders",
+      "Booking rules per inbox"
+    ],
+    "talkingPoints": [
+      "Why scheduling links lose leads over text.",
+      "What the customer actually sees: three times and a one-word reply.",
+      "How statuses (Booked, Reminded, Rescheduled, No-show) keep the team on top of every meeting.",
+      "What is coming next: rescheduling by text."
+    ],
+    "questions": [
+      "What happens if two reps are free at the same time?",
+      "Can each team use different meeting lengths?",
+      "When do the reminders go out?",
+      "What does the customer need to install? (Nothing: they just reply.)"
+    ],
+    "tone": "Friendly and practical: two hosts walking through a rep's day, light on jargon.",
+    "cta": {
+      "text": "Connect your calendar in Settings > Scheduling and try Suggest times in your next conversation.",
+      "resources": [{ "label": "Feature page" }]
+    },
+    "hosts": [
+      { "focus": ["How round-robin and calendar sync work", "What happens at each status"] },
+      { "focus": ["A rep's day before and after", "The customer's side of the conversation"] }
+    ]
+  }
+}

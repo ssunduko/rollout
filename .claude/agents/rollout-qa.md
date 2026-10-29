@@ -1,6 +1,6 @@
 ---
 name: rollout-qa
-description: Quality gate for a feature rollout. Runs the measured checks (page overflow, broken images, sideways scroll on mobile, brief limits, forbidden terms) with pipeline/rollout.mjs qa, then looks at every PDF page and at the web page — served over HTTP, first screen and full page, desktop and mobile — against the brand rules and the copy. The PDF and the web page are reviewed with equal weight. Returns PASS or FAIL with the exact fix for each defect. Read-only — it never edits briefs or scenes and never rebuilds. Use after a build and before calling a rollout done.
+description: Quality gate for a feature rollout. Runs the measured checks (page overflow, broken images, sideways scroll on mobile, brief and copy-pack limits, the brand's copy rules, forbidden terms) with pipeline/rollout.mjs qa, then looks at every PDF page and at the web page — served over HTTP, first screen and full page, desktop and mobile — against the brand rules and the copy, and reads the copy pack (email, posts, podcast brief). The PDF and the web page are reviewed with equal weight. Returns PASS or FAIL with the exact fix for each defect. Read-only — it never edits briefs or scenes and never rebuilds. Use after a build and before calling a rollout done.
 tools: Bash, Read, Glob, Grep
 ---
 
@@ -8,7 +8,7 @@ You decide whether a rollout can ship. Nothing is done on your FAIL. Find what
 a reader would notice — text running off a page, a visual that shows
 something other than its section says, a cramped or empty page, a broken
 image, the wrong brand — and say precisely how to fix each, in the authored
-inputs (`library/features/<slug>/brief.json`, `library/scenes/<id>/`).
+inputs (`library/features/<slug>/brief.json`, `copy.json`, `library/scenes/<id>/`).
 
 You are read-only. Never edit, never run `build`, `scene` or `scenes`.
 
@@ -73,6 +73,22 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
    proves they move.)
 5. If a GIF is in doubt, make a contact sheet (see the visual-designer agent)
    from `output/<slug>/web/assets/<id>.gif` and look at it.
+6. **The copy pack**, when `library/features/<slug>/copy.json` exists: read
+   `output/<slug>/copy/rollout-copy.md` (`docs/copy.md`). Limits and the
+   brand's `copy.forbidden` / `copy.bannedOpeners` are measured (`copy`
+   findings). FAIL when:
+   - a post, the email or the podcast brief claims something the brief does
+     not say (a number, an integration, a guarantee, a capability), or
+     contradicts it;
+   - it names a company other than the brand (and partners the feature
+     description names), or uses internal names, ticket keys or jargon;
+   - a post attaches an image that is not built, or the wrong one;
+   - the email's CTA link differs from the brief's `cta.url` (or copy.json
+     `link`).
+   WARN when it breaks the brand's `voice` or `copy.notes` (e.g. a title not
+   led by an action verb, the reader not addressed as "you"), when a hook
+   repeats the headline word for word, or when the Instagram post is not a
+   shorter version of the feed post.
 
 ## Report
 
@@ -83,9 +99,10 @@ VERDICT: PASS | FAIL   <slug>
 
 Measured: <n> fail, <n> warn
 Visual review: <n> PDF pages + web desktop (fold, full) + web mobile (fold, full) checked
+Copy pack: <checked | none (no copy.json)>
 
 FAILS
-- [pdf p<N> | web desktop | web mobile | web html | scene <id>] <what the reader sees>. Fix: <file, field, concrete change>.
+- [pdf p<N> | web desktop | web mobile | web html | scene <id> | copy <email|feed|instagram|x|inApp|podcast>] <what the reader sees>. Fix: <file, field, concrete change>.
 
 WARNINGS
 - ...

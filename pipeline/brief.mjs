@@ -21,6 +21,7 @@ export const LIMITS = {
   lead: [60, 220],
   sectionTitle: [8, 70],
   body: [110, 330],
+  short: [40, 200],
   sections: [1, 8],
   ctaTitle: 64,
   ctaSubtitle: 110,
@@ -57,7 +58,7 @@ export function loadBrief(slug, brand = null) {
       ...(brief.cta ?? {}),
     },
     web: { heroButton: brand?.cta?.heroButton ?? env('WEB_HERO_BUTTON', 'Try for free'), ...(brief.web ?? {}) },
-    seo: { title: brief.seo?.title ?? null, description: brief.seo?.description ?? brief.intro?.slice(0, 155) },
+    seo: { title: brief.seo?.title ?? null, description: brief.seo?.description ?? brief.intro?.slice(0, 155), url: brief.seo?.url ?? `/${slug}` },
   };
 }
 
@@ -77,8 +78,33 @@ export function headlineParts(headline) {
 
 export const plainHeadline = (h) => h.replace(/[[\]]/g, '');
 
+// The brand's copy rules (brand.json "copy"), with defaults. They apply to the
+// brief and to the copy pack (pipeline/copy.mjs): strings no copy may contain
+// (an em dash, a retired product name) and openers no text may start with.
+export function copyStyle(brand) {
+  const c = brand?.copy ?? {};
+  return {
+    forbidden: c.forbidden ?? [],
+    bannedOpeners: c.bannedOpeners ?? [],
+  };
+}
+
+// Problems with one piece of copy under the brand's copy rules.
+export function styleProblems(label, text, style) {
+  if (typeof text !== 'string' || !text) return [];
+  const out = [];
+  for (const f of style.forbidden) if (text.includes(f)) out.push(`${label} contains "${f}" (the brand's copy rules forbid it)`);
+  const start = text.trim().toLowerCase();
+  for (const o of style.bannedOpeners) if (start.startsWith(o.toLowerCase())) out.push(`${label} opens with "${o}" (the brand's copy rules forbid it)`);
+  return out;
+}
+
+// Sentences in a text: a run ending in . ! or ? followed by a space or the end.
+export const sentenceCount = (text) => (String(text ?? '').match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g) ?? []).filter((s) => s.trim()).length;
+
 // Every problem with a brief, as messages a person (or an agent) can act on.
-export function validateBrief(slug) {
+// With the brand, its copy rules are checked too.
+export function validateBrief(slug, brand = null) {
   const errors = [];
   const warnings = [];
   const p = featurePaths(slug);
@@ -129,6 +155,12 @@ export function validateBrief(slug) {
   sections.forEach((s, i) => {
     len(`sections[${i}].title`, s.title, LIMITS.sectionTitle);
     len(`sections[${i}].body`, s.body, LIMITS.body);
+    if (s.body && sentenceCount(s.body) > 2) warnings.push(`sections[${i}].body has ${sentenceCount(s.body)} sentences (the long description is at most 2)`);
+    // the one-sentence version the copy pack and web listings use
+    if (s.short) {
+      len(`sections[${i}].short`, s.short, LIMITS.short);
+      if (sentenceCount(s.short) > 1) warnings.push(`sections[${i}].short has ${sentenceCount(s.short)} sentences (it is one)`);
+    } else warnings.push(`sections[${i}].short is missing (the one-sentence description)`);
     if (s.eyebrow && s.eyebrow.length > 24) errors.push(`sections[${i}].eyebrow is longer than 24 characters`);
     scene(`sections[${i}]`, s);
   });
@@ -138,6 +170,14 @@ export function validateBrief(slug) {
 
   if (b.cta?.title && b.cta.title.length > LIMITS.ctaTitle) errors.push(`cta.title is longer than ${LIMITS.ctaTitle} characters`);
   if (b.cta?.subtitle && b.cta.subtitle.length > LIMITS.ctaSubtitle) errors.push(`cta.subtitle is longer than ${LIMITS.ctaSubtitle} characters`);
+  if (b.seo?.url && !/^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(b.seo.url)) errors.push(`seo.url "${b.seo.url}" must be a lowercase, hyphenated path such as /feature-name-updates`);
+
+  if (brand) {
+    const style = copyStyle(brand);
+    const texts = [['headline', b.headline], ['intro', b.intro], ['lead', b.lead], ['seo.description', b.seo?.description],
+      ...sections.flatMap((s, i) => [[`sections[${i}].title`, s.title], [`sections[${i}].body`, s.body], [`sections[${i}].short`, s.short]])];
+    for (const [label, text] of texts) errors.push(...styleProblems(label, text, style));
+  }
 
   return { errors, warnings };
 }

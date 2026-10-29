@@ -1,5 +1,5 @@
 {
-  "$comment": "Sidecar of feature.md: machine-readable facts the agents and the pipeline read. Every field is optional except slug and name.",
+  "$comment": "Sidecar of feature.md: machine-readable facts the agents and the pipeline read. Every field is optional except slug and name. sources and rollout are filled by the rollout-scope agent when the input comes from tickets.",
   "slug": "",
   "name": "",
   "status": "live",
@@ -8,5 +8,7 @@
   "sections": 4,
   "cta": null,
   "assets": [],
-  "links": {}
+  "links": {},
+  "sources": [],
+  "rollout": null
 }

@@ -10,10 +10,13 @@ in `.env`.
 *Why:* the pipeline must serve any brand by configuration (2026-10-26).
 
 ### Agents write sidecars, the core renders
-Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`
-and `library/scenes/*`. They
+Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`,
+`library/features/*/copy.json` and `library/scenes/*`; the scope agent also
+writes `input/<slug>/feature.md` and `feature.json`, and only after the user
+confirmed the scope. They
 never edit `pipeline/` or hand-edit anything in `output/`.
-*Why:* every build must be reproducible from the sidecars alone (2026-10-26).
+*Why:* every build must be reproducible from the sidecars alone (2026-10-26);
+the copy pack and ticket intake joined the sidecars (2026-10-29).
 
 ### Keep every asset
 Briefs, scenes and renders stay in `library/`. Reuse or fork a scene before
@@ -51,6 +54,22 @@ profile (2026-10-26).
 ### All brands live in brand/
 One folder per brand under `brand/`, chosen with `BRAND_DIR`.
 *Why:* user request (2026-10-26).
+
+### Tickets are read, never written
+The scope agent only reads the tracker and the wiki: no comments,
+transitions, edits or new tickets. Each use case it proposes is backed by a
+ticket or the umbrella's own spec, and the user confirms the scope before any
+copy is written. Naming the tracker and wiki as sources is not a brand fact;
+ticket content, like every real feature, stays in the gitignored `input/`.
+*Why:* the tickets are the source of truth and belong to the team; the user
+works from confirmed scope (2026-10-29).
+
+### One brief, every channel
+The email, posts and podcast brief are written from the brief and claim
+nothing it does not say. House style (dashes, banned openers, sign-off,
+hashtags, bullet markers) lives in the brand's `copy` block, not in code.
+*Why:* the user asked for the launch copy to come out of the same rollout
+(2026-10-29).
 
 ### Publish only on request
 Uploading outputs anywhere external (CMS, drive, ticket) only when the user

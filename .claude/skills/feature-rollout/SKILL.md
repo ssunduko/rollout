@@ -1,12 +1,13 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page or launch assets from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>"). Orchestrates the copywriter, visual-designer and QA agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/ and the social pack in output/<slug>/assets/social/.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch email, social posts, podcast brief or other launch assets from a feature description or from an umbrella ticket, rollout parent ticket or rollout wiki page (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "roll out <ticket key>"). Orchestrates the scope, copywriter, visual-designer and QA agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the copy pack in output/<slug>/copy/.
 ---
 
 # Feature rollout
 
-Turns `input/<slug>/feature.md` into a branded two-page one-pager PDF and a
-matching web page. Architecture: `docs/ARCHITECTURE.md`. The agents author
+Turns `input/<slug>/feature.md` (written by hand, or by the `rollout-scope`
+agent from tickets) into a branded two-page one-pager PDF, a matching web
+page, the social images and the launch copy (email, posts, podcast brief). Architecture: `docs/ARCHITECTURE.md`. The agents author
 sidecars; `node pipeline/rollout.mjs` renders them. Run everything from the
 repo root.
 
@@ -26,14 +27,29 @@ repo root.
    example app is the exception: `npm run demo-app`).
 
 1. **Input.** `node pipeline/rollout.mjs status <slug>`.
-   - No `input/<slug>/`: `node pipeline/rollout.mjs init <slug> --name "<Name>"`,
+   - **The user gave a ticket or a page** (an umbrella ticket, a "<Feature>
+     Rollout" parent, a "Rollout Assets" wiki page, or a messaging brief to
+     find the tickets for): run the `rollout-scope` agent: "Scope <ref> for
+     <slug>." Show the user its report as is (subheadlines with ticket links,
+     Dropped, Needs Info, Possibly Incomplete) and **wait for their
+     confirmation or edits**. If they want a ticket from another umbrella,
+     pass that on. Then resume the same agent with "Scope confirmed: <the
+     final list and edits>. Write the input for <slug>." It writes
+     `feature.md` and the `sources` in `feature.json`; read `feature.md`.
+     `node pipeline/rollout.mjs tracker` must show the tracker settings
+     (`TRACKER_*` in `.env`); if they are empty, the agent searches without
+     them, so say so.
+   - No `input/<slug>/` and no ticket: `node pipeline/rollout.mjs init <slug> --name "<Name>"`,
      then write `feature.md` from what the user gave you (ask for what is
      missing: capabilities, status, words to avoid). Don't invent capabilities.
    - Assets the user supplied (screenshots, logos) go in `input/<slug>/assets/`
      and are listed in `feature.json` `assets` with what each shows.
 
-2. **Copy.** Run the `rollout-copywriter` agent: "Write the brief for <slug>."
-   Read `library/features/<slug>/brief.json` when it returns.
+2. **Copy.** Run the `rollout-copywriter` agent: "Write the brief and the
+   copy pack for <slug>." It writes `library/features/<slug>/brief.json`
+   and `copy.json` (email, posts, podcast brief: `docs/copy.md`). Read both
+   when it returns. If the scope was not confirmed in step 1, show the user
+   the section titles and wait for a yes before step 3.
 
 3. **Visuals.** Run the `rollout-visual-designer` agent: "Capture the scenes
    for <slug> from target <target>." It probes the signed-in app, writes
@@ -47,7 +63,9 @@ repo root.
    yes resume it with "--allow-mutations is approved for <scene ids>".
    `node pipeline/rollout.mjs validate <slug>` must show no errors.
 
-4. **Build.** `node pipeline/rollout.mjs build <slug>`. Unchanged scenes are
+4. **Build.** `node pipeline/rollout.mjs build <slug>` (it also writes the
+   copy pack into `output/<slug>/copy/`, after the social pack whose images
+   the posts attach). Unchanged scenes are
    reused from `library/renders/`; `--force` re-captures and re-renders all
    (do it when the app's UI changed). The web page follows the site's
    feature-page layout (`docs/brief.md`, "Web page"): its chrome comes from
@@ -55,8 +73,8 @@ repo root.
    brief's `web.video` is set — say so when delivering.
 
 5. **QA.** Run the `rollout-qa` agent: "QA <slug>." It reviews the PDF and
-   the web page (served over HTTP, desktop and mobile); a verdict that does
-   not cover both is incomplete — send it back. Show the user its verdict
+   the web page (served over HTTP, desktop and mobile) and the copy pack; a
+   verdict that does not cover all three is incomplete — send it back. Show the user its verdict
    and proposed fixes, and **ask before applying any of them**. Apply approved
    fixes by sending them back to the agent that owns the file (copy →
    copywriter, scene → visual-designer), then rebuild and re-run QA.
@@ -79,6 +97,10 @@ repo root.
      (1080×1350, plus the carousel as one PDF for LinkedIn), the feature,
      podcast and YouTube thumbnails (1280×720), the email image (1100×600,
      transparent) and the email-signature banner (500×175)
+   - `output/<slug>/copy/`: `rollout-copy.md` (subfeature descriptions, page
+     header, one-pager intro, email, posts, podcast brief), one `.txt` per
+     channel ready to paste, and `email.html`. **Show `rollout-copy.md`
+     inline in the chat** (it is what the user pastes from).
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.
@@ -90,6 +112,11 @@ repo root.
   then `build`.
 - Social image tweak: edit `library/features/<slug>/social.json` (slide
   title accents, crops), then `social <slug>`.
+- Email or post tweak: edit `library/features/<slug>/copy.json` (or ask the
+  copywriter), then `copy <slug>`. A change to a section's wording belongs
+  in the brief, then `build`: the copy pack follows it.
+- House style (dashes, banned openers, sign-off, hashtags, bullet markers,
+  podcast hosts): the brand's `copy` block in `brand.json`.
 - The app changed: `build <slug> --force` re-captures everything.
 - Another brand: point `BRAND_DIR` at another folder in `brand/` (or use
   `BRAND_*` overrides) and `build` — layouts and kit scenes re-render in the

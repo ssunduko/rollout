@@ -12,7 +12,8 @@
 //              title/description/h1, links with no destination, missing alt,
 //              the video placeholder still in place (warn), section visuals
 //              fitted instead of cut for the web (warn, from build.json)
-//   brief      validate() errors and warnings
+//   brief      validate() errors and warnings, the brand's copy rules included
+//   copy       the copy pack's limits and copy rules (validateCopy)
 //   animation  a GIF on the web page has fewer than 3 distinct frames
 //   terms      a QA_FORBIDDEN_TERMS word appears in the outputs (another
 //              brand's name, an internal codename)
@@ -24,17 +25,24 @@ import { pathToFileURL } from 'node:url';
 import { env, writeJson } from './env.mjs';
 import { withBrowser, settle } from './chrome.mjs';
 import { validateBrief } from './brief.mjs';
+import { validateCopy, copyFile, copyDir } from './copy.mjs';
 import { pageSize, pdfName } from './onepager.mjs';
 import { sceneDir } from './library.mjs';
 import { serveDir } from './serve.mjs';
 
-export async function runQa({ slug, brief, paths: p }) {
+export async function runQa({ slug, brief, brand, paths: p }) {
   const findings = [];
   const add = (level, check, message, where) => findings.push({ level, check, message, ...(where ? { where } : {}) });
 
-  const v = validateBrief(slug);
+  const v = validateBrief(slug, brand);
   v.errors.forEach((m) => add('fail', 'brief', m));
   v.warnings.forEach((m) => add('warn', 'brief', m));
+  if (fs.existsSync(copyFile(slug))) {
+    const c = validateCopy(slug, brief, brand);
+    c.errors.forEach((m) => add('fail', 'copy', m));
+    c.warnings.forEach((m) => add('warn', 'copy', m));
+    if (!fs.existsSync(path.join(copyDir(slug), 'rollout-copy.md'))) add('fail', 'missing', 'copy/rollout-copy.md was not built');
+  }
 
   const onepager = path.join(p.output, 'onepager.html');
   const web = path.join(p.web, 'index.html');
@@ -162,7 +170,8 @@ export async function runQa({ slug, brief, paths: p }) {
   if (terms.length) {
     // scene markup too: a visual can draw another brand's name
     const scenes = [brief.hero.scene, ...brief.sections.map((s) => s.scene)].map((id) => path.join(sceneDir(id), 'scene.html'));
-    const texts = [onepager, web, path.join(p.web, 'page.json'), p.brief, ...scenes].filter((f) => fs.existsSync(f)).map((f) => [f, fs.readFileSync(f, 'utf8').toLowerCase()]);
+    const copied = fs.existsSync(copyDir(slug)) ? fs.readdirSync(copyDir(slug)).map((f) => path.join(copyDir(slug), f)) : [];
+    const texts = [onepager, web, path.join(p.web, 'page.json'), p.brief, copyFile(slug), ...scenes, ...copied].filter((f) => fs.existsSync(f)).map((f) => [f, fs.readFileSync(f, 'utf8').toLowerCase()]);
     for (const t of terms) for (const [f, text] of texts) if (text.includes(t.toLowerCase())) add('fail', 'terms', `"${t}" appears in ${path.relative(p.output, f)}`);
   }
 

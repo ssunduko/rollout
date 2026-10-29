@@ -18,6 +18,7 @@ they are what physically fits the PDF.
       "eyebrow": "Coming soon!",
       "title": "Benefit-led title",
       "body": "Two sentences: what the user does and what they get.",
+      "short": "One sentence, benefit first.",
       "scene": "smart-scheduling--suggest-times",
       "alt": "What the visual shows"
     }
@@ -25,7 +26,7 @@ they are what physically fits the PDF.
   "pill": "#product update",
   "cta": { "title": "", "subtitle": "", "button": "", "url": "" },
   "web": { "video": "https://www.youtube.com/embed/<id>", "poster": "<scene id>", "sectionButton": { "label": "", "url": "" } },
-  "seo": { "title": "", "description": "" }
+  "seo": { "title": "", "description": "", "url": "/smart-scheduling-updates" }
 }
 ```
 
@@ -38,7 +39,8 @@ they are what physically fits the PDF.
 | `hero.scene` | yes | scene id | Usually `<slug>--hero`, transparent background |
 | `sections` | yes | 1–8 | 4–5 is the sweet spot (two pages) |
 | `sections[].title` | yes | 8–70 | |
-| `sections[].body` | yes | 110–330 | Aim for 180–320 |
+| `sections[].body` | yes | 110–330 | Aim for 180–320. The long description: at most 2 sentences (warning) |
+| `sections[].short` | recommended | 40–200 | The short description: 1 sentence, benefit first. The copy pack's subfeature list (`docs/copy.md`) |
 | `sections[].eyebrow` | no | 24 | Status line above the title |
 | `sections[].scene` | yes | scene id | `<feature>--<name>`, may be another feature's scene |
 | `*.alt` | recommended | 140 | Web alt text; the designer's spec |
@@ -50,6 +52,15 @@ they are what physically fits the PDF.
 | `web.heroButton` | no | | Header button label for brands without a `web` block. Default `WEB_HERO_BUTTON` |
 | `seo.title` | no | | Default `<feature> \| <brand name>` |
 | `seo.description` | no | 155 | Default: start of the intro |
+| `seo.url` | no | path | `/<feature>-updates`, lowercase and hyphenated. Default `/<slug>`. The copy pack's page header |
+
+**The brand's copy rules.** Every text field (headline, intro, lead, section
+titles, bodies and shorts, SEO description) is checked against the brand's
+`copy.forbidden` (e.g. em and en dashes) and `copy.bannedOpeners` (e.g.
+"Introducing"): a hit is a `validate` error. See `docs/copy.md`.
+
+The email, posts and podcast brief are written from this brief into
+`copy.json`: `docs/copy.md`.
 
 ## What good looks like
 

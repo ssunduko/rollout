@@ -14,35 +14,41 @@
       "title": "Offer open times without leaving the thread",
       "body": "Click Suggest times in the composer to drop three open slots into your reply. Customers answer with a number or a tap, and the meeting is booked on the spot, with no links to open and no forms to fill in.",
       "scene": "smart-scheduling--suggest-times",
-      "alt": "The message composer with a Suggest times menu inserting three time slots into a reply"
+      "alt": "The message composer with a Suggest times menu inserting three time slots into a reply",
+      "short": "Drop three open times into any reply so customers book a meeting without leaving the text thread."
     },
     {
       "title": "Connect your team's calendars once",
       "body": "Link Google or Microsoft calendars, set working hours, buffers and meeting length, and let round-robin hand every booking to the next available rep, so availability is always accurate and evenly shared.",
       "scene": "smart-scheduling--calendars",
-      "alt": "Scheduling settings with connected calendars, working hours and a round-robin toggle"
+      "alt": "Scheduling settings with connected calendars, working hours and a round-robin toggle",
+      "short": "Sync your team's calendars once so every booking lands with the next available rep."
     },
     {
       "title": "Confirmations and reminders on autopilot",
       "body": "The moment a slot is picked, the customer gets a confirmation, with reminders 24 hours and 1 hour before. Track every meeting as Booked, Reminded, Rescheduled or No-show from one list.",
       "scene": "smart-scheduling--reminders",
-      "alt": "A list of upcoming meetings with Booked and Reminded statuses and a reminder message preview"
+      "alt": "A list of upcoming meetings with Booked and Reminded statuses and a reminder message preview",
+      "short": "Send confirmations and reminders automatically so every booked meeting stays on the calendar."
     },
     {
       "title": "Booking rules that fit each inbox",
       "body": "Give every inbox its own meeting types, availability and pre-booking questions, from a 30-minute demo to a 45-minute onboarding, so each team books the right meeting with the right details.",
       "scene": "smart-scheduling--inbox-rules",
-      "alt": "Inbox booking rules showing Demo and Onboarding meeting types with durations"
+      "alt": "Inbox booking rules showing Demo and Onboarding meeting types with durations",
+      "short": "Give every inbox its own meeting types and questions so each team books the right meeting."
     },
     {
-      "eyebrow": "Coming soon!",
+      "eyebrow": "Coming soon",
       "title": "Reschedule with a single text",
       "body": "Customers will be able to reply \"reschedule\" and get fresh times straight away, keeping the meeting on the calendar instead of letting it slip through the cracks.",
       "scene": "smart-scheduling--reschedule",
-      "alt": "A customer replying reschedule and receiving new suggested times"
+      "alt": "A customer replying reschedule and receiving new suggested times",
+      "short": "Let customers text reschedule to get fresh times and keep the meeting on track."
     }
   ],
   "seo": {
-    "description": "Book meetings inside the text conversation: suggest open times, sync team calendars and send confirmations and reminders automatically."
+    "description": "Book meetings inside the text conversation: suggest open times, sync team calendars and send confirmations and reminders automatically.",
+    "url": "/smart-scheduling-updates"
   }
 }

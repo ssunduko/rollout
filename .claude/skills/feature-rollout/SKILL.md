@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page or launch assets from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>"). Orchestrates the copywriter, visual-designer and QA agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf plus output/<slug>/web/.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page or launch assets from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>"). Orchestrates the copywriter, visual-designer and QA agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/ and the social pack in output/<slug>/assets/social/.
 ---
 
 # Feature rollout
@@ -38,7 +38,9 @@ repo root.
 3. **Visuals.** Run the `rollout-visual-designer` agent: "Capture the scenes
    for <slug> from target <target>." It probes the signed-in app, writes
    capture scenes and records them — each recording gives the PDF its GIF and
-   still and the web page its framed 1180×676 web cut. If it reports reusing a library scene
+   still and the web page its framed 1180×676 web cut. It also writes
+   `library/features/<slug>/social.json`, the social pack's sidecar
+   (`docs/social.md`). If it reports reusing a library scene
    under another id, update the brief's `scene` field to that id.
    **If it reports steps marked `mutates`** (they send, create, edit or delete
    live data), show the user exactly what each does and where, and only on a
@@ -73,6 +75,10 @@ repo root.
    - `output/<slug>/<Feature> One-Pager.pdf`
    - `output/<slug>/web/index.html` (self-contained folder; `page.json` is the
      same content as data for CMS import)
+   - `output/<slug>/assets/social/`: the cover and carousel slides
+     (1080×1350, plus the carousel as one PDF for LinkedIn), the feature,
+     podcast and YouTube thumbnails (1280×720), the email image (1100×600,
+     transparent) and the email-signature banner (500×175)
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.
@@ -82,6 +88,8 @@ repo root.
 - Copy tweak: edit the brief (or ask the copywriter), then `build`.
 - Visual tweak: edit `library/scenes/<id>/scene.json`, `scene <id> --force`,
   then `build`.
+- Social image tweak: edit `library/features/<slug>/social.json` (slide
+  title accents, crops), then `social <slug>`.
 - The app changed: `build <slug> --force` re-captures everything.
 - Another brand: point `BRAND_DIR` at another folder in `brand/` (or use
   `BRAND_*` overrides) and `build` — layouts and kit scenes re-render in the

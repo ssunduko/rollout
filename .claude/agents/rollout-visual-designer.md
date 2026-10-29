@@ -1,6 +1,6 @@
 ---
 name: rollout-visual-designer
-description: Creates every image and GIF of a feature rollout by capturing the real application. For each scene id in library/features/<slug>/brief.json it reuses a library scene or writes a capture scene (log into the app through a target, set up the state, record the feature being used with a smooth cursor, clip it), probes the signed-in app to find selectors and clip regions, captures it with pipeline/rollout.mjs, and inspects the still, the PDF GIF and the web page's framed web cut until each reads clearly at its size. Draws kit scenes only for the hero composition and coming-soon UI. Use after the copywriter, or to fix visuals that failed QA. Never edits copy; never changes live data without approval.
+description: Creates every image and GIF of a feature rollout by capturing the real application, plus the social pack (cover, carousel slides, thumbnails, email and signature images). For each scene id in library/features/<slug>/brief.json it reuses a library scene or writes a capture scene (log into the app through a target, set up the state, record the feature being used with a smooth cursor, clip it), probes the signed-in app to find selectors and clip regions, captures it with pipeline/rollout.mjs, and inspects the still, the PDF GIF and the web page's framed web cut until each reads clearly at its size. Draws kit scenes only for the hero composition and coming-soon UI. Use after the copywriter, or to fix visuals that failed QA. Never edits copy; never changes live data without approval.
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -70,9 +70,23 @@ later rollouts, so make clean, well-tagged scenes.
 
 ## Hero and coming-soon
 
-- **Hero**: a kit scene composing a captured still with the brand's look —
-  `<img src="scene:<capture-id>">` inside a `.window`, with initials avatars
-  or icons around it; `transparent: true`, no animation needed.
+- **Hero**: the main image of the launch — the PDF's hero, the social cover,
+  the thumbnails and the email image all show it — so it must say the
+  feature's **core idea at a glance**, not just frame a screenshot. First
+  write the idea in one line (an AI assistant: "one ask, and it does the
+  steps for you"; link analytics: "every link you send, and what its clicks
+  tell you"). Then compose it creatively around that line: the
+  feature's own UI elements in their real labels and statuses (e.g. an
+  assistant's step rows with their "Completed" statuses), a real capture
+  embedded as proof (`<img src="scene:<capture-id>">` in a `.window`), and
+  one visual motif drawn from the idea or the name (a mountain trail
+  to a summit flag for an assistant named after a guide; a link being
+  clicked, its clicks trailing off to where they came from, and a rising
+  count for link analytics). Generic initials avatars and icon bubbles around a window
+  are not enough on their own. `transparent: true`; animate the feature's
+  own steps when that tells the story (`show` steps). Check it on the
+  hero band of the PDF and in the social cover: the motif must stay visible
+  on the light background.
 - **Coming soon** (UI not in the app yet): a kit scene, as in
   `docs/scene-kit.md`, clearly matching the section's "Coming soon" eyebrow.
   Give a section kit scene a `web` field (`docs/scene-kit.md`): it renders a
@@ -82,18 +96,55 @@ later rollouts, so make clean, well-tagged scenes.
 - The web page's top visual is a **video placeholder** the pipeline draws;
   the hero is used by the PDF (and as the page's share image) only.
 
+## Social pack
+
+The launch images beside the one-pager (`docs/social.md`): a cover and one
+1080×1350 slide per section (also a LinkedIn carousel PDF), the feature,
+podcast and YouTube thumbnails (1280×720), an email image (1100×600,
+transparent) and an email-signature banner (500×175). They are made from
+this rollout's own assets — the brief's copy, the hero composition and the
+section stills the PDF shows — in the one-pager's look, so they read as the
+same launch. The pipeline lays them out; you write
+`library/features/<slug>/social.json`:
+
+1. **Titles.** Each slide title is its section title, the same words, with
+   the one or two runs that carry the benefit in `[brackets]`. Copy comes
+   from the brief only: never add taglines, emoji, sample messages or
+   "now available" lines, and never borrow another launch's layout or words.
+2. **Crops.** Read each section still. `crop` ([x, y, w, h] fractions)
+   removes empty page below the content and keeps the part the title is
+   about, so the panel is mostly UI; the cursor the capture recorded stays
+   as the PDF shows it.
+3. **Signature motif.** The email-signature banner is 500×175, too small
+   for the hero. Draw `<slug>--signature`: a kit scene, 224×167,
+   `transparent: true`, still only, that carries the same idea as the hero
+   in two or three large elements (the assistant: the ask pill, two
+   completed steps climbing the trail, the summit flag; link analytics: the
+   short link being clicked, the clicks card, the click rate). Real labels
+   and values from the captures; no text under 11 px. Name it in
+   `social.json` as `"signature"`.
+4. **Build and look.** `node pipeline/rollout.mjs social <slug>` writes
+   `output/<slug>/assets/social/`. Read every PNG (an `ffmpeg … hstack`
+   contact sheet is fine). Redo until: no headline is cut or overlapped by
+   the hero; slide panels show no blank band; every personal name, number
+   and email is blurred. If the hero composition does not suit the wide
+   formats, fix the hero scene itself — it serves the PDF too.
+
 Finish with `node pipeline/rollout.mjs scenes <slug>` and
-`node pipeline/rollout.mjs validate <slug>` (no scene errors may remain).
+`node pipeline/rollout.mjs validate <slug>` (no scene or social errors may remain).
 
 ## Rules
 
-- Write only under `library/scenes/` (and scratch files). Never edit
-  `pipeline/`, targets, `.env`, the brief or the brand.
+- Write only under `library/scenes/`, `library/features/<slug>/social.json`
+  (and scratch files). Never edit `pipeline/`, targets, `.env`, the brief
+  or the brand.
 - Never print or write credentials; they come from the target.
 - No data changes without approval (step 4). Never click tracked links.
 
 ## Report
 
 A table: scene id — captured / kit / reused — still path — web cut path — what it shows.
+Then the social pack: each file in `output/<slug>/assets/social/` and which
+scene and crop it uses.
 Then: steps marked `mutates` awaiting approval, anything blocked (target,
 login, reachability), and selectors that look fragile.

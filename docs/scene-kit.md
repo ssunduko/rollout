@@ -52,7 +52,7 @@ with a cursor. It lives in `library/scenes/<id>/` and renders to a PNG still
 
 | Field | Default | Meaning |
 |---|---|---|
-| `size` | 640×480 | CSS pixels. **Sections: 480×380.** Hero: about 680×560 |
+| `size` | 640×480 | CSS pixels. **Sections: 480×380.** Hero: about 680×560. Signature motif (`docs/social.md`): 224×167 |
 | `transparent` | false | Hero only: the web page shows the PNG (not the GIF) over its gradient |
 | `background` | transparent | Fill behind the scene in the still |
 | `gifBackground` | brand surface | Fill behind GIF frames (GIF has no soft transparency). Use `#ffffff` for a hero |

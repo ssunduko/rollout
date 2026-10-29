@@ -90,6 +90,8 @@ export function loadBrand(dir = BRAND_DIR) {
     pill: raw.pill ?? null,
     cta: raw.cta ?? null,
     social: raw.social ?? [],
+    // defaults for the social pack's images (pipeline/social.mjs), e.g. the signature button label
+    socialPack: raw.socialPack ?? {},
     nav: raw.nav ?? [],
     // the web page's site chrome (header, sign-up card, footer); see docs/brief.md
     web: raw.web ?? null,

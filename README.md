@@ -6,6 +6,10 @@ capture every screenshot and animated GIF** of the feature being used, and the
 pipeline builds:
 
 - `output/<slug>/<Feature> One-Pager.pdf` — a branded two-page one-pager
+- `output/<slug>/assets/social/` — the social pack: a cover and one slide
+  per section (1080×1350, also a carousel PDF), feature, podcast and YouTube
+  thumbnails (1280×720), an email image and an email-signature banner
+  (`docs/social.md`)
 - `output/<slug>/web/` — a matching, self-contained, responsive feature page
   with an animated GIF for every visual (plus `page.json`, the same content as
   data for a CMS)
@@ -73,6 +77,7 @@ example brand (`brand/example/`), captured from the example app
 | `scene <id> [--force] [--allow-mutations]` | Capture or render one scene; prints still / GIF |
 | `scenes <slug> [--force] [--allow-mutations]` | Every scene the brief uses |
 | `build <slug> [--force] [--allow-mutations]` | Scenes → PDF → web page, `build.json` |
+| `social <slug> [--force]` | Only the social pack, into `output/<slug>/assets/social/` (`docs/social.md`); `build` makes it too |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |

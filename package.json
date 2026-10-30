@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Agent-authored feature rollout assets: a branded one-pager PDF and a matching web page, built from a plain-English feature description. Brand, feature and visuals are JSON sidecars; the pipeline itself is brand-agnostic.",
   "scripts": {
+    "test": "node --test tests/*.test.mjs",
     "rollout": "node pipeline/rollout.mjs",
     "init": "node pipeline/rollout.mjs init",
     "validate": "node pipeline/rollout.mjs validate",

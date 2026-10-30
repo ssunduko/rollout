@@ -95,6 +95,8 @@ export function loadBrand(dir = BRAND_DIR) {
     nav: raw.nav ?? [],
     // the web page's site chrome (header, sign-up card, footer); see docs/brief.md
     web: raw.web ?? null,
+    // the help article's fixed parts (trial link, FAQ title, closing); see docs/help.md
+    help: raw.help ?? null,
     legal: raw.legal ?? [],
     voice: raw.voice ?? [],
     rules: raw.rules ?? [],

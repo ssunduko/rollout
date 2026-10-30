@@ -13,6 +13,9 @@ pipeline builds:
 - `output/<slug>/web/` — a matching, self-contained, responsive feature page
   with an animated GIF for every visual (plus `page.json`, the same content as
   data for a CMS)
+- `output/<slug>/help/` — the help-center article that teaches the feature,
+  created in the help center or updated where one already covers it, on your
+  go-ahead (`docs/help.md`)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
 
@@ -58,6 +61,9 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
 3. `node pipeline/rollout.mjs build my-feature` prints the PDF and writes the page
 4. `rollout-qa` checks the PDF and the web page (measured + visual) and proposes fixes; you approve them
 5. `node pipeline/rollout.mjs serve my-feature --open` shows the page from a local server
+6. `rollout-help-writer` finds the help article that covers the feature, writes
+   the new or revised article, and creates or updates it in the help center
+   once you approve
 
 The example `input/smart-scheduling/` is fully built for the fictional
 example brand (`brand/example/`), captured from the example app
@@ -78,6 +84,9 @@ example brand (`brand/example/`), captured from the example app
 | `scenes <slug> [--force] [--allow-mutations]` | Every scene the brief uses |
 | `build <slug> [--force] [--allow-mutations]` | Scenes → PDF → web page, `build.json` |
 | `social <slug> [--force]` | Only the social pack, into `output/<slug>/assets/social/` (`docs/social.md`); `build` makes it too |
+| `help <slug> [--force]` | Only the help article, into `output/<slug>/help/` (`docs/help.md`); `build` makes it too. Never sends it |
+| `help-center` · `help-find <slug>` · `help-get <slug> <id>` | The help center: connection, authors and collections; existing articles; one article's body |
+| `help-publish <slug> --yes [--state draft\|published] [--live]` | Create or update the article in the help center, after your approval |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |

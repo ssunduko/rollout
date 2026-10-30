@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { env, envNumber } from './env.mjs';
 import { withBrowser } from './chrome.mjs';
@@ -69,6 +70,26 @@ export async function framedMedia({ file, out, pad = 40 }) {
   const h = s.height - 2 * pad;
   const fit = `scale=${w}:${h}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${s.width}:${s.height}:(ow-iw)/2:(oh-ih)/2:white`;
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', file, '-i', overlay, '-filter_complex', graph(fit, s), '-loop', '0', out], { stdio: ['ignore', 'inherit', 'inherit'] });
+}
+
+// A help-article image: the GIF or still on white, pad px inside a thin
+// rounded border drawn into the image (help centers keep no CSS border). size
+// is the source's pixel size; pad and radius are in source pixels. Cached in
+// the temp folder by content, so rebuilds give the same bytes (and hash).
+export async function framedHelpImage({ file, out, size, pad, radius, border }) {
+  const data = fs.readFileSync(file);
+  const key = crypto.createHash('sha256').update(data).update(`${pad}|${radius}|${border}`).digest('hex').slice(0, 16);
+  const cached = path.join(os.tmpdir(), `rollout-helpframe-${key}${path.extname(file)}`);
+  if (!fs.existsSync(cached)) {
+    const s = { width: size.width + 2 * pad, height: size.height + 2 * pad, radius, border };
+    const overlay = await frameOverlay(s);
+    const fit = `[0:v]pad=${s.width}:${s.height}:${pad}:${pad}:white[c];[c][1:v]overlay=0:0`;
+    const args = path.extname(file) === '.gif'
+      ? ['-filter_complex', `${fit},split[a][b];[a]palettegen=max_colors=256:stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle`, '-loop', '0']
+      : ['-filter_complex', fit, '-frames:v', '1'];
+    execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', file, '-i', overlay, ...args, cached], { stdio: ['ignore', 'inherit', 'inherit'] });
+  }
+  fs.copyFileSync(cached, out);
 }
 
 // The web page's video slot until the feature video exists: the feature's

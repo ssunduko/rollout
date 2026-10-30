@@ -279,5 +279,12 @@
   "socialPack": {
     "$comment": "Defaults for the social pack (pipeline/social.mjs, docs/social.md).",
     "button": "See how it works"
+  },
+  "help": {
+    "$comment": "The help article's fixed parts (pipeline/help.mjs, docs/help.md): a trial link above the intro, the FAQ heading, and the closing section.",
+    "provider": "intercom",
+    "cta": { "label": "Start your free 14-day trial", "url": "https://www.acme.example/signup" },
+    "faqTitle": "Frequently Asked Questions",
+    "closing": { "title": "Need Help?", "body": "Chat with us from the help widget or email [hello@acme.example](mailto:hello@acme.example)." }
   }
 }

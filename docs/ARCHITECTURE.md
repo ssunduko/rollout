@@ -76,6 +76,8 @@ flowchart LR
 | `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what |
 | `library/scenes/<id>/scene.json` | (`scene.html` for kit scenes) | visual-designer agent | `scenes.mjs`, `capture.mjs` | capture: target, start, setup, steps, clip · kit: size, animation · both: still moment, tags |
 | `library/renders/<hash>/render.json` | `still.png`, `anim.gif`, `web.gif` (captures) | `scenes.mjs` | `library.mjs` | which scene, which brand, settings, when |
+| `library/features/<slug>/help.json` | the feature's scenes | help-writer agent | `help.mjs`, `helpcenter.mjs` | the help article as blocks; which live article it updates ([help.md](help.md)) |
+| `library/features/<slug>/help.published.json` | help.json | `helpcenter.mjs` | `help.mjs`, the help-writer agent | the article in the help center: id, URL, state, when it last changed |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -125,7 +127,11 @@ flowchart LR
    web folder, records `build.json`.
 5. `rollout.mjs qa` + `rollout-qa` → PASS/FAIL on the PDF and the served web
    page, with fixes; the user approves fixes, which go back to the owning agent.
-6. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+6. `rollout-help-writer` → finds the help-center article that covers the
+   feature (`help-find`, `help-get`), writes `help.json`, `rollout.mjs help`
+   renders it; on the user's approval `rollout.mjs help-publish` creates or
+   updates the article over the help center's API.
+7. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -146,6 +152,9 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/onepager.mjs` | brief → paginated HTML → PDF |
 | `pipeline/webpage.mjs` | brief + brand `web` block → the site's feature-page layout + page.json |
 | `pipeline/webmedia.mjs` | the web cut format: framed 1180×676 GIFs (from capture frames, or fitted) |
+| `pipeline/help.mjs` | help.json + brand `help` block → the help article's HTML body, preview and images |
+| `pipeline/helpcenter.mjs` | find, read, create and update help articles over the help center's API (adapters in `helpcenter/`); the publish guards |
+| `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |
 | `pipeline/chrome.mjs` | headless Chrome (puppeteer-core) |

@@ -10,8 +10,8 @@ in `.env`.
 *Why:* the pipeline must serve any brand by configuration (2026-10-26).
 
 ### Agents write sidecars, the core renders
-Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`
-and `library/scenes/*`. They
+Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`,
+`library/features/*/help.json` and `library/scenes/*`. They
 never edit `pipeline/` or hand-edit anything in `output/`.
 *Why:* every build must be reproducible from the sidecars alone (2026-10-26).
 
@@ -53,8 +53,16 @@ One folder per brand under `brand/`, chosen with `BRAND_DIR`.
 *Why:* user request (2026-10-26).
 
 ### Publish only on request
-Uploading outputs anywhere external (CMS, drive, ticket) only when the user
-says so for that rollout.
+Uploading outputs anywhere external (CMS, drive, ticket, help center) only
+when the user says so for that rollout.
+
+### Help articles: update, don't duplicate
+Before creating a help article, look for the one that already covers the
+feature and update it. Keep every part of a live article that is not about
+the feature, send drafts unless the user says publish, and never overwrite an
+article edited in the help center since it was read.
+*Why:* the help center is edited by people too, and one feature should have
+one article (user request, 2026-10-30).
 
 ### The web page matches the site's feature pages
 Same layout, calls to action, header and footer as the site's existing

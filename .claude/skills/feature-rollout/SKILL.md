@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page or launch assets from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>"). Orchestrates the copywriter, visual-designer and QA agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/ and the social pack in output/<slug>/assets/social/.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets or help-center article from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>"). Orchestrates the copywriter, visual-designer, QA and help-writer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request.
 ---
 
 # Feature rollout
@@ -71,7 +71,26 @@ repo root.
    first screen shows. If the port is taken, set `WEB_PORT` for that run.
    Leave the server running and tell the user the URL and how to stop it.
 
-7. **Deliver.** Report:
+7. **Help article.** Run the `rollout-help-writer` agent: "Write the help
+   article for <slug>." It finds the help-center article that already covers
+   the feature (`help-find`, over the help center's API; `docs/help.md`),
+   writes `library/features/<slug>/help.json` and builds
+   `output/<slug>/help/`. Show the user its report: create or update (which
+   article, and the other candidates), for a new article the collection it
+   chose and why, the sections added, changed and kept,
+   the blockers, and `output/<slug>/help/preview.html`. If it could not
+   connect (`node pipeline/rollout.mjs help-center` fails), say which `.env`
+   key is missing (`docs/help.md`, "The help center connection") and stop at
+   the built preview.
+   **Ask before sending**: the action, the article (or the collection) and
+   draft or published.
+   If the article is already published, say that the update goes live the
+   moment it is sent. Only on a yes resume the agent with "Publish the help
+   article for <slug>; approved: <create | update <id>>, <draft | published>[,
+   live]." — never as published or live unless the user said so, and never
+   past a refusal (an article edited in the help center since it was read).
+
+8. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`
    - `output/<slug>/web/index.html` (self-contained folder; `page.json` is the
      same content as data for CMS import)
@@ -79,6 +98,8 @@ repo root.
      (1080×1350, plus the carousel as one PDF for LinkedIn), the feature,
      podcast and YouTube thumbnails (1280×720), the email image (1100×600,
      transparent) and the email-signature banner (500×175)
+   - `output/<slug>/help/` and, when it was sent, the help article's id,
+     URL and state
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.
@@ -91,6 +112,9 @@ repo root.
 - Social image tweak: edit `library/features/<slug>/social.json` (slide
   title accents, crops), then `social <slug>`.
 - The app changed: `build <slug> --force` re-captures everything.
+- Help article tweak: edit `library/features/<slug>/help.json` (or ask the
+  help writer), `help <slug>`, then publish it again on the user's yes —
+  it updates the article recorded in `publish`.
 - Another brand: point `BRAND_DIR` at another folder in `brand/` (or use
   `BRAND_*` overrides) and `build` — layouts and kit scenes re-render in the
   new brand; captures are reused (the app paints itself).

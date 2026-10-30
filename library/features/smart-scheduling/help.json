@@ -1,0 +1,78 @@
+{
+  "$comment": "Help article for smart-scheduling, written by the rollout-help-writer agent from input/smart-scheduling/feature.md and the brief. Format: docs/help.md.",
+  "title": "Smart Scheduling",
+  "description": "Offer open times in a text conversation and let customers book, confirm and get reminded without leaving the thread.",
+  "intro": [
+    "Smart Scheduling lets your customers book a meeting without leaving the text conversation. You offer open times from your team's connected calendars, the customer picks one by replying, and the meeting is created, confirmed and reminded automatically."
+  ],
+  "sections": [
+    {
+      "heading": "Getting started",
+      "blocks": [
+        { "p": "Before you offer times, connect at least one calendar so Smart Scheduling knows when your team is free." },
+        { "steps": [
+          "Go to **Settings > Scheduling**.",
+          "Connect a Google or Microsoft calendar for each rep who takes meetings.",
+          "Set your **working hours**, **buffer time** and **meeting length**.",
+          "Turn on **round-robin** to assign each meeting to the next available rep."
+        ] },
+        { "image": "smart-scheduling--calendars", "alt": "Scheduling settings with connected calendars, working hours and a round-robin toggle" }
+      ]
+    },
+    {
+      "heading": "Offer open times in a conversation",
+      "blocks": [
+        { "steps": [
+          "Open the conversation and click **Suggest times** in the composer.",
+          "A card with three open slots, such as Tue 10:00 AM, Tue 2:30 PM and Wed 9:00 AM, is inserted into your reply.",
+          "Send the reply. The customer answers with the slot number (for example \"2\") or taps a slot."
+        ] },
+        { "image": "smart-scheduling--suggest-times", "alt": "The message composer with Suggest times inserting three time slots into a reply" },
+        { "note": "The AI assistant can offer times too, using the same calendars and rules." }
+      ]
+    },
+    {
+      "heading": "Confirmations and reminders",
+      "blocks": [
+        { "p": "When the customer picks a slot, the meeting is created and a confirmation message is sent. Reminders go out automatically **24 hours** and **1 hour** before the meeting." },
+        { "p": "Each meeting shows one of these statuses:" },
+        { "table": {
+          "head": ["Status", "Meaning"],
+          "rows": [
+            ["Booked", "The customer picked a slot and the meeting is on the calendar."],
+            ["Reminded", "A reminder has been sent."],
+            ["Rescheduled", "The meeting was moved to a new time."],
+            ["No-show", "The customer did not attend."]
+          ]
+        } },
+        { "image": "smart-scheduling--reminders", "alt": "A list of upcoming meetings with Booked and Reminded statuses and a reminder preview" }
+      ]
+    },
+    {
+      "heading": "Set booking rules per inbox",
+      "blocks": [
+        { "p": "Each inbox can have its own meeting types, availability and the questions asked before booking." },
+        { "bullets": [
+          "**Meeting types**: for example Demo (30 min) or Onboarding (45 min).",
+          "**Availability**: the hours this inbox offers meetings.",
+          "**Pre-booking questions**: what to ask the customer before the meeting is booked."
+        ] },
+        { "image": "smart-scheduling--inbox-rules", "alt": "Inbox booking rules showing Demo and Onboarding meeting types with durations" }
+      ]
+    },
+    {
+      "heading": "Coming soon: reschedule by text",
+      "blocks": [
+        { "p": "Customers will be able to reply \"reschedule\" to get new times." }
+      ]
+    }
+  ],
+  "faq": [
+    { "q": "Which calendars can I connect?", "a": "Google and Microsoft calendars." },
+    { "q": "Who gets the meeting when several reps are available?", "a": "With round-robin on, the meeting goes to the next available rep." },
+    { "q": "Which plans include Smart Scheduling?", "a": "Smart Scheduling is live for all plans." }
+  ],
+  "publish": {
+    "state": "draft"
+  }
+}

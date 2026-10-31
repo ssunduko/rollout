@@ -26,9 +26,9 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
   `library/features/<slug>/social.json`: `docs/social.md`. The help article
   is built into `output/<slug>/help/` from `library/features/<slug>/help.json`
   and published to the help center only on request: `docs/help.md`. The
-  feature page is built on the website from the site's components, as a
-  draft and only on request, from `library/features/<slug>/site.json`:
-  `docs/website.md`.
+  feature page is built on the website — as an item of the site's feature
+  CMS collection, or from the site's components — as a draft and only on
+  request, from `library/features/<slug>/site.json`: `docs/website.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - Visuals are captured from the logged-in application: `docs/capture.md`.

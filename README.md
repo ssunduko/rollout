@@ -16,8 +16,9 @@ pipeline builds:
 - `output/<slug>/help/` — the help-center article that teaches the feature,
   created in the help center or updated where one already covers it, on your
   go-ahead (`docs/help.md`)
-- the feature page on your website — rebuilt in the site builder from the
-  site's own components, as a draft, on your go-ahead (`docs/website.md`)
+- the feature page on your website — an item of the site's feature CMS
+  collection when it keeps feature pages there, else rebuilt from the site's
+  own components; as a draft, on your go-ahead (`docs/website.md`)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
 
@@ -66,9 +67,10 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
 6. `rollout-help-writer` finds the help article that covers the feature, writes
    the new or revised article, and creates or updates it in the help center
    once you approve
-7. `rollout-web-publisher` plans the feature page from your website's
-   components and, once you approve, builds it there as a draft — creating any
-   component the site lacks, for reuse
+7. `rollout-web-publisher` plans the feature page for your website — as an
+   item of its feature CMS collection, or from its components — and, once you
+   approve, builds it there as a draft (creating any component the site lacks,
+   for reuse); you publish it
 
 The example `input/smart-scheduling/` is fully built for the fictional
 example brand (`brand/example/`), captured from the example app
@@ -92,8 +94,8 @@ example brand (`brand/example/`), captured from the example app
 | `help <slug> [--force]` | Only the help article, into `output/<slug>/help/` (`docs/help.md`); `build` makes it too. Never sends it |
 | `help-center` · `help-find <slug>` · `help-get <slug> <id>` | The help center: connection, authors and collections; existing articles; one article's body |
 | `help-publish <slug> --yes [--state draft\|published] [--live]` | Create or update the article in the help center, after your approval |
-| `site` · `site-find <slug>` · `site-get <slug> <pageId>` | The website: connection, folders and components; the inventory and pages that may be the feature's; one page |
-| `site-plan <slug>` · `site-assets <slug> --yes` · `site-record <slug> <pageId>` | Check `site.json`; upload its images, after your approval; record the built page (`docs/website.md`) |
+| `site` · `site-find <slug> [<words>]` · `site-get <slug> <id> [--item]` | The website: connection, folders and components; the inventory (with the feature collection) and pages or items that may be the feature's; one page, or with `--item` one collection item |
+| `site-plan <slug>` · `site-assets <slug> --yes` · `site-record <slug> <id> [--item]` | Check `site.json`; upload its images, after your approval; record the built page or item (`docs/website.md`) |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
@@ -111,11 +113,11 @@ All are `node pipeline/rollout.mjs <command>`.
 | `targets/` | applications captures log into (`*.local.json` gitignored) | a person, once per app |
 | `profiles/` | signed-in Chrome profiles (gitignored) | `login` / captures |
 | `demo-app/` | example application with a login, for trying the pipeline | — |
-| `library/features/` | briefs | copywriter agent |
+| `library/features/` | per feature: `brief.json`, `social.json`, `help.json`, `site.json`, and the `*.published.json` records | the agents; records by `rollout.mjs` |
 | `library/scenes/` | capture scenes (`scene.json`) and kit scenes (+ `scene.html`) | visual-designer agent |
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
-| `output/<slug>/` | PDF, web folder, build and QA records | `rollout.mjs` |
+| `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, build and QA records | `rollout.mjs` |
 | `pipeline/` | the deterministic core | — |
 | `.claude/` | agents and the `feature-rollout` skill | — |
 | `examples/` | local reference material (real one-pagers, site pages): gitignored | — |
@@ -142,7 +144,18 @@ All are `node pipeline/rollout.mjs <command>`.
 | `CAPTURE_SCALE` | `2` | Pixel density of captured stills |
 | `GIF_WIDTH` | `800` | Maximum captured GIF width |
 | `CAPTURE_MAX_WAIT_MS` | `700` | Longer waits are fast-forwarded in GIFs |
+| `FFPROBE` | next to ffmpeg / PATH | For frame checks |
+| `CAPTURE_DEBUG` | | Set: keep the raw capture frames for debugging |
 | `DEMO_APP_URL`, `DEMO_APP_PORT`, `DEMO_APP_USERNAME`, `DEMO_APP_PASSWORD` | | The example app and its target |
+| `WEB_GIF_WIDTH`, `WEB_GIF_HEIGHT`, `WEB_GIF_FPS` | `1180`, `676`, `20` | The web page's framed section GIFs |
+| `WEB_FRAME_BORDER`, `WEB_FRAME_RADIUS` | `#e3e7ec`, `20` | Their frame |
+| `WEB_PORT` | `4400` | Port of `serve` |
+| `HELP_CENTER`, `HELP_CENTER_TOKEN`, `HELP_CENTER_API_URL`, `HELP_CENTER_API_VERSION`, `HELP_AUTHOR_ID`, `HELP_COLLECTION_ID` | | The help center connection (`docs/help.md`) |
+| `HELP_IMAGE_STORE`, `HELP_IMAGE_BUCKET`, `HELP_IMAGE_REGION`, `HELP_IMAGE_PREFIX`, `HELP_IMAGE_ENDPOINT`, `HELP_IMAGE_URL_TTL`, `HELP_IMAGE_BASE_URL`, `AWS_*` | | Where the help article's images are hosted (`docs/help.md`) |
+| `HELP_FRAME_PAD`, `HELP_FRAME_RADIUS`, `HELP_FRAME_BORDER` | `24`, `12`, `WEB_FRAME_BORDER` | The frame drawn into help-article images |
+| `WEBSITE`, `WEBFLOW_API_URL`, `WEBFLOW_API_TOKEN`, `WEBFLOW_SITE_ID`, `WEBFLOW_FEATURES_COLLECTION_ID`, `WEBFLOW_PAGE_FOLDER_ID`, `WEBFLOW_COMPONENT_GROUP` | | The website connection (`docs/website.md`) |
+
+Every key, with its comment, is in `.env.example`.
 
 ## Adding a brand
 
@@ -158,4 +171,8 @@ brand; the previous brand's renders stay in the library.
 - `docs/brief.md` — the copy format and limits, the reference layout
 - `docs/capture.md` — targets, probing, capture scenes, live-data and blur rules
 - `docs/scene-kit.md` — kit scenes (hero composition, coming soon)
+- `docs/social.md` — the social pack
+- `docs/help.md` — the help-center article, its images and publishing
+- `docs/website.md` — the feature page on the website (CMS item or components)
 - `docs/rules.md` — standing rules
+- `docs/c4/` — C4 architecture diagrams (PlantUML)

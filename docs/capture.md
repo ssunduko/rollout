@@ -143,7 +143,8 @@ page shows the web cut; the printed PDF shows the still. QA fails a GIF with few
 distinct frames — a capture whose steps never changed the screen.
 
 Render: `node pipeline/rollout.mjs scene <id>` (cached by content; `--force`
-re-captures after the app changed). Debug visibly: `CAPTURE_HEADLESS=false`.
+re-captures after the app changed). Debug visibly: `CAPTURE_HEADLESS=false`;
+keep the raw frames and the frame list next to the GIF: `CAPTURE_DEBUG=1`.
 
 ## Live data: look, don't touch
 

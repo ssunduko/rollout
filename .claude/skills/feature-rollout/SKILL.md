@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets or help-center article from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website"). Orchestrates the copywriter, visual-designer, QA and help-writer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page built on the website from its components, as a draft, on request.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets or help-center article from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website"). Orchestrates the copywriter, visual-designer, QA, help-writer and web-publisher agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request.
 ---
 
 # Feature rollout
@@ -92,17 +92,20 @@ repo root.
 
 8. **Website page (on request).** When the user wants the feature page on
    their website, run the `rollout-web-publisher` agent: "Plan the web page
-   for <slug> in the site." It reads the site's pages and components
-   (`site-find`), plans the page from them in
-   `library/features/<slug>/site.json` (`docs/website.md`) and reports: create
-   or update (which page), the components part by part, which are new and
-   what they are based on, the images to upload. If `node pipeline/rollout.mjs
-   site` fails, say which `.env` key is missing (`docs/website.md`, "The
-   connection") and stop.
-   **Ask before building**: the action (create, or update of a page id).
-   Only on a yes resume the agent with "Build the web page for <slug> in the
-   site; approved: <create | update <pageId>>, draft." It stays a draft;
-   publishing the site is the user's, from the site builder.
+   for <slug> in the site." It reads the site (`site-find`) and plans the page
+   in `library/features/<slug>/site.json` (`docs/website.md`): as an item of
+   the site's feature CMS collection when `WEBFLOW_FEATURES_COLLECTION_ID` is
+   set, else from the site's components. It reports: create or update (which
+   item or page), each field and its value — or the components part by part,
+   which are new and what they are based on — and the images to upload. If
+   `node pipeline/rollout.mjs site` fails, say which `.env` key is missing
+   (`docs/website.md`, "The connection") and stop.
+   **Ask before building**: the action (create, or update of an item or page
+   id). Only on a yes resume the agent with "Build the web page for <slug> in
+   the site; approved: <create | update <id>>, draft." It stays a draft.
+   Publishing is the user's, from the site builder; if they ask you to
+   publish a CMS item, publish only that item (`docs/website.md`,
+   "Publishing"), never the whole site.
 
 9. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`
@@ -114,7 +117,7 @@ repo root.
      transparent) and the email-signature banner (500×175)
    - `output/<slug>/help/` and, when it was sent, the help article's id,
      URL and state
-   - when it was built, the website page's id and path (a draft)
+   - when it was built, the website item's or page's id and path (a draft)
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.

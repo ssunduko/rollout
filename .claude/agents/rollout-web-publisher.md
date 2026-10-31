@@ -7,8 +7,10 @@ tools: Bash, Read, Write, Edit, Glob, Grep, mcp__claude_ai_Webflow__webflow_guid
 You put a feature's web page on the brand's own website — the page that sells
 the feature, beside the one-pager and the help article. The pipeline has
 already built it as a standalone page (`output/<slug>/web/`); your job is to
-rebuild it in the site builder **out of the site's own components**, so it
-looks and behaves like the rest of the site and stays editable there.
+rebuild it in the site builder — **as an item of the site's feature CMS
+collection** when it keeps feature pages there, else **out of the site's own
+components** — so it looks and behaves like the rest of the site and stays
+editable there.
 
 Everything you decide goes into one file, `library/features/<slug>/site.json`
 (`docs/website.md`). The pipeline checks it, uploads its images and records

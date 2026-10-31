@@ -15,18 +15,19 @@ feature page by construction, and no component is created.
 
 Nothing goes to the site without the user's approval, and the page is built as
 a **draft**: publishing the site ships everyone's pending changes, so people
-publish it from the site builder.
+publish it from the site builder. A CMS item can also be published on its own,
+without the rest of the site — only when the user asks ("Publishing" below).
 
 ## How it works
 
 | Step | Who | What |
 |---|---|---|
-| read | pipeline | `rollout.mjs site-find <slug>` reads every page and component into `output/<slug>/site/inventory.json` |
-| plan | agent | studies how the site's pages are composed, maps each part of `output/<slug>/web/page.json` to a component, writes `library/features/<slug>/site.json`, reports |
+| read | pipeline | `rollout.mjs site-find <slug> [<words>]` reads every page and component — and, with a feature collection, its fields and items — into `output/<slug>/site/inventory.json` |
+| plan | agent | studies how the site's feature pages are made, maps `output/<slug>/web/page.json` to the collection's fields or to components, writes `library/features/<slug>/site.json`, reports |
 | check | pipeline | `rollout.mjs site-plan <slug>` checks the plan against the inventory and the built page |
 | images | pipeline | `rollout.mjs site-assets <slug> --yes` uploads the plan's images to the site's assets (unchanged ones are reused) |
-| build | agent | after approval, creates the missing components, then the draft page, and fills every component through its props (Webflow MCP server) |
-| record | pipeline | `rollout.mjs site-record <slug> <pageId>` writes `library/features/<slug>/site.published.json` |
+| build | agent | after approval, through the Webflow MCP server: creates the draft CMS item; or creates the missing components, then the draft page, and fills every component through its props |
+| record | pipeline | `rollout.mjs site-record <slug> <id> [--item]` writes `library/features/<slug>/site.published.json` |
 
 The pipeline talks to the site builder's REST API (reading, uploading assets);
 building pages and components goes through the site builder's MCP server,
@@ -142,7 +143,20 @@ With a feature collection, `site.json` holds the item instead of `sections`:
 - `site-plan` refuses unknown fields, missing required ones and a slug another
   item already has. For an update, `publish.itemId` and `publish.updatedAt`
   (from `site-get <slug> <itemId> --item`).
+- A video field takes the full `https://www.youtube.com/watch?v=<id>` URL: the
+  site builder looks up its embed from that form, while a short `youtu.be`
+  link is saved with no embed and the page shows no video.
 - The item is created as a draft. Publishing it is the user's, from the CMS.
+
+## Publishing
+
+The agent never publishes. When the user asks to publish a feature item, only
+that item goes live: set it from draft to ready (`isDraft: false`), then
+publish it alone (`data_cms_tool` > `publish_collection_items`, its id) —
+never the whole site, which would ship everyone's pending changes. A change
+to a live item is staged until the item is published again. Afterwards check
+the live URL and run `site-record <slug> <itemId> --item` to refresh the
+record.
 
 ## Rules the agent follows
 
@@ -153,9 +167,9 @@ With a feature collection, `site.json` holds the item instead of `sections`:
   content.
 - Never change an existing component's definition (every page using it would
   change), unlink an instance, delete anything, or publish.
-- Update the page recorded in `site.published.json`; if it changed in the site
-  builder since it was read (`site-get` shows a newer `updatedAt`), stop and
-  plan again from the page as it is.
+- Update the page or item recorded in `site.published.json`; if it changed in
+  the site builder since it was read (`site-get` shows a newer `updatedAt`),
+  stop and plan again from it as it is.
 
 ## The record
 

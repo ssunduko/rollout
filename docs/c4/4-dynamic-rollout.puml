@@ -1,10 +1,11 @@
 @startuml dynamic-rollout
-' C4 dynamic diagram — one rollout, from description to served page.
-' Approval gates (mutating captures, QA fixes) go through the person.
+' C4 dynamic diagram — one rollout, from description to served page, then
+' the help article and the website page, each only on request.
+' Approval gates (mutating captures, QA fixes, every publish) go through the person.
 ' Render: see docs/c4/README.md
 !include <C4/C4_Dynamic>
 
-title Rollout — Dynamic: "roll out {slug}"
+title Rollout — Dynamic: "roll out {slug}", then publish
 
 Person(author, "Product marketer")
 Container(skill, "feature-rollout skill", "Claude Code")
@@ -12,10 +13,15 @@ Container(copywriter, "rollout-copywriter", "agent")
 Container(designer, "rollout-visual-designer", "agent")
 Container(cli, "Pipeline CLI", "Node.js")
 Container(qa_agent, "rollout-qa", "agent, read-only")
+Container(helpwriter, "rollout-help-writer", "agent")
+Container(webpublisher, "rollout-web-publisher", "agent")
 ContainerDb(library, "Library", "library/")
 ContainerDb(output, "Build output", "output/{slug}/")
 System_Ext(app, "Product application")
 System_Ext(browser, "User's browser")
+System_Ext(s3, "Amazon S3")
+System_Ext(intercom, "Intercom")
+System_Ext(webflow, "Webflow", "Data API + MCP server")
 
 Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
 Rel(skill, copywriter, "Write the brief")
@@ -23,9 +29,9 @@ Rel(copywriter, library, "brief.json (validated)")
 Rel(skill, designer, "Capture the scenes")
 Rel(designer, cli, "probe / scene {id}")
 Rel(cli, app, "Sign in, run steps, record screencast")
-Rel(designer, library, "scenes/{id}/ + renders/{hash}/ (still, anim.gif, web.gif)")
-Rel(skill, cli, "build {slug}")
-Rel(cli, output, "PDF, web/ (page.json, assets), build.json")
+Rel(designer, library, "scenes/{id}/ + renders/{hash}/ (still, anim.gif, web.gif), social.json")
+Rel(skill, cli, "build {slug}, social {slug}")
+Rel(cli, output, "PDF, web/ (page.json, assets), assets/social/, build.json")
 Rel(skill, cli, "qa {slug}")
 Rel(cli, output, "qa/qa.json + PDF and web screenshots (page served over HTTP)")
 Rel(skill, qa_agent, "QA {slug}")
@@ -33,6 +39,22 @@ Rel(qa_agent, skill, "PASS / FAIL with proposed fixes")
 Rel(skill, author, "Shows verdict; asks before applying fixes")
 Rel(skill, cli, "serve {slug} --open")
 Rel(cli, browser, "Opens the page at http://localhost:WEB_PORT")
+
+Rel(author, skill, "Asks for the help article")
+Rel(skill, helpwriter, "Plan the article")
+Rel(helpwriter, intercom, "help-find / help-get: the article that covers the feature")
+Rel(helpwriter, library, "help.json; reports the plan")
+Rel(author, skill, "Approves: send draft (or publish --live)")
+Rel(helpwriter, s3, "help-publish: uploads new framed images")
+Rel(helpwriter, intercom, "help-publish: creates or updates the article; help.published.json")
+
+Rel(author, skill, "Asks for the website page")
+Rel(skill, webpublisher, "Plan the page")
+Rel(webpublisher, webflow, "site-find / site-plan: feature collection fields and items, or components")
+Rel(webpublisher, library, "site.json; reports the plan")
+Rel(author, skill, "Approves: create or update, draft")
+Rel(webpublisher, webflow, "site-assets uploads images; MCP creates the draft CMS item (or page); site-record")
+Rel(author, webflow, "Publishes the item from the CMS (or asks to)")
 
 SHOW_LEGEND()
 @enduml

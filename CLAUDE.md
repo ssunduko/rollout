@@ -7,7 +7,8 @@ description. Full docs: `README.md`. Architecture (sidecar pattern):
 To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 `rollout-copywriter`, `rollout-visual-designer` and `rollout-qa` agents
 (`.claude/agents/`) around `node pipeline/rollout.mjs`, and the
-`rollout-help-writer` agent for the help-center article.
+`rollout-help-writer` agent for the help-center article, and the
+`rollout-web-publisher` agent for the feature page on the website.
 
 ## Ground rules
 
@@ -24,7 +25,10 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
   built into `output/<slug>/assets/social/` from
   `library/features/<slug>/social.json`: `docs/social.md`. The help article
   is built into `output/<slug>/help/` from `library/features/<slug>/help.json`
-  and published to the help center only on request: `docs/help.md`.
+  and published to the help center only on request: `docs/help.md`. The
+  feature page is built on the website from the site's components, as a
+  draft and only on request, from `library/features/<slug>/site.json`:
+  `docs/website.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - Visuals are captured from the logged-in application: `docs/capture.md`.

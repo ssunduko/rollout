@@ -78,6 +78,8 @@ flowchart LR
 | `library/renders/<hash>/render.json` | `still.png`, `anim.gif`, `web.gif` (captures) | `scenes.mjs` | `library.mjs` | which scene, which brand, settings, when |
 | `library/features/<slug>/help.json` | the feature's scenes | help-writer agent | `help.mjs`, `helpcenter.mjs` | the help article as blocks; which live article it updates ([help.md](help.md)) |
 | `library/features/<slug>/help.published.json` | help.json | `helpcenter.mjs` | `help.mjs`, the help-writer agent | the article in the help center: id, URL, state, when it last changed |
+| `library/features/<slug>/site.json` | `output/<slug>/web/page.json` | web-publisher agent | `website.mjs`, the web-publisher agent | the feature page as site components in order, with prop values; components to create ([website.md](website.md)) |
+| `library/features/<slug>/site.published.json` | site.json | `website.mjs` | the web-publisher agent | the page in the website: id, path, draft, when it last changed; uploaded image assets by hash |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -131,7 +133,12 @@ flowchart LR
    feature (`help-find`, `help-get`), writes `help.json`, `rollout.mjs help`
    renders it; on the user's approval `rollout.mjs help-publish` creates or
    updates the article over the help center's API.
-7. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+7. `rollout-web-publisher` → reads the site's pages and components
+   (`site-find`), plans the page from them in `site.json` (`site-plan`); on the
+   user's approval uploads its images (`site-assets`), builds the draft page —
+   and any missing component, for reuse — through the site builder's MCP
+   server, and records it (`site-record`).
+8. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -154,6 +161,7 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/webmedia.mjs` | the web cut format: framed 1180×676 GIFs (from capture frames, or fitted) |
 | `pipeline/help.mjs` | help.json + brand `help` block → the help article's HTML body, preview and images |
 | `pipeline/helpcenter.mjs` | find, read, create and update help articles over the help center's API (adapters in `helpcenter/`); the publish guards |
+| `pipeline/website.mjs` | the website: reads its pages and components, checks site.json, uploads the page's images, records the built page (adapters in `website/`: `webflow`) |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

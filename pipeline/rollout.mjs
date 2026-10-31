@@ -22,9 +22,9 @@
 //   node pipeline/rollout.mjs site-find <slug> [<words>]            read the site's pages and components into output/<slug>/site/inventory.json;
 //                                                                    list pages that may already be this feature's
 //   node pipeline/rollout.mjs site-plan <slug>                      check library/features/<slug>/site.json against the inventory and the built page
-//   node pipeline/rollout.mjs site-get <slug> <pageId>              read one page into output/<slug>/site/page-<id>.json
+//   node pipeline/rollout.mjs site-get <slug> <id> [--item]         read one page (or feature-collection item) into output/<slug>/site/
 //   node pipeline/rollout.mjs site-assets <slug> --yes              upload the plan's images to the site's assets (only on the user's approval)
-//   node pipeline/rollout.mjs site-record <slug> <pageId>           after the page is built: record where it lives (site.published.json)
+//   node pipeline/rollout.mjs site-record <slug> <id> [--item]      after the page (or item) is built: record where it lives (site.published.json)
 //   node pipeline/rollout.mjs qa <slug>                            measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
@@ -47,7 +47,7 @@ import { buildSocial, loadSocial, socialSceneIds, validateSocial } from './socia
 import { buildHelp, loadHelp, helpSceneIds, validateHelp, helpFile } from './help.mjs';
 import { helpCenter, publishHelp } from './helpcenter.mjs';
 import { uploadImages } from './imagestore.mjs';
-import { website, readInventory, loadSite, validateSite, siteDefaults, uploadSiteAssets, recordSitePage, readSiteRecord, siteDir, siteFile, siteRecordFile } from './website.mjs';
+import { website, readInventory, loadSite, validateSite, siteDefaults, uploadSiteAssets, recordSitePage, recordSiteItem, featuresCollectionId, readSiteRecord, siteDir, siteFile, siteRecordFile } from './website.mjs';
 import { serveDir, openInBrowser } from './serve.mjs';
 import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir } from './library.mjs';
 import { loadTarget, listTargets } from './target.mjs';
@@ -349,8 +349,15 @@ const commands = {
     const hits = inv.pages.filter((p) => !p.collectionId && words.some((w) => `${p.title} ${p.slug}`.toLowerCase().includes(w)));
     if (!hits.length) console.log(`  no pages match ${words.join(', ')}`);
     for (const p of hits) console.log(`  ${p.id}  ${p.path ?? '-'}  ${p.title}${p.draft ? '  [draft]' : ''}  updated ${p.updatedAt?.slice(0, 10) ?? '?'}`);
+    if (inv.collection) {
+      const c = inv.collection;
+      console.log(`  collection  ${c.name} (${c.id}), ${c.items.length} items, at /${c.slug}/<item>: feature pages are items here`);
+      const items = c.items.filter((i) => words.some((w) => `${i.name} ${i.slug}`.toLowerCase().includes(w)));
+      for (const i of items) console.log(`  item ${i.id}  /${c.slug}/${i.slug}  ${i.name}${i.draft ? '  [draft]' : ''}  updated ${i.updatedAt?.slice(0, 10) ?? '?'}`);
+    }
     const record = readSiteRecord(slug);
-    if (record?.pageId) console.log(`  recorded page: ${record.pageId} ${record.path ?? ''} (site.published.json)`);
+    if (record?.itemId) console.log(`  recorded item: ${record.itemId} ${record.path ?? ''} (site.published.json)`);
+    else if (record?.pageId) console.log(`  recorded page: ${record.pageId} ${record.path ?? ''} (site.published.json)`);
   },
 
   'site-plan'() {
@@ -360,6 +367,12 @@ const commands = {
     warnings.forEach((m) => console.log(`  warn   site: ${m}`));
     if (errors.length) throw new Error(`${rel(siteFile(slug))} has errors`);
     const site = loadSite(slug);
+    if (site.cms) {
+      const f = site.cms.fields;
+      console.log(`item  ${f.name}  slug ${f.slug}  in collection ${site.cms.collectionId}${site.publish?.itemId ? `  (updates ${site.publish.itemId})` : '  (new, draft)'}`);
+      for (const [k, v] of Object.entries(f)) if (!['name', 'slug'].includes(k)) console.log(`  ${k.padEnd(34)} ${v === null ? '(empty)' : typeof v === 'object' ? JSON.stringify(v) : String(v).replace(/\s+/g, ' ').slice(0, 70)}`);
+      return;
+    }
     const { folderId, group } = siteDefaults(site);
     console.log(`page  ${site.page.title}  /${site.page.slug}${site.publish?.pageId ? `  (updates ${site.publish.pageId})` : `  (new, in folder ${folderId ?? 'none — site root'})`}`);
     site.sections.forEach((s, i) => console.log(`  ${String(i + 1).padStart(2)}. ${s.create ? `NEW (group ${s.create.group ?? group})  ` : ''}${s.component}${s.from ? `  <- ${s.from}` : ''}`));
@@ -368,6 +381,20 @@ const commands = {
   async 'site-get'() {
     const slug = assertSlug(args[0]);
     const ws = await website(brandForFeature(slug));
+    if (flags.has('--item')) {
+      const cid = featuresCollectionId();
+      if (!cid) throw new Error('site-get --item needs WEBFLOW_FEATURES_COLLECTION_ID in .env');
+      const i = await ws.item(cid, args[1]);
+      const file = path.join(siteDir(slug), `item-${i.id}.json`);
+      writeJson(file, i);
+      console.log(`  ${i.id}  ${i.slug}  ${i.name}${i.draft ? '  [draft]' : ''}`);
+      console.log(`  updatedAt  ${i.updatedAt}  (record it as site.json publish.updatedAt)`);
+      const record = readSiteRecord(slug);
+      if (record?.itemId === i.id && record.updatedAt && i.updatedAt > record.updatedAt) {
+        console.log(`  note       edited in the site builder since our last change (${record.updatedAt}) — read it before changing it`);
+      }
+      return console.log(`  saved      ${rel(file)}`);
+    }
     const p = await ws.page(args[1]);
     const file = path.join(siteDir(slug), `page-${p.id}.json`);
     writeJson(file, p);
@@ -392,8 +419,16 @@ const commands = {
 
   async 'site-record'() {
     const slug = assertSlug(args[0]);
-    if (!args[1]) throw new Error('site-record <slug> <pageId>');
+    if (!args[1]) throw new Error('site-record <slug> <pageId> | site-record <slug> <itemId> --item');
     const ws = await website(brandForFeature(slug));
+    if (flags.has('--item')) {
+      const cid = featuresCollectionId();
+      if (!cid) throw new Error('site-record --item needs WEBFLOW_FEATURES_COLLECTION_ID in .env');
+      const r = await recordSiteItem({ slug, ws, collectionId: cid, itemId: args[1] });
+      console.log(`  ${r.action}d item ${r.itemId}  ${r.path}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
+      console.log(`  updatedAt  ${r.updatedAt}`);
+      return console.log(`  record     ${rel(siteRecordFile(slug))}`);
+    }
     const r = await recordSitePage({ slug, site: loadSite(slug), ws, pageId: args[1] });
     console.log(`  ${r.action}d page ${r.pageId}  ${r.path ?? ''}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
     console.log(`  updatedAt  ${r.updatedAt}`);

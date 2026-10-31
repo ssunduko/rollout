@@ -1,8 +1,8 @@
 // Webflow adapter for pipeline/website.mjs: the Data API v2.
 //
 //   WEBFLOW_API_URL    https://api.webflow.com/v2
-//   WEBFLOW_API_TOKEN  a site token with sites:read, pages:read, components:read
-//                      and assets:read/write
+//   WEBFLOW_API_TOKEN  a site token with sites:read, pages:read, components:read,
+//                      assets:read/write and cms:read
 //   WEBFLOW_SITE_ID    the site feature pages are published to
 //
 // The Data API reads pages and components and uploads assets. Building a page
@@ -26,6 +26,18 @@ const page = (p) => ({
   updatedAt: p.lastUpdated ?? null,
   seo: p.seo ?? null,
   openGraph: p.openGraph ?? null,
+});
+
+// The API's CMS item as the adapter contract's shape.
+const item = (i) => ({
+  id: i.id,
+  name: i.fieldData?.name ?? '',
+  slug: i.fieldData?.slug ?? '',
+  draft: Boolean(i.isDraft),
+  archived: Boolean(i.isArchived),
+  updatedAt: i.lastUpdated ?? null,
+  publishedAt: i.lastPublished ?? null,
+  fields: i.fieldData ?? {},
 });
 
 export function connect({ token, siteId, baseUrl = DEFAULT_URL }) {
@@ -77,6 +89,20 @@ export function connect({ token, siteId, baseUrl = DEFAULT_URL }) {
       return (await all(`/sites/${site}/components`, 'components')).map((c) => ({
         id: c.id, name: c.name, group: c.group ?? null, description: c.description ?? null, readonly: Boolean(c.readonly),
       }));
+    },
+    // a CMS collection and its fields (needs cms:read)
+    async collection(id) {
+      const c = await call('GET', `/collections/${encodeURIComponent(id)}`);
+      return {
+        id: c.id, name: c.displayName, slug: c.slug,
+        fields: (c.fields ?? []).map((f) => ({ slug: f.slug, name: f.displayName, type: f.type, required: Boolean(f.isRequired) })),
+      };
+    },
+    async items(collectionId) {
+      return (await all(`/collections/${encodeURIComponent(collectionId)}/items`, 'items')).map(item);
+    },
+    async item(collectionId, itemId) {
+      return item(await call('GET', `/collections/${encodeURIComponent(collectionId)}/items/${encodeURIComponent(itemId)}`));
     },
     // Two steps: register the file (name + MD5), then send it to the storage
     // URL that returns, with the form fields it lists before the file itself.

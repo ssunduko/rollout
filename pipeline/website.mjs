@@ -11,10 +11,14 @@
 //   components()             the site's components: { id, name, group, description }
 //   uploadAsset(file)        an image in the site's assets: { id, url }
 //
+//   collection(id), items(id), item(collectionId, itemId)   CMS collections and their items
+//
 // The rollout-web-publisher agent plans the page in
-// library/features/<slug>/site.json — the components it is made of, in order,
-// with their prop values — and, on the user's approval, builds it in the site
-// builder. The pipeline checks the plan, uploads its images and keeps the
+// library/features/<slug>/site.json — either the components it is made of, in
+// order, with their prop values ("sections"), or, when the site keeps its
+// feature pages in a CMS collection (WEBFLOW_FEATURES_COLLECTION_ID), the
+// item's field values ("cms") — and, on the user's approval, builds it in the
+// site builder. The pipeline checks the plan, uploads its images and keeps the
 // record of where the page lives: library/features/<slug>/site.published.json.
 
 import fs from 'node:fs';
@@ -46,16 +50,27 @@ export async function website(brand, { anySite = false } = {}) {
   return { name, siteId, ...adapter.connect({ token, siteId, baseUrl: env('WEBFLOW_API_URL') }) };
 }
 
-// Read the site's pages and components into output/<slug>/site/inventory.json,
-// the list the agent picks components from.
+// The CMS collection feature pages are items of, when the site keeps them there.
+export const featuresCollectionId = () => env('WEBFLOW_FEATURES_COLLECTION_ID') ?? null;
+
+// Read the site's pages and components — and the feature collection's fields
+// and items, when there is one — into output/<slug>/site/inventory.json, the
+// list the agent plans from.
 export async function readInventory(slug, ws) {
   const [site, pages, components] = await Promise.all([ws.site(), ws.pages(), ws.components()]);
+  let collection = null;
+  const cid = featuresCollectionId();
+  if (cid) {
+    const [c, items] = await Promise.all([ws.collection(cid), ws.items(cid)]);
+    collection = { ...c, items: items.map(({ fields, ...i }) => i) };
+  }
   const inventory = {
     $comment: 'What the site holds, read by pipeline/website.mjs (rollout.mjs site-find). Never edit; read it again instead.',
     provider: ws.name,
     site,
     pages,
     components,
+    collection,
     readAt: new Date().toISOString(),
   };
   writeJson(path.join(siteDir(slug), 'inventory.json'), inventory);
@@ -78,33 +93,70 @@ export const siteDefaults = (site) => ({
   group: env('WEBFLOW_COMPONENT_GROUP', 'Rollout'),
 });
 
-// The files a plan uses, from output/<slug>/web/assets/: { "asset": "<file>" } prop values and the og image.
+// The files a plan uses: { "asset": "<file>" } prop and field values and the og image.
 export function siteAssets(site) {
   const files = new Set();
   const walk = (v) => {
     if (v && typeof v === 'object' && typeof v.asset === 'string') files.add(v.asset);
   };
   for (const s of site.sections ?? []) Object.values(s.props ?? {}).forEach(walk);
+  Object.values(site.cms?.fields ?? {}).forEach(walk);
   walk(site.page?.openGraph?.image);
   return [...files];
 }
 
-const assetPath = (slug, file) => path.join(featurePaths(slug).web, 'assets', file);
+// A plain file name is in output/<slug>/web/assets/; a path ("assets/social/…")
+// is relative to output/<slug>/.
+const assetPath = (slug, file) => (file.includes('/') ? path.join(featurePaths(slug).output, file) : path.join(featurePaths(slug).web, 'assets', file));
 
-// Check site.json against the built web page and, when it has been read, the
-// site's components. { errors, warnings }.
+const isValue = (v) => typeof v === 'string' || typeof v === 'boolean' || typeof v === 'number'
+  || (v && typeof v === 'object' && (typeof v.asset === 'string' || typeof v.siteAsset === 'string' || typeof v.url === 'string'));
+const VALUE_HELP = 'a value is text, a number, true/false, { "asset": "<file>" }, { "siteAsset": "<asset id>" } or { "url": "<link>" }';
+
+// The cms form: the item's fields by slug, checked against the collection when read.
+function validateCms(site, inventory, errors, warnings) {
+  const cms = site.cms;
+  const f = cms.fields ?? {};
+  if (!cms.collectionId) errors.push('cms.collectionId is required (WEBFLOW_FEATURES_COLLECTION_ID)');
+  if (!String(f.name ?? '').trim()) errors.push('cms.fields.name (the item\'s title) is required');
+  if (!SLUG_RE.test(f.slug ?? '')) errors.push(`cms.fields.slug "${f.slug ?? ''}" must be lower-case words joined by hyphens`);
+  for (const [k, v] of Object.entries(f)) if (v !== null && !isValue(v)) errors.push(`cms.fields["${k}"]: ${VALUE_HELP}, or null`);
+  const col = inventory?.collection;
+  if (!col || col.id !== cms.collectionId) return warnings.push(`the collection's fields have not been read — run rollout.mjs site-find with WEBFLOW_FEATURES_COLLECTION_ID set so field names can be checked`);
+  const known = new Map(col.fields.map((x) => [x.slug, x]));
+  for (const k of Object.keys(f)) if (!known.has(k)) errors.push(`cms.fields["${k}"]: no field "${k}" in ${col.name} — fields: ${[...known.keys()].join(', ')}`);
+  for (const x of col.fields) if (x.required && (f[x.slug] == null || f[x.slug] === '')) errors.push(`cms.fields["${x.slug}"] (${x.name}) is required by ${col.name}`);
+  const taken = col.items.find((i) => i.slug === f.slug);
+  if (taken && taken.id !== site.publish?.itemId) errors.push(`an item with slug "${f.slug}" already exists (${taken.id}) — update it (publish.itemId) or choose another slug`);
+}
+
+function checkFiles(slug, site, errors) {
+  for (const f of siteAssets(site)) {
+    if (!fs.existsSync(assetPath(slug, f))) errors.push(`asset ${f} is not in output/${slug}/${f.includes('/') ? '' : 'web/assets/'} — build first, or use a file the build made`);
+  }
+}
+
+// Check site.json against the build and, when they have been read, the site's
+// components or the feature collection's fields. { errors, warnings }.
 export function validateSite(slug) {
   const site = loadSite(slug);
   const errors = [];
   const warnings = [];
   if (!site) return { errors: [`no ${path.relative(process.cwd(), siteFile(slug))}`], warnings };
+  const inventory = readInventoryFile(slug);
+  if (site.cms && site.sections) errors.push('a plan is either "cms" (an item in the feature collection) or "sections" (a page of components), not both');
+  if (site.cms) {
+    validateCms(site, inventory, errors, warnings);
+    checkFiles(slug, site, errors);
+    if (site.publish?.itemId && !site.publish.updatedAt) errors.push('publish.updatedAt is required with publish.itemId: read the item with site-get --item and copy its updatedAt');
+    return { errors, warnings };
+  }
   const p = site.page ?? {};
   if (!p.title?.trim()) errors.push('page.title is required');
   if (!SLUG_RE.test(p.slug ?? '')) errors.push(`page.slug "${p.slug ?? ''}" must be lower-case words joined by hyphens`);
   if ((p.seo?.description ?? '').length > 160) warnings.push(`page.seo.description is ${p.seo.description.length} characters (search engines show about 160)`);
   if (!Array.isArray(site.sections) || !site.sections.length) errors.push('sections must list the page\'s components, top to bottom');
 
-  const inventory = readInventoryFile(slug);
   const known = new Set((inventory?.components ?? []).map((c) => c.name));
   if (!inventory) warnings.push(`the site's components have not been read — run rollout.mjs site-find ${slug} so component names can be checked`);
   const created = new Set();
@@ -122,14 +174,10 @@ export function validateSite(slug) {
     // a prop is named "<name>", or "<group> / <name>" when several share a name
     for (const [prop, v] of Object.entries(s.props ?? {})) {
       if (!prop.split(' / ').every((x) => x.trim())) errors.push(`${at}.props["${prop}"]: a prop is "<name>" or "<group> / <name>"`);
-      const ok = typeof v === 'string' || typeof v === 'boolean' || typeof v === 'number'
-        || (v && typeof v === 'object' && (typeof v.asset === 'string' || typeof v.siteAsset === 'string' || typeof v.url === 'string'));
-      if (!ok) errors.push(`${at}.props["${prop}"]: a value is text, a number, true/false, { "asset": "<file>" }, { "siteAsset": "<asset id>" } or { "url": "<link>" }`);
+      if (!isValue(v)) errors.push(`${at}.props["${prop}"]: ${VALUE_HELP}`);
     }
   });
-  for (const f of siteAssets(site)) {
-    if (!fs.existsSync(assetPath(slug, f))) errors.push(`asset ${f} is not in output/${slug}/web/assets/ — build the web page first, or use a file it built`);
-  }
+  checkFiles(slug, site, errors);
   if (site.publish?.pageId && !site.publish.updatedAt) errors.push('publish.updatedAt is required with publish.pageId: read the page with site-get and copy its updatedAt');
   return { errors, warnings };
 }
@@ -152,7 +200,7 @@ export async function uploadSiteAssets({ slug, site, ws, log = console.log }) {
       continue;
     }
     if (data.length > 4 * 1024 * 1024) throw new Error(`${file} is ${(data.length / 1048576).toFixed(1)} MB — site images must be under 4 MB`);
-    const a = await ws.uploadAsset({ name: file, data, type: TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream' });
+    const a = await ws.uploadAsset({ name: path.basename(file), data, type: TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream' });
     out[file] = { id: a.id, url: a.url, hash, reused: false };
     log(`  upload  ${file}  -> asset ${a.id}`);
   }
@@ -187,6 +235,32 @@ export async function recordSitePage({ slug, site, ws, pageId }) {
     notCreated: planned.filter((n) => !ids.has(n)),
     assets: record.assets ?? {},
     action: record.pageId === p.id ? 'update' : 'create',
+    recordedAt: new Date().toISOString(),
+  };
+  writeJson(siteRecordFile(slug), out);
+  return out;
+}
+
+// The same for a CMS item: the feature page is the collection's template
+// showing this item, at /<collection slug>/<item slug>.
+export async function recordSiteItem({ slug, ws, collectionId, itemId }) {
+  const [i, c, s] = await Promise.all([ws.item(collectionId, itemId), ws.collection(collectionId), ws.site()]);
+  const record = readSiteRecord(slug) ?? {};
+  const itemPath = `/${c.slug}/${i.slug}`;
+  const out = {
+    $comment: 'Where the feature page lives: written by pipeline/website.mjs (rollout.mjs site-record --item) after the rollout-web-publisher agent creates or updates the CMS item. assets maps each image file (by content hash) to its copy in the site.',
+    provider: ws.name,
+    siteId: ws.siteId,
+    collectionId: c.id,
+    itemId: i.id,
+    title: i.name,
+    path: itemPath,
+    url: s.domains[0] ? `https://${s.domains[0]}${itemPath}` : null,
+    draft: i.draft,
+    updatedAt: i.updatedAt,
+    publishedAt: i.publishedAt,
+    assets: record.assets ?? {},
+    action: record.itemId === i.id ? 'update' : 'create',
     recordedAt: new Date().toISOString(),
   };
   writeJson(siteRecordFile(slug), out);

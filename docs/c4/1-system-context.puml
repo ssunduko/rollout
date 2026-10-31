@@ -5,24 +5,31 @@
 
 title Rollout — System Context
 
-Person(author, "Product marketer", "Describes a feature in plain English, approves data-changing captures and QA fixes, receives the outputs.")
-Person(reader, "Customer / prospect", "Reads the one-pager and the feature page.")
+Person(author, "Product marketer", "Describes a feature in plain English, approves data-changing captures, QA fixes and every publish, receives the outputs.")
+Person(reader, "Customer / prospect", "Reads the one-pager, the feature page and the help article.")
 
-System(rollout, "Rollout", "Turns a feature description into a branded one-pager PDF and a matching web feature page. Agents author JSON sidecars; a brand-agnostic Node pipeline renders them.")
+System(rollout, "Rollout", "Turns a feature description into a branded one-pager PDF, a matching web feature page, a social pack and a help-center article. Agents author JSON sidecars; a brand-agnostic Node pipeline renders and publishes them.")
 
-System_Ext(claude, "Claude Code", "Runs the feature-rollout skill and the copywriter, visual-designer and QA agents.")
+System_Ext(claude, "Claude Code", "Runs the feature-rollout skill and the copywriter, visual-designer, QA, help-writer and web-publisher agents.")
 System_Ext(app, "Product application", "The logged-in SaaS app the feature lives in. Visuals are captured from it (look, don't touch).")
-System_Ext(site, "Marketing website / CMS", "Hosts the feature page. Receives web/ or page.json only when the user asks to publish.")
+System_Ext(helpcenter, "Help center (Intercom)", "Hosts the help article. Created or updated as a draft, published only on request.")
+System_Ext(imagestore, "Image store (S3)", "Public help/ prefix hosting the help article's framed images for the help center to copy.")
+System_Ext(site, "Website builder (Webflow)", "Hosts the feature page: an item of the feature CMS collection, or a page built from site components. Draft unless the user asks to publish.")
 System_Ext(tools, "Chrome + ffmpeg", "Headless Chrome (puppeteer-core) renders and captures; ffmpeg encodes GIFs.")
 
-Rel(author, claude, "Asks to roll out a feature, approves", "chat")
+Rel(author, claude, "Asks to roll out, publish; approves", "chat")
 Rel(author, rollout, "Writes input/{slug}/feature.md; previews the page", "files, rollout.mjs serve")
-Rel(claude, rollout, "Authors briefs and scenes; runs build and qa", "files, CLI")
+Rel(claude, rollout, "Authors sidecars; runs build, qa, publish commands", "files, CLI")
 Rel(rollout, app, "Signs in through a target, records the feature", "HTTPS, CDP screencast")
 Rel(rollout, tools, "Renders PDF, stills, GIFs, screenshots", "CDP, process")
-Rel(author, site, "Publishes the page (on request)", "CMS import")
+Rel(rollout, imagestore, "Uploads help images (on publish)", "S3 API")
+Rel(rollout, helpcenter, "Finds, creates or updates the article", "Intercom REST API")
+Rel(helpcenter, imagestore, "Copies images from", "HTTPS")
+Rel(rollout, site, "Reads site, uploads assets", "Webflow Data API")
+Rel(claude, site, "Creates the CMS item or page and components", "Webflow MCP server")
 Rel(site, reader, "Serves the feature page", "HTTPS")
-Rel(author, reader, "Shares the one-pager PDF", "email, sales")
+Rel(helpcenter, reader, "Serves the help article", "HTTPS")
+Rel(author, reader, "Shares the one-pager PDF and social pack", "email, sales, social")
 
 SHOW_LEGEND()
 @enduml

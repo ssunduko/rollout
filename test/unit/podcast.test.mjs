@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { mockFetch, bodyOf, readFixture, putFixture, haveFfmpeg, required, SANDBOX } from '../helpers.mjs';
+import { mockFetch, bodyOf, readFixture, putFixture, haveFfmpeg, SANDBOX } from '../helpers.mjs';
 import { featurePaths, writeJson, readJson } from '../../pipeline/env.mjs';
 import {
   scriptLines, scriptLength, validatePodcast, showVoices, videoSource, podcastStudio, podcastDirectory,
@@ -433,7 +433,7 @@ test('producePodcast: no script lines, or no host voice, is an error before anyt
   await assert.rejects(producePodcast({ slug: SLUG, podcast: fixture(), log: quiet }), /ELEVENLABS_HOST_VOICE_ID is not set/);
 });
 
-test('producePodcast: voices the script in parts of at most 2,000 characters, chained, joined into episode.mp3 with a transcript', { skip: required(FF, 'ffmpeg') }, async () => {
+test('producePodcast: voices the script in parts of at most 2,000 characters, chained, joined into episode.mp3 with a transcript', { skip: FF ? false : 'ffmpeg not installed (integration/podcast.test.mjs covers the join)' }, async () => {
   const m = studio();
   try {
     const podcast = longScript();
@@ -463,7 +463,7 @@ test('producePodcast: voices the script in parts of at most 2,000 characters, ch
   }
 });
 
-test('producePodcast: an unchanged script reuses every part; a changed one needs force and voices from the change on', { skip: required(FF, 'ffmpeg') }, async () => {
+test('producePodcast: an unchanged script reuses every part; a changed one needs force and voices from the change on', { skip: FF ? false : 'ffmpeg not installed (integration/podcast.test.mjs covers the join)' }, async () => {
   const m = studio();
   try {
     const podcast = longScript();
@@ -483,7 +483,7 @@ test('producePodcast: an unchanged script reuses every part; a changed one needs
   }
 });
 
-test('producePodcast: one voice reads every line when there is no guest', { skip: required(FF, 'ffmpeg') }, async () => {
+test('producePodcast: one voice reads every line when there is no guest', { skip: FF ? false : 'ffmpeg not installed (integration/podcast.test.mjs covers the join)' }, async () => {
   const m = studio();
   delete process.env.ELEVENLABS_GUEST_VOICE_ID;
   try {

@@ -2,7 +2,8 @@
 
 Rollout turns a plain-English feature description into a branded one-pager
 PDF, a matching web page and a social pack, and — on request — the
-help-center article and the feature page on the website. It is built on the
+help-center article, the feature page on the website and a podcast episode
+made from the feature's video. It is built on the
 **sidecar pattern**, used at two levels:
 
 1. **Data sidecars.** Every primary artifact has a machine-readable JSON file
@@ -38,12 +39,14 @@ flowchart LR
     QA[rollout-qa<br/><i>read-only</i>]
     HW[rollout-help-writer]
     WP[rollout-web-publisher]
+    PP[rollout-podcast-producer]
   end
   subgraph library["library/ (durable, reused)"]
     BR[features/&lt;slug&gt;/brief.json]
     SJ[features/&lt;slug&gt;/social.json]
     HJ[features/&lt;slug&gt;/help.json]
     STJ[features/&lt;slug&gt;/site.json]
+    PJ[features/&lt;slug&gt;/podcast.json]
     SC[scenes/&lt;id&gt;/scene.json + scene.html]
     RN[renders/&lt;hash&gt;/still.png · anim.gif]
     IX[index.json<br/><i>derived</i>]
@@ -55,6 +58,7 @@ flowchart LR
     R5[social.mjs]
     R6[help.mjs + helpcenter.mjs<br/>+ imagestore.mjs]
     R7[website.mjs]
+    R8[podcast.mjs]
     R4[qa.mjs]
   end
   subgraph output["output/&lt;slug&gt;/ (regenerable)"]
@@ -62,6 +66,7 @@ flowchart LR
     WEB[web/index.html + page.json]
     SOC[assets/social/]
     HLP[help/article.html + preview]
+    POD[podcast/episode.mp3 + transcript]
     BJS[build.json]
     QJ[qa/qa.json + screenshots]
   end
@@ -69,6 +74,10 @@ flowchart LR
     HC[(help center)]
     IS[(image store)]
     WS[(website builder)]
+    VS[(video source)]
+    ST[(podcast studio)]
+    PH[(podcast host)]
+    PD[(podcast directory)]
   end
   MD & FJ --> CW --> BR
   BR & MD & IA --> VD --> SC
@@ -88,6 +97,15 @@ flowchart LR
   WEB --> WP --> STJ
   STJ --> R7 -->|inventory, assets| WS
   WP -->|draft item or page, MCP| WS
+  BR --> PP --> PJ
+  PJ --> R8
+  VS -->|video| R8
+  R8 <-->|transcript, episode| ST
+  R8 --> POD
+  R8 -->|draft / publish| PH
+  PH -->|RSS| PD
+  PD -->|link, embed| R8
+  PP -->|episode page, MCP| WS
 ```
 
 ## The sidecars
@@ -95,7 +113,7 @@ flowchart LR
 | Sidecar | Beside | Written by | Read by | Carries |
 |---|---|---|---|---|
 | `brand/<id>/brand.json` | logos, icons, fonts | a person, once per brand | every stage | name, contact, social, nav, colours, fonts, voice, rules |
-| `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials, the help center, image store and website connections |
+| `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials, the help center, image store, website and podcast connections |
 | `targets/<name>.json` | `profiles/<name>/` | a person, once per app | `target.mjs`, `capture.mjs` | app URL, sign-in, viewport, hide/blur/block, secrets (as `env:` refs) |
 | `input/<slug>/feature.json` | `feature.md`, `assets/` | a person (from the template) | agents, `brief.mjs` | name, status, audience, section count, overrides, asset list |
 | `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what |
@@ -106,6 +124,8 @@ flowchart LR
 | `library/features/<slug>/help.published.json` | help.json | `helpcenter.mjs` | `help.mjs`, the help-writer agent | the article in the help center: id, URL, state, when it last changed |
 | `library/features/<slug>/site.json` | `output/<slug>/web/page.json` | web-publisher agent | `website.mjs`, the web-publisher agent | the feature page: an item of the site's feature CMS collection (fields by slug), or site components in order with prop values and components to create ([website.md](website.md)) |
 | `library/features/<slug>/site.published.json` | site.json | `website.mjs` | the web-publisher agent | the page or CMS item in the website: id, path, URL, draft, when it last changed; uploaded image assets by hash |
+| `library/features/<slug>/podcast.json` | the brief, the feature video | podcast-producer agent | `podcast.mjs`, the podcast-producer agent | the episode: which video, title, number, show notes, how the conversation should sound, the website episode page's fields ([podcast.md](podcast.md)) |
+| `library/features/<slug>/podcast.published.json` | podcast.json | `podcast.mjs` | the podcast-producer agent | the video version transcribed, the studio project, the episode's directory link and embed, the episode page |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | the web-publisher agent, a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -166,7 +186,13 @@ flowchart LR
    uploads its images (`site-assets`), creates the draft item — or the draft
    page and any missing component, for reuse — through the site builder's MCP
    server, and records it (`site-record`). Publishing is the user's.
-8. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+8. `rollout-podcast-producer` → plans the episode in `podcast.json`;
+   `rollout.mjs podcast-transcribe` reads the feature video from the video
+   source and transcribes it. On the user's approval `podcast` has the studio
+   voice the script the agent wrote in `podcast.json` into an MP3, the user
+   uploads it to the show by hand, `podcast-find` finds it on the directory,
+   and the agent builds the website episode page as a draft CMS item.
+9. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -191,6 +217,7 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/help.mjs` | help.json + brand `help` block → the help article's HTML body, preview and images |
 | `pipeline/helpcenter.mjs` | find, read, create and update help articles over the help center's API (adapters in `helpcenter/`); the publish guards |
 | `pipeline/website.mjs` | the website: reads its pages, components and feature CMS collection, checks site.json, uploads the page's images, records the built page or item (adapters in `website/`: `webflow`) |
+| `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

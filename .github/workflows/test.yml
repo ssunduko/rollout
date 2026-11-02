@@ -1,0 +1,57 @@
+# Runs the test suite on every pull request (and on pushes to main):
+# unit tests on Linux and Windows, and the integration tests — the CLI, the
+# demo app, the podcast and the whole pipeline end to end on the example
+# feature — on Linux with Chrome and ffmpeg. The tests read .env.example and a
+# throwaway copy of the example feature; no secret is needed. (test/README.md)
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      # Ubuntu 24.04 blocks the unprivileged user namespaces Chrome's sandbox needs
+      - name: Allow Chrome's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Check the tools
+        run: google-chrome --version && ffmpeg -version | head -1
+      - run: npm run test:integration

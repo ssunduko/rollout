@@ -16,15 +16,17 @@ System_Boundary(rollout, "Rollout") {
   Container(helpwriter, "rollout-help-writer", "Claude Code agent", "Finds the help article that covers the feature, writes help.json (new or revised), sends it as a draft after approval.")
   Container(webpublisher, "rollout-web-publisher", "Claude Code agent", "Maps page.json to the site's feature CMS collection or components, writes site.json, builds a draft through the Webflow MCP server after approval.")
 
-  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record.")
+  Container(podproducer, "rollout-podcast-producer", "Claude Code agent", "Writes podcast.json — the episode and its two-host script — from the brief, the video transcript and the episode collection; after approval produces, sends and publishes the episode and builds its draft page through the Webflow MCP server.")
+
+  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record; podcast-check/transcribe/find/site*, podcast, google-login.")
   Container(kit, "Scene kit", "CSS + seekable JS runtime", "pipeline/kit/: branded HTML scenes for the hero and coming-soon UI, rendered frame-exactly.")
   Container(demo, "Example app", "Node.js HTTP server, demo-app/", "A stand-in product with a real login, for trying the pipeline end to end.")
 
   ContainerDb(input, "Feature input", "Markdown + JSON, input/{slug}/", "feature.md, feature.json sidecar, optional assets — written by a person.")
   ContainerDb(brand, "Brand sidecars", "JSON + assets, brand/{id}/", "brand.json (colours, fonts, voice, rules, web chrome, help), logos, icons, fonts, integration logos.")
-  ContainerDb(config, "Deployment config", ".env, targets/, profiles/", "Which brand, render settings; help center, image store and website connections (tokens); target apps, sign-in, blur/hide; signed-in Chrome profiles (gitignored).")
-  ContainerDb(library, "Library", "JSON + HTML + PNG/GIF, library/", "Durable: features/{slug}/ brief.json, social.json, help.json, site.json and the *.published.json records; scenes/{id}/, content-addressed renders/{hash}/, derived index.json.")
-  ContainerDb(output, "Build output", "PDF + HTML + JSON, output/{slug}/", "Regenerable: {Feature} One-Pager.pdf, web/ (index.html, page.json, assets), assets/social/, help/, site/ (inventory, assets.json), build.json, qa/.")
+  ContainerDb(config, "Deployment config", ".env, targets/, profiles/", "Which brand, render settings; help center, image store, website and podcast connections (tokens, the show's voices); target apps, sign-in, blur/hide; signed-in Chrome profiles (gitignored).")
+  ContainerDb(library, "Library", "JSON + HTML + PNG/GIF, library/", "Durable: features/{slug}/ brief.json, social.json, help.json, site.json, podcast.json and the *.published.json records; scenes/{id}/, content-addressed renders/{hash}/, derived index.json.")
+  ContainerDb(output, "Build output", "PDF + HTML + JSON, output/{slug}/", "Regenerable: {Feature} One-Pager.pdf, web/ (index.html, page.json, assets), assets/social/, help/, site/ (inventory, assets.json), podcast/ (episode.mp3, transcripts), build.json, qa/.")
 }
 
 System_Ext(app, "Product application", "Logged-in SaaS app; captures look, never touch.")
@@ -35,6 +37,9 @@ System_Ext(intercom, "Intercom", "Help center: articles, collections, authors (R
 System_Ext(s3, "Amazon S3", "Image store: public help/ prefix for help-article images")
 System_Ext(webflow_api, "Webflow Data API", "Sites, pages, components, CMS collections and items, assets (REST)")
 System_Ext(webflow_mcp, "Webflow MCP server", "Designer and data tools: CMS items, pages, components, props (Claude connector)")
+System_Ext(drive, "Google Drive", "Feature videos (Drive API v3, signed in by google-login or a service account)")
+System_Ext(elevenlabs, "ElevenLabs", "Speech to Text; Text to Dialogue (voices the script); voices")
+System_Ext(spotify, "Spotify Web API", "The show's episodes, read with Client Credentials")
 
 Rel(author, skill, "'roll out {slug}', 'publish …'", "Claude Code")
 Rel(author, input, "Writes")
@@ -43,6 +48,13 @@ Rel(skill, designer, "Runs")
 Rel(skill, qa_agent, "Runs")
 Rel(skill, helpwriter, "Runs (on request)")
 Rel(skill, webpublisher, "Runs (on request)")
+Rel(skill, podproducer, "Runs (on request)")
+Rel(podproducer, library, "Writes podcast.json")
+Rel(podproducer, cli, "podcast-transcribe, podcast, podcast-find, podcast-site*", "shell")
+Rel(podproducer, webflow_mcp, "Creates the draft episode page; links it from the feature item", "MCP")
+Rel(cli, drive, "Reads the feature video", "HTTPS, JWT")
+Rel(cli, elevenlabs, "Transcribes; creates the podcast; downloads audio and script", "HTTPS REST")
+Rel(cli, spotify, "Finds the published episode", "HTTPS REST")
 Rel(skill, cli, "build, social, qa, serve", "shell")
 
 Rel(copywriter, input, "Reads")

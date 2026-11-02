@@ -14,7 +14,10 @@
     "library": "node pipeline/rollout.mjs library",
     "demo-app": "node demo-app/server.mjs",
     "targets": "node pipeline/rollout.mjs targets",
-    "probe": "node pipeline/rollout.mjs probe"
+    "probe": "node pipeline/rollout.mjs probe",
+    "test": "node --test --test-concurrency=4 \"test/unit/**/*.test.mjs\" \"test/integration/**/*.test.mjs\"",
+    "test:unit": "node --test \"test/unit/**/*.test.mjs\"",
+    "test:integration": "node --test --test-concurrency=1 \"test/integration/**/*.test.mjs\""
   },
   "dependencies": {
     "puppeteer-core": "^25.14.0"

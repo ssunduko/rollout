@@ -1,0 +1,10 @@
+{
+  "$comment": "Test fixture: a social.json for the smart-scheduling example (docs/social.md). Fictional.",
+  "headline": "Book [every meeting] in the thread",
+  "signature": "smart-scheduling--reschedule",
+  "slides": [
+    { "section": 0, "title": "Offer [open times]", "panel": { "crop": [0, 0.1, 1, 0.6] } },
+    { "section": 2 }
+  ],
+  "formats": ["cover", "slide", "signature"]
+}

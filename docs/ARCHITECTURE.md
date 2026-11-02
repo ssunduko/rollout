@@ -216,6 +216,7 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/social.mjs` | social.json + brief + renders → the social pack (cover, carousel, thumbnails, email and signature images) |
 | `pipeline/help.mjs` | help.json + brand `help` block → the help article's HTML body, preview and images |
 | `pipeline/helpcenter.mjs` | find, read, create and update help articles over the help center's API (adapters in `helpcenter/`); the publish guards |
+| `pipeline/seo.mjs` | search and answer engines: title, description, keyword, alt text, FAQ and CMS-field checks, structured data (JSON-LD) for the feature and episode pages, the audit of a published page (`docs/seo.md`) |
 | `pipeline/website.mjs` | the website: reads its pages, components and feature CMS collection, checks site.json, uploads the page's images, records the built page or item (adapters in `website/`: `webflow`) |
 | `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |

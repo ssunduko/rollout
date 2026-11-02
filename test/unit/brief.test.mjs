@@ -66,8 +66,10 @@ test('loadBrief fills defaults: .env, then brand, then feature.json, then the br
   assert.equal(plain.pill, '#product update'); // TOPIC_PILL in .env.example
   assert.equal(plain.cta.button, 'Start a free 14-day trial');
   assert.equal(plain.web.heroButton, 'Try for free');
-  assert.equal(plain.seo.title, null);
-  assert.match(plain.seo.description, /^Book meetings/);
+  assert.equal(plain.seo.title, 'Smart Scheduling: Book Meetings Over Text | Acme Cloud');
+  assert.match(plain.seo.description, /^Smart Scheduling books meetings/);
+  assert.equal(plain.seo.keyword, 'Smart Scheduling');
+  assert.equal(plain.faq.length, 5);
 
   const slug = feature((b) => ({ ...b, cta: { button: 'Brief button' }, seo: undefined }), {
     sidecar: { pill: 'Sidecar pill', cta: { title: 'Sidecar title', button: 'Sidecar button' } },
@@ -163,4 +165,24 @@ test('cta limits', () => {
   const errs = errorsOf(feature((b) => ({ ...b, cta: { title: 't'.repeat(LIMITS.ctaTitle + 1), subtitle: 's'.repeat(LIMITS.ctaSubtitle + 1) } })));
   assert.match(errs, /cta\.title is longer than 64/);
   assert.match(errs, /cta\.subtitle is longer than 110/);
+});
+
+test('search and answer engines: keyword, SEO text, FAQ and alt text (warnings; a malformed FAQ is an error)', () => {
+  // the example brief carries all of it: no warnings (first test)
+  const w = warningsOf(feature((b) => ({ ...b, seo: { title: 'Book Meetings Over Text, the Easy Way Today | Acme' }, faq: undefined, lead: 'Offer open times right in the thread and sync your calendars.' })));
+  assert.match(w, /seo\.description is missing — the page falls back to the intro/);
+  assert.match(w, /seo: the SEO title does not name "Smart Scheduling"/);
+  assert.match(w, /neither the headline nor the lead names "Smart Scheduling"/);
+  assert.match(w, /faq: no FAQ/);
+
+  const k = warningsOf(feature((b) => ({ ...b, seo: { ...b.seo, keyword: 'Meeting Booking' } })));
+  assert.match(k, /does not name "Meeting Booking"/);
+  assert.match(errorsOf(feature((b) => ({ ...b, seo: { ...b.seo, keyword: '' } }))), /seo\.keyword is the words people search for/);
+
+  assert.match(errorsOf(feature((b) => ({ ...b, faq: [{ q: 'Only a question?' }] }))), /faq\[0\] needs a question "q" and an answer "a"/);
+  assert.match(warningsOf(feature((b) => ({ ...b, faq: b.faq.slice(0, 1) }))), /faq: 1 question\(s\)/);
+
+  const alt = warningsOf(feature((b) => ({ ...b, hero: { ...b.hero, alt: 'hero.png' }, sections: b.sections.map((s, i) => (i ? s : { ...s, alt: 'Screenshot of the composer with three times' })) })));
+  assert.match(alt, /hero\.alt: the alt text "hero\.png" is a file name/);
+  assert.match(alt, /sections\[0\]\.alt: the alt text starts with "Screenshot of"/);
 });

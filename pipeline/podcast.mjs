@@ -23,6 +23,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { env, envNumber, escapeHtml as e, featurePaths, readJson, writeJson, SLUG_RE } from './env.mjs';
+import { featureKeyword } from './brief.mjs';
+import { checkCmsFields } from './seo.mjs';
 
 const ADAPTERS = {
   video: { key: 'PODCAST_VIDEO_SOURCE', dir: 'videosource', all: { gdrive: () => import('./videosource/gdrive.mjs') } },
@@ -136,6 +138,8 @@ export function validatePodcast(slug) {
   if (f) {
     if (!String(f.name ?? '').trim()) errors.push('site.fields.name (the episode page\'s title) is required');
     if (!SLUG_RE.test(f.slug ?? '')) errors.push(`site.fields.slug "${f.slug ?? ''}" must be lower-case words joined by hyphens`);
+    // what search and answer engines read of the episode page (pipeline/seo.mjs)
+    warnings.push(...checkCmsFields(f, { keyword: featureKeyword(slug), where: 'site.fields' }));
     const inv = readSiteInventory(slug);
     if (inv) {
       const known = new Set(inv.fields.map((x) => x.slug));

@@ -143,6 +143,7 @@
   ],
   "web": {
     "$comment": "The site chrome of the web page (pipeline/webpage.mjs): header, sign-up card, section buttons, closing note and footer. Labels and links only; the copy comes from the brief.",
+    "pageUrl": "https://www.acme.example/features/{slug}",
     "header": {
       "contact": {
         "label": "Questions? Call us",

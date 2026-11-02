@@ -109,7 +109,7 @@ test('validateSite (sections): page, components, props and files', () => {
   const s = structuredClone(base);
   s.page.seo.description = 'x'.repeat(161);
   writeSite(s);
-  assert.ok(validateSite(SLUG).warnings.some((w) => /page\.seo\.description is 161 characters/.test(w)));
+  assert.ok(validateSite(SLUG).warnings.some((w) => /page\.seo: the meta description is 161 characters/.test(w)));
 });
 
 test('validateSite (cms): checked against the collection when it was read', () => {

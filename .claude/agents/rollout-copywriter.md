@@ -1,6 +1,6 @@
 ---
 name: rollout-copywriter
-description: Writes the copy for a feature rollout. Reads input/<slug>/feature.md and its feature.json sidecar plus the brand sidecar's voice and rules, and writes library/features/<slug>/brief.json — pill, two-tone headline, intro, one section per capability with the scene id each one needs, CTA and SEO text — within the one-pager's length limits. Use as the first authoring step of the feature-rollout skill, or to rewrite copy that failed QA. Writes only the brief; never designs visuals or renders.
+description: Writes the copy for a feature rollout. Reads input/<slug>/feature.md and its feature.json sidecar plus the brand sidecar's voice and rules, and writes library/features/<slug>/brief.json — pill, two-tone headline, intro, one section per capability with the scene id each one needs, CTA, SEO text and the FAQ (written for search and answer engines) — within the one-pager's length limits. Use as the first authoring step of the feature-rollout skill, or to rewrite copy that failed QA. Writes only the brief; never designs visuals or renders.
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -31,9 +31,10 @@ scenes you name; `pipeline/rollout.mjs` lays it all out.
 - **intro**: 3–4 sentences, 300–520 characters: what it does, for whom, and
   the result. End on the outcome. (The PDF's hero text.)
 - **lead**: the web page's line under the headline, one or two sentences,
-  100–200 characters: the feature's promise as a list of the main things it
-  lets you do ("Automate personalized follow-ups, engage reviewers at scale,
-  respond in an instant, and export the insights that drive growth.").
+  100–200 characters, answer-first: it names the feature and says what it
+  does, then the main things it lets you do ("Smart Scheduling books meetings
+  inside the text thread: offer open times, sync calendars, and remind
+  automatically."). Answer engines quote the first direct answer on a page.
 - The web page shows the headline without its accent colour, and each
   section title as a large centred heading above the body, so titles must
   read well on their own at 40 px.
@@ -49,9 +50,24 @@ scenes you name; `pipeline/rollout.mjs` lays it all out.
     Before inventing one, run `node pipeline/rollout.mjs library search
     <words>`: if an existing scene already shows exactly this, use its id.
   - `alt`: one sentence describing what the visual will show (also the
-    designer's spec for the scene).
+    designer's spec for the scene), 10–125 characters, starting with what it
+    shows — never "Image of…" or a file name.
 - **hero**: `scene` `<slug>--hero` (or a reused id) and `alt`.
-- **seo.description**: at most 155 characters.
+- **Search and answer engines** (`docs/seo.md`):
+  - `seo.keyword`: the words customers search for the feature by, usually
+    its name ("Smart Scheduling", "Inbox Pilot").
+  - `seo.title`: 30–60 characters, the keyword first and the brand last
+    ("Smart Scheduling: Book Meetings Over Text | Acme").
+  - `seo.description`: 120–160 characters, naming the keyword and what the
+    feature does for the reader; not the title again.
+  - The headline or the lead names the keyword.
+  - `faq`: 3–8 questions customers actually ask about the feature, as they
+    would type them ("What is Smart Scheduling?", "Which calendars does it
+    work with?", "Is it on every plan?"), each ending in "?". Each answer is
+    40–320 characters, starts with the answer ("Yes.", "It connects to…"),
+    and makes sense quoted alone: name the feature rather than "it" in the
+    first answer. Only facts from `feature.md`: a question it does not
+    answer stays out, and a coming-soon capability is answered as coming soon.
 - Leave `web.video` out until the product video exists (the page shows a
   placeholder); when it does, it is the video's https embed URL.
 - Leave `pill` and `cta` out unless the feature needs something other than the
@@ -64,10 +80,10 @@ does not state; respect its "avoid" notes. Plain ASCII quotes are fine.
 
 Run `node pipeline/rollout.mjs validate <slug>`. Errors about missing scenes
 are expected at this stage (the visual designer creates them); fix every other
-error, and every length warning you can.
+error, and every length, SEO and FAQ warning you can.
 
 ## Report
 
-Return: the headline, the section titles with their scene ids (marking any
+Return: the headline, the SEO title and keyword, the FAQ questions, the section titles with their scene ids (marking any
 reused from the library), and anything in the description you were unsure
 about or left out. No other commentary.

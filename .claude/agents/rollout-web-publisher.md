@@ -72,12 +72,18 @@ component sections. Without that line, the page is **built from components**
    step per section (its GIF and its title and body), the date. More sections
    than the template has steps: report it — never drop one silently. Copy
    from `page.json` as is.
+   For search and answer engines (`docs/seo.md`):
+   - the SEO title and description fields take `page.json` `title` and `description`;
+   - every image gets the brief's alt text;
+   - a step's heading in rich text uses the same tag as the existing items' (the template styles it by tag, so another tag changes how the page looks). If that tag is `<h1>`, keep it and report it as a template fix for a person — the page's title should be its one `<h1>`, and the template's text styles need to give `<h2>`/`<h3>` the same look (`docs/seo.md`). `site-plan`'s warning about it is then expected;
+   - `page.json` `faq` goes into a FAQ field if the collection has one; if not, report that the template has no place for it.
 5. Write `site.json` with `cms` (`collectionId`, `fields` by field slug;
    images as `{ "asset": "<file>", "alt": "…" }`) and `publish`; no
-   `sections`. `site-plan <slug>` must show no errors.
+   `sections`. `site-plan <slug>` must show no errors, and no SEO warning
+   you can fix.
 6. Report: create or update (which item), each field and its value (images
-   by file), what has no field, and what you were unsure about. Nothing has
-   been changed in the site.
+   by file), what has no field, the SEO warnings left and why, and what you
+   were unsure about. Nothing has been changed in the site.
 
 ### Build
 
@@ -96,7 +102,10 @@ Only with an approval naming the action (create, or update of an item id).
 Never publish the item (`publish_collection_items`), publish the site,
 unpublish, archive or delete items, or change the collection's fields or its
 template. Report the item id, its path (`/<collection slug>/<item slug>`) and
-that it is a draft the user publishes from the CMS.
+that it is a draft the user publishes from the CMS. Once the user says it is
+published, `seo <slug> --live` checks the page as served; report what the
+template itself lacks (structured data, an empty `<h1>`, a second
+`og:image`) as a one-time template fix for a person (`docs/seo.md`).
 
 ## Plan
 
@@ -145,8 +154,10 @@ Then map every part of `page.json` to a component, top to bottom:
 the site header and footer (the components every page uses), the hero
 (headline, lead, video placeholder image, sign-up or primary button), one
 component per section (alternate media left and right the way the reference
-pages do), and the closing call to action. A part with no content (no FAQ) is
-left out, never filled with invented text.
+pages do), the FAQ (`page.json` `faq`: an existing FAQ or accordion
+component, questions as headings and answers as text — create one for reuse
+if the site has none), and the closing call to action. A part with no
+content (no FAQ in the brief) is left out, never filled with invented text.
 
 **Reuse first.** An existing component whose props can carry the content is
 always the choice, even if it is not a perfect fit. Set content through its
@@ -176,8 +187,11 @@ uses it), unlink an instance, or delete anything.
 `sections` (component, `from` — which part of `page.json`, `props` by prop
 name — `"<group> / <name>"` when several props share a name: text, `{ "asset": "<file in output/<slug>/web/assets/>" }` for images,
 `{ "siteAsset": "<asset id>" }` for an image already in the site,
-`{ "url": "…" }` for links), `publish`. Then
-`node pipeline/rollout.mjs site-plan <slug>` must show no errors.
+`{ "url": "…" }` for links), `publish`. `page.seo` takes `page.json`
+`title` and `description`, and `page.structuredData` its `structuredData`
+(the JSON-LD the page's head carries — `docs/seo.md`); every image prop gets
+the brief's alt text. Then `node pipeline/rollout.mjs site-plan <slug>` must
+show no errors, and no SEO warning you can fix.
 
 ### Report
 
@@ -206,7 +220,9 @@ If anything differs from what you reported, stop and say so.
 5. The page: a new one with `data_pages_tool` > `create_page` — `draft: true`,
    the title, slug, folder (`site-plan`), SEO and Open Graph. For an update,
    replace only the instances this plan owns; leave anything else on the page
-   as it is.
+   as it is. Add `page.structuredData` to the page's head as a
+   `<script type="application/ld+json">` (`data_scripts_tool`, page custom
+   code), replacing the one this plan added before; never site-wide code.
 6. Insert the instances in order (`data_component_builder`, or
    `data_component_tool` > `insert_component_instance`), then set each one's
    prop values (`data_component_props_tool` > `set_component_instance_prop_values`):

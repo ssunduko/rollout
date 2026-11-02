@@ -22,6 +22,8 @@
 //   node pipeline/rollout.mjs site-find <slug> [<words>]            read the site's pages and components into output/<slug>/site/inventory.json;
 //                                                                    list pages that may already be this feature's
 //   node pipeline/rollout.mjs site-plan <slug>                      check library/features/<slug>/site.json against the inventory and the built page
+//   node pipeline/rollout.mjs seo <slug> [--live] [--url <url>]      SEO/AEO checks of the brief, website plan and episode page; their JSON-LD;
+//                                                                    --live / --url audit the published pages (read only)
 //   node pipeline/rollout.mjs site-get <slug> <id> [--item]         read one page (or feature-collection item) into output/<slug>/site/
 //   node pipeline/rollout.mjs site-assets <slug> --yes              upload the plan's images to the site's assets (only on the user's approval)
 //   node pipeline/rollout.mjs site-record <slug> <id> [--item]      after the page (or item) is built: record where it lives (site.published.json)
@@ -68,10 +70,11 @@ import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir }
 import { loadTarget, listTargets } from './target.mjs';
 import { probe, manualLogin } from './capture.mjs';
 import { targetNameFor } from './scenes.mjs';
+import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = new Set(rest.filter((a) => a.startsWith('--')));
-const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state']);
+const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state', '--url']);
 const args = rest.filter((a, i) => !a.startsWith('--') && !VALUED.has(rest[i - 1]));
 const renderOpts = () => ({ force: flags.has('--force'), allowMutations: flags.has('--allow-mutations') });
 const option = (name) => { const i = rest.indexOf(name); return i >= 0 ? rest[i + 1] : undefined; };
@@ -432,6 +435,68 @@ const commands = {
     const { folderId, group } = siteDefaults(site);
     console.log(`page  ${site.page.title}  /${site.page.slug}${site.publish?.pageId ? `  (updates ${site.publish.pageId})` : `  (new, in folder ${folderId ?? 'none — site root'})`}`);
     site.sections.forEach((s, i) => console.log(`  ${String(i + 1).padStart(2)}. ${s.create ? `NEW (group ${s.create.group ?? group})  ` : ''}${s.component}${s.from ? `  <- ${s.from}` : ''}`));
+  },
+
+  // What search and answer engines read of a feature's pages (docs/seo.md):
+  // the brief, the website plan and the episode page checked, the structured
+  // data (JSON-LD) for the feature and the episode written to
+  // output/<slug>/seo/, and with --live (the recorded pages) or --url <url>
+  // the published pages as served. Read only: it changes nothing anywhere.
+  async seo() {
+    const slug = assertSlug(args[0]);
+    const brand = brandForFeature(slug);
+    const brief = loadBrief(slug, brand);
+    const keyword = brief.seo.keyword;
+    const dir = path.join(featurePaths(slug).output, 'seo');
+    const report = { slug, keyword, checks: {}, structuredData: {}, pages: [], checkedAt: new Date().toISOString() };
+    const show = (where, list) => {
+      report.checks[where] = list;
+      console.log(`${where}${list.length ? '' : '  ok'}`);
+      list.forEach((m) => console.log(`  warn   ${m}`));
+    };
+    console.log(`keyword  "${keyword}"`);
+    const v = validateBrief(slug);
+    show('brief', [...v.errors, ...v.warnings].filter((m) => /^(seo|faq)|alt|headline nor the lead/.test(m)));
+    const siteRec = readSiteRecord(slug);
+    if (loadSite(slug)) show('website plan', validateSite(slug).warnings.filter((m) => /^(cms\.fields|page\.seo|page\.structuredData)/.test(m)));
+    const podcast = loadPodcast(slug);
+    const podRec = readPodcastRecord(slug);
+    if (podcast) show('episode page', validatePodcast(slug).warnings.filter((m) => m.startsWith('site.fields')));
+
+    // the JSON-LD each page should carry: page code on a page built from
+    // components, the template's embed on a CMS item (docs/seo.md)
+    const absolute = (p) => (p && brand.website ? new URL(p, brand.website).href : null);
+    report.structuredData.feature = featureJsonLd({ brief, brand, url: siteRec?.url ?? absolute(siteRec?.path) ?? (brand.web?.pageUrl ? brand.web.pageUrl.replace('{slug}', slug) : null) });
+    if (podcast) {
+      const tFile = path.join(podcastDir(slug), 'transcript.txt');
+      report.structuredData.episode = episodeJsonLd({
+        podcast, brand,
+        url: podRec?.site?.url ?? absolute(podRec?.site?.path),
+        listenUrl: podcast.site?.fields?.['mp3-link'] ?? podRec?.directory?.url ?? null,
+        transcript: fs.existsSync(tFile) ? fs.readFileSync(tFile, 'utf8') : null,
+        datePublished: podRec?.site?.publishedAt ?? null,
+      });
+    }
+    for (const [k, data] of Object.entries(report.structuredData)) writeJson(path.join(dir, `${k}.jsonld.json`), data);
+    console.log(`structured data  ${Object.keys(report.structuredData).map((k) => rel(path.join(dir, `${k}.jsonld.json`))).join(', ')}`);
+
+    // the published pages, as served
+    const urls = [...rest.flatMap((a, i) => (a === '--url' && rest[i + 1] ? [rest[i + 1]] : []))];
+    if (flags.has('--live')) urls.push(...[siteRec?.url ?? absolute(siteRec?.path), podRec?.site?.url ?? absolute(podRec?.site?.path)].filter(Boolean));
+    for (const url of [...new Set(urls)]) {
+      const res = await fetch(url, { headers: { 'user-agent': 'rollout-seo-audit' }, redirect: 'follow' });
+      const a = auditHtml(await res.text(), { keyword });
+      if (!res.ok) a.findings.unshift({ level: 'fail', message: `HTTP ${res.status}` });
+      report.pages.push({ url, status: res.status, title: a.title, description: a.description, canonical: a.canonical, h1: a.h1, structuredData: a.jsonLd, questions: a.questions.length, findings: a.findings });
+      console.log(`page  ${url}  [HTTP ${res.status}]`);
+      console.log(`  title        ${a.title ?? '-'}`);
+      console.log(`  h1           ${a.h1.map((h) => h || '(empty)').join(' | ') || '-'}`);
+      console.log(`  json-ld      ${a.jsonLd.join(', ') || '-'}`);
+      a.findings.forEach((f) => console.log(`  ${f.level.padEnd(6)} ${f.message}`));
+    }
+    writeJson(path.join(dir, 'seo.json'), report);
+    console.log(`report  ${rel(path.join(dir, 'seo.json'))}`);
+    if (report.pages.some((p) => p.findings.some((f) => f.level === 'fail'))) process.exitCode = 1;
   },
 
   async 'site-get'() {

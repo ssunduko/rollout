@@ -143,3 +143,39 @@ test('services that are not configured say which key is missing', () => {
   assert.match(pc.out, /PODCAST_STUDIO is not set/);
   assert.match(pc.out, /PODCAST_DIRECTORY is not set/);
 });
+
+test('seo: checks the feature, writes its JSON-LD, audits a published page (read only)', async () => {
+  const http = await import('node:http');
+  const { cliAsync } = await import('../helpers.mjs');
+  const bad = '<html><head><title>Book</title><meta property="og:image" content="a.png"><meta property="og:image" content="b.png"></head><body><h1>Book</h1><h1></h1><img src="x.png"></body></html>';
+  const server = http.createServer((req, res) => {
+    if (req.url === '/missing') { res.writeHead(404); return res.end('no'); }
+    res.writeHead(200, { 'content-type': 'text/html' });
+    res.end(bad);
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const r = await cliAsync(['seo', SLUG, '--url', `${base}/features/smart-scheduling`]);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /keyword\s+"Smart Scheduling"/);
+    assert.match(r.out, /^brief\s+ok$/m, 'the example brief has no SEO findings');
+    assert.match(r.out, /page\s+http:\/\/127\.0\.0\.1:\d+\/features\/smart-scheduling\s+\[HTTP 200\]/);
+    for (const re of [/the page has 2 <h1> elements/, /an empty <h1>/, /2 different og:image tags/, /no structured data/, /no canonical link/, /no meta description/, /image without alt text: x\.png/]) assert.match(r.out, re);
+
+    const dir = path.join(SANDBOX, 'output', SLUG, 'seo');
+    const ld = JSON.parse(fs.readFileSync(path.join(dir, 'feature.jsonld.json'), 'utf8'));
+    assert.deepEqual(ld['@graph'].map((g) => g['@type']), ['WebPage', 'SoftwareApplication', 'FAQPage']);
+    assert.equal(ld['@graph'][0].url, 'https://www.acme.example/features/smart-scheduling'); // the brand's web.pageUrl
+    const report = JSON.parse(fs.readFileSync(path.join(dir, 'seo.json'), 'utf8'));
+    assert.equal(report.pages.length, 1);
+    assert.ok(report.pages[0].findings.length >= 7);
+
+    // a page that does not answer fails the command
+    const missing = await cliAsync(['seo', SLUG, '--url', `${base}/missing`]);
+    assert.notEqual(missing.code, 0);
+    assert.match(missing.out, /fail\s+HTTP 404/);
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});

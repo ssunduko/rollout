@@ -32,7 +32,7 @@ and Windows, integration tests on Linux with Chrome and ffmpeg.
 | Folder | What |
 |---|---|
 | `unit/` | one file per pipeline module and adapter: validation rules, HTML builders, the render cache, every API call's method, URL, headers and body, the S3 signature against AWS's published examples |
-| `integration/cli.test.mjs` | the CLI as run: init, status, validate, brand, targets, library; every outward step refusing without `--yes`; missing keys named |
+| `integration/cli.test.mjs` | the CLI as run: init, status, validate, brand, targets, library; every outward step refusing without `--yes`; missing keys named; `seo` auditing a served page |
 | `integration/demo-app.test.mjs` | the example app: login, session, pages, the blur and hide markers |
 | `integration/pipeline.test.mjs` | `build` on the example (captures from the demo app, kit scenes, PDF, web page, social pack, help article), the cached rebuild, `qa`, `serve`, and `help-publish` create → update → refused after an edit in the help center |
 | `integration/podcast.test.mjs` | `podcast-script` and `podcast --yes`: voiced in parts, joined by ffmpeg, the transcript, a rerun spending nothing, a changed script only with `--force` |

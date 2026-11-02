@@ -1,0 +1,8 @@
+{
+  "name": "Smart Scheduling",
+  "button": "See how it works",
+  "slides": [
+    { "section": 0, "title": "Offer [open times] without leaving the thread" },
+    { "section": 1 }
+  ]
+}

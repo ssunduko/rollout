@@ -19,6 +19,9 @@ pipeline builds:
 - the feature page on your website — an item of the site's feature CMS
   collection when it keeps feature pages there, else rebuilt from the site's
   own components; as a draft, on your go-ahead (`docs/website.md`)
+- a podcast episode made from the feature's video — two hosts talking it
+  through, voiced into an MP3 you upload to your show on Spotify, with its
+  page on your website, on your go-ahead (`docs/podcast.md`)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
 
@@ -71,6 +74,11 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
    item of its feature CMS collection, or from its components — and, once you
    approve, builds it there as a draft (creating any component the site lacks,
    for reuse); you publish it
+8. `rollout-podcast-producer` transcribes the feature's video, plans the
+   episode and writes its two-host script for you to read; once you approve,
+   it has the script voiced into an MP3 you
+   upload to your show, finds it on Spotify once published and
+   builds its draft page on your website
 
 The example `input/smart-scheduling/` is fully built for the fictional
 example brand (`brand/example/`), captured from the example app
@@ -96,12 +104,24 @@ example brand (`brand/example/`), captured from the example app
 | `help-publish <slug> --yes [--state draft\|published] [--live]` | Create or update the article in the help center, after your approval |
 | `site` · `site-find <slug> [<words>]` · `site-get <slug> <id> [--item]` | The website: connection, folders and components; the inventory (with the feature collection) and pages or items that may be the feature's; one page, or with `--item` one collection item |
 | `site-plan <slug>` · `site-assets <slug> --yes` · `site-record <slug> <id> [--item]` | Check `site.json`; upload its images, after your approval; record the built page or item (`docs/website.md`) |
+| `podcast-check` · `google-login` | The podcast services: connections, voices, the show; the one-time sign-in to Google (to read the videos), saving its token in `.env` |
+| `podcast-transcribe <slug>` · `podcast-script <slug>` · `podcast <slug> --yes [--force]` | Transcribe the feature video; show the episode's script (written by the agent) with its length; voice it (spends studio credits) into `output/<slug>/podcast/` (`docs/podcast.md`) |
+| `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link |
+| `podcast-site <slug>` · `podcast-site-assets <slug> --yes` · `podcast-site-record <slug> <itemId>` | The website's episode collection; upload the page's images; record the built episode page |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
 | `brand` | The resolved brand after `.env` overrides |
 
 All are `node pipeline/rollout.mjs <command>`.
+
+## Tests
+
+`npm test` runs the unit tests (every module and adapter, in seconds) and the
+integration tests (the CLI, the demo app, the podcast and a full build of the
+example feature, with Chrome and ffmpeg). They read `.env.example` and a
+throwaway copy of the example, never your `.env` or library. GitHub Actions
+runs them on every pull request. See `test/README.md`.
 
 ## Folders
 
@@ -113,11 +133,11 @@ All are `node pipeline/rollout.mjs <command>`.
 | `targets/` | applications captures log into (`*.local.json` gitignored) | a person, once per app |
 | `profiles/` | signed-in Chrome profiles (gitignored) | `login` / captures |
 | `demo-app/` | example application with a login, for trying the pipeline | — |
-| `library/features/` | per feature: `brief.json`, `social.json`, `help.json`, `site.json`, and the `*.published.json` records | the agents; records by `rollout.mjs` |
+| `library/features/` | per feature: `brief.json`, `social.json`, `help.json`, `site.json`, `podcast.json`, and the `*.published.json` records | the agents; records by `rollout.mjs` |
 | `library/scenes/` | capture scenes (`scene.json`) and kit scenes (+ `scene.html`) | visual-designer agent |
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
-| `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, build and QA records | `rollout.mjs` |
+| `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, podcast episode and transcripts, build and QA records | `rollout.mjs` |
 | `pipeline/` | the deterministic core | — |
 | `.claude/` | agents and the `feature-rollout` skill | — |
 | `examples/` | local reference material (real one-pagers, site pages): gitignored | — |
@@ -154,6 +174,8 @@ All are `node pipeline/rollout.mjs <command>`.
 | `HELP_IMAGE_STORE`, `HELP_IMAGE_BUCKET`, `HELP_IMAGE_REGION`, `HELP_IMAGE_PREFIX`, `HELP_IMAGE_ENDPOINT`, `HELP_IMAGE_URL_TTL`, `HELP_IMAGE_BASE_URL`, `AWS_*` | | Where the help article's images are hosted (`docs/help.md`) |
 | `HELP_FRAME_PAD`, `HELP_FRAME_RADIUS`, `HELP_FRAME_BORDER` | `24`, `12`, `WEB_FRAME_BORDER` | The frame drawn into help-article images |
 | `WEBSITE`, `WEBFLOW_API_URL`, `WEBFLOW_API_TOKEN`, `WEBFLOW_SITE_ID`, `WEBFLOW_FEATURES_COLLECTION_ID`, `WEBFLOW_PAGE_FOLDER_ID`, `WEBFLOW_COMPONENT_GROUP` | | The website connection (`docs/website.md`) |
+| `PODCAST_VIDEO_SOURCE`, `PODCAST_STUDIO`, `PODCAST_DIRECTORY` | | The podcast's services: `gdrive`, `elevenlabs`, `spotify` (`docs/podcast.md`) |
+| `GOOGLE_OAUTH_*` or `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`, `ELEVENLABS_*`, `SPOTIFY_*`, `WEBFLOW_PODCASTS_COLLECTION_ID`, `PODCAST_VIDEO_MAX_MB` | | Their keys, the show's two voices, the show, the website's episode collection |
 
 Every key, with its comment, is in `.env.example`.
 
@@ -174,5 +196,7 @@ brand; the previous brand's renders stay in the library.
 - `docs/social.md` — the social pack
 - `docs/help.md` — the help-center article, its images and publishing
 - `docs/website.md` — the feature page on the website (CMS item or components)
+- `docs/podcast.md` — the podcast episode from the feature video, its services and page
 - `docs/rules.md` — standing rules
+- `test/README.md` — the tests: what they cover and how they stay off real data
 - `docs/c4/` — C4 architecture diagrams (PlantUML)

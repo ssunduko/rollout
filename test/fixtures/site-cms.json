@@ -1,0 +1,14 @@
+{
+  "$comment": "Test fixture: a site.json that makes the feature page an item of the site's feature collection (docs/website.md). Fictional.",
+  "cms": {
+    "collectionId": "col-features",
+    "fields": {
+      "name": "Smart Scheduling",
+      "slug": "smart-scheduling",
+      "headline": "Book meetings in the thread",
+      "hero-image": { "asset": "hero.png", "alt": "The hero" },
+      "featured": false,
+      "video": null
+    }
+  }
+}

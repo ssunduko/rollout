@@ -1,0 +1,15 @@
+{
+  "$comment": "Test fixture: a site.json that builds the feature page from the site's components (docs/website.md). Fictional.",
+  "page": {
+    "title": "Smart Scheduling",
+    "slug": "smart-scheduling",
+    "seo": { "description": "Book meetings inside the text conversation." },
+    "openGraph": { "image": { "asset": "assets/social/feature-1280x720.png" } }
+  },
+  "sections": [
+    { "component": "Feature Hero", "props": { "Title": "Book meetings in the thread", "Image": { "asset": "hero.png" }, "Button / Link": { "url": "https://www.acme.example/signup" } } },
+    { "component": "Feature Row", "props": { "Title": "Offer open times", "Reversed": true, "Order": 2, "Image": { "siteAsset": "asset-1" } } },
+    { "component": "Coming Soon Row", "create": { "description": "A feature row with a Coming soon pill", "basedOn": "Feature Row" }, "props": { "Title": "Reschedule by text" } },
+    { "component": "Coming Soon Row", "props": { "Title": "Second use of the new component" } }
+  ]
+}

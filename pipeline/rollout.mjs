@@ -25,17 +25,27 @@
 //   node pipeline/rollout.mjs site-get <slug> <id> [--item]         read one page (or feature-collection item) into output/<slug>/site/
 //   node pipeline/rollout.mjs site-assets <slug> --yes              upload the plan's images to the site's assets (only on the user's approval)
 //   node pipeline/rollout.mjs site-record <slug> <id> [--item]      after the page (or item) is built: record where it lives (site.published.json)
+//   node pipeline/rollout.mjs podcast-check                         check the podcast services; list the studio's voices and the directory's show
+//   node pipeline/rollout.mjs google-login                          sign in to Google once, to read the feature videos; saves a refresh token in .env
+//   node pipeline/rollout.mjs podcast-transcribe <slug> [--force]   the feature video (podcast.json video.file) as text, by speaker
+//   node pipeline/rollout.mjs podcast-script <slug>                 the episode's script (podcast.json) as the hosts say it, with its length
+//   node pipeline/rollout.mjs podcast <slug> --yes [--force]        voice the script into the episode (spends studio credits: only on the user's approval)
+//   node pipeline/rollout.mjs podcast-find <slug>                   once uploaded to the show: find the episode in the directory; record its link and embed
+//   node pipeline/rollout.mjs podcast-site <slug>                   read the website's episode collection into output/<slug>/podcast/site-inventory.json
+//   node pipeline/rollout.mjs podcast-site-assets <slug> --yes      upload the episode page's images to the site's assets
+//   node pipeline/rollout.mjs podcast-site-record <slug> <itemId>   after the episode page is built: record it (podcast.published.json)
 //   node pipeline/rollout.mjs qa <slug>                            measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
 //   node pipeline/rollout.mjs brand [<slug>]                        the resolved brand (the feature's, else BRAND_DIR)
 //
-// Agents write sidecars (brief.json, social.json, help.json, scene.json +
-// scene.html); this renders them. It never writes copy, invents visuals or
-// publishes.
+// Agents write sidecars (brief.json, social.json, help.json, site.json,
+// podcast.json, scene.json + scene.html); this renders them. It never writes
+// copy or invents visuals, and sends nothing anywhere without --yes.
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { ROOT, INPUT_DIR, LIBRARY_DIR, featurePaths, assertSlug, readJson, writeJson, env, envNumber } from './env.mjs';
 import { loadBrand, brandForFeature } from './brand.mjs';
 import { loadFeature, loadBrief, validateBrief } from './brief.mjs';
@@ -48,6 +58,11 @@ import { buildHelp, loadHelp, helpSceneIds, validateHelp, helpFile } from './hel
 import { helpCenter, publishHelp } from './helpcenter.mjs';
 import { uploadImages } from './imagestore.mjs';
 import { website, readInventory, loadSite, validateSite, siteDefaults, uploadSiteAssets, recordSitePage, recordSiteItem, featuresCollectionId, readSiteRecord, siteDir, siteFile, siteRecordFile } from './website.mjs';
+import {
+  loadPodcast, validatePodcast, podcastFile, podcastDir, podcastRecordFile, readPodcastRecord, transcribeVideo, producePodcast,
+  findEpisode, readEpisodeCollection, uploadEpisodeAssets, recordEpisodeItem, videoSource, podcastStudio, podcastDirectory, showVoices,
+  scriptLines, scriptLength,
+} from './podcast.mjs';
 import { serveDir, openInBrowser } from './serve.mjs';
 import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir } from './library.mjs';
 import { loadTarget, listTargets } from './target.mjs';
@@ -82,6 +97,47 @@ function printHelpValidation(slug, brief, brand) {
   errors.forEach((m) => console.log(`  error  help: ${m}`));
   warnings.forEach((m) => console.log(`  warn   help: ${m}`));
   return errors.length === 0;
+}
+
+// podcast.json for a command that needs it: loaded and checked
+function podcastFor(slug) {
+  const podcast = loadPodcast(slug);
+  if (!podcast) throw new Error(`no ${rel(podcastFile(slug))} — the rollout-podcast-producer agent writes it (docs/podcast.md)`);
+  const { errors, warnings } = validatePodcast(slug);
+  errors.forEach((m) => console.log(`  error  podcast: ${m}`));
+  warnings.forEach((m) => console.log(`  warn   podcast: ${m}`));
+  if (errors.length) throw new Error(`${rel(podcastFile(slug))} has errors`);
+  return podcast;
+}
+
+// Set one key in .env (added if missing), keeping every other line as it is.
+function setEnvKey(key, value) {
+  const file = path.join(ROOT, '.env');
+  const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(/\r?\n/) : [];
+  const at = lines.findIndex((l) => l.replace(/^export\s+/, '').startsWith(`${key}=`));
+  if (at >= 0) lines[at] = `${key}=${value}`;
+  else lines.push(`${key}=${value}`);
+  fs.writeFileSync(file, lines.join('\n'));
+}
+
+// A one-time OAuth sign-in: open the provider's page in the browser and wait
+// on the redirect URI (a local address) for the code it sends back.
+async function oauthCode({ redirectUri, url, state, label }) {
+  const { port, pathname } = new URL(redirectUri);
+  const http = await import('node:http');
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const u = new URL(req.url, redirectUri);
+      if (u.pathname !== pathname) return res.writeHead(404).end();
+      const ok = u.searchParams.get('state') === state && u.searchParams.get('code');
+      res.writeHead(200, { 'Content-Type': 'text/plain' }).end(ok ? 'Signed in — you can close this tab.' : 'Sign-in failed — see the terminal.');
+      server.close();
+      if (ok) resolve(u.searchParams.get('code'));
+      else reject(new Error(u.searchParams.get('error_description') ?? u.searchParams.get('error') ?? 'the sign-in was cancelled or did not match'));
+    }).listen(Number(port) || 80);
+    console.log(`sign in to ${label} in the browser (redirect URI ${redirectUri}):\n  ${url}`);
+    openInBrowser(url);
+  });
 }
 
 function printValidation(slug) {
@@ -433,6 +489,124 @@ const commands = {
     console.log(`  ${r.action}d page ${r.pageId}  ${r.path ?? ''}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
     console.log(`  updatedAt  ${r.updatedAt}`);
     console.log(`  record     ${rel(siteRecordFile(slug))}`);
+  },
+
+  // each podcast service in turn: one failing does not hide the others
+  async 'podcast-check'() {
+    const check = async (label, fn) => {
+      try { await fn(); } catch (err) { console.log(`${label}: ${err.message}`); }
+    };
+    await check('video source', async () => {
+      const vs = await videoSource();
+      const me = await vs.whoami();
+      console.log(`video source: ${vs.name}  reading Drive as ${me.email ?? me.name ?? '?'} (${vs.account})`);
+    });
+    await check('studio', async () => {
+      const studio = await podcastStudio();
+      const voices = await studio.voices();
+      let show = null;
+      try { show = showVoices(); } catch { /* listed below */ }
+      console.log(`studio: ${studio.name}  ${voices.length} voices. Put two in .env as ELEVENLABS_HOST_VOICE_ID / ELEVENLABS_GUEST_VOICE_ID (with ELEVENLABS_HOST_NAME / ELEVENLABS_GUEST_NAME)`);
+      for (const v of voices) {
+        const role = v.id === show?.host.id ? `  <- host (${show.host.name})` : v.id === show?.guest?.id ? `  <- guest (${show.guest.name})` : '';
+        console.log(`  ${v.id}  ${v.name}${v.category ? `  [${v.category}]` : ''}${role}`);
+      }
+    });
+    await check('directory', async () => {
+      const dir = await podcastDirectory();
+      const s = await dir.show();
+      console.log(`directory: ${dir.name}  show ${s.title} (${s.id}) by ${s.publisher}, ${s.episodes ?? '?'} episodes  ${s.url ?? ''}`);
+    });
+  },
+
+  // Google's sign-in, once, as the person whose Drive holds the videos. A
+  // Desktop-app OAuth client accepts any loopback port.
+  async 'google-login'() {
+    const { authorizeUrl, exchangeCode } = await import('./videosource/gdrive.mjs');
+    const clientId = env('GOOGLE_OAUTH_CLIENT_ID');
+    const clientSecret = env('GOOGLE_OAUTH_CLIENT_SECRET');
+    if (!clientId || !clientSecret) throw new Error('set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env first (an OAuth client of type Desktop app — docs/podcast.md)');
+    const redirectUri = env('GOOGLE_OAUTH_REDIRECT_URI', 'http://127.0.0.1:8766/callback');
+    const state = crypto.randomBytes(12).toString('hex');
+    const { url, verifier } = authorizeUrl({ clientId, redirectUri, state });
+    const code = await oauthCode({ redirectUri, state, url, label: 'Google' });
+    const t = await exchangeCode({ clientId, clientSecret, redirectUri, code, verifier });
+    setEnvKey('GOOGLE_OAUTH_REFRESH_TOKEN', t.refreshToken);
+    console.log('  saved GOOGLE_OAUTH_REFRESH_TOKEN in .env — next: rollout.mjs podcast-check');
+  },
+
+  async 'podcast-transcribe'() {
+    const slug = assertSlug(args[0]);
+    const podcast = podcastFor(slug);
+    console.log('video');
+    const t = await transcribeVideo({ slug, podcast, force: flags.has('--force') });
+    const speakers = new Set(t.utterances.map((u) => u.speaker).filter(Boolean));
+    console.log(`  ${t.utterances.length} passages, ${speakers.size} speaker(s)${t.seconds ? `, ${Math.round(t.seconds / 60)} min` : ''}  -> ${rel(path.join(podcastDir(slug), 'video-transcript.json'))}`);
+  },
+
+  // the script as it will be said, for review before it is voiced
+  'podcast-script'() {
+    const slug = assertSlug(args[0]);
+    const podcast = podcastFor(slug);
+    let names = { host: 'Host', guest: 'Guest' };
+    try {
+      const v = showVoices();
+      names = { host: v.host.name, guest: (v.guest ?? v.host).name };
+    } catch { /* voices not set: generic names */ }
+    const lines = scriptLines(podcast);
+    if (!podcast.script?.lines?.length) return console.log('  no script yet — the rollout-podcast-producer agent writes script.lines');
+    lines.forEach((l) => console.log(`${names[l.speaker]}: ${l.text}\n`));
+    const { words, minutes } = scriptLength(podcast);
+    console.log(`${lines.length} lines, ${words} words — about ${minutes} min${podcast.script.minutes ? ` (target ${podcast.script.minutes})` : ''}`);
+  },
+
+  async podcast() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('podcast has the studio voice the episode, which spends credits: run it only after the user approved, with --yes');
+    const podcast = podcastFor(slug);
+    console.log('episode');
+    const r = await producePodcast({ slug, podcast, force: flags.has('--force') });
+    console.log(`  produced  ${r.studio.parts.length} part(s), ${r.studio.words} words  -> ${rel(podcastDir(slug))}/episode.mp3, transcript.html`);
+    console.log(`  record    ${rel(podcastRecordFile(slug))}`);
+    console.log(`  next      upload episode.mp3 to the show by hand, with podcast.json's episode title, description and image; then podcast-find ${slug}`);
+  },
+
+  async 'podcast-find'() {
+    const slug = assertSlug(args[0]);
+    const r = await findEpisode({ slug, podcast: podcastFor(slug) });
+    if (!r.episode) return console.log(`  not in ${r.directory} yet — it appears once the episode is uploaded to the show and published`);
+    console.log(`  ${r.episode.title}  ${r.episode.url}`);
+    console.log(`  embed   ${r.episode.embedUrl}`);
+    console.log(`  record  ${rel(podcastRecordFile(slug))}`);
+  },
+
+  async 'podcast-site'() {
+    const slug = assertSlug(args[0]);
+    const ws = await website(brandForFeature(slug));
+    const c = await readEpisodeCollection(slug, ws);
+    console.log(`  ${c.name} (${c.id}): ${c.items.length} items at /${c.slug}/<item> -> ${rel(path.join(podcastDir(slug), 'site-inventory.json'))}`);
+    console.log(`  fields  ${c.fields.map((f) => `${f.slug}${f.required ? '*' : ''} (${f.type})`).join(', ')}`);
+    c.items.slice(0, 5).forEach((i) => console.log(`  item ${i.id}  /${c.slug}/${i.slug}  ${i.name}${i.draft ? '  [draft]' : ''}`));
+    const rec = readPodcastRecord(slug)?.site;
+    if (rec?.itemId) console.log(`  recorded item: ${rec.itemId} ${rec.path ?? ''}`);
+  },
+
+  async 'podcast-site-assets'() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('podcast-site-assets uploads images to the website: run it only after the user approved, with --yes');
+    const podcast = podcastFor(slug);
+    const ws = await website(brandForFeature(slug));
+    console.log('assets');
+    const a = await uploadEpisodeAssets({ slug, podcast, ws });
+    console.log(`  ${Object.keys(a).length} assets -> ${rel(path.join(podcastDir(slug), 'site-assets.json'))}`);
+  },
+
+  async 'podcast-site-record'() {
+    const slug = assertSlug(args[0]);
+    if (!args[1]) throw new Error('podcast-site-record <slug> <itemId>');
+    const r = await recordEpisodeItem({ slug, ws: await website(brandForFeature(slug)), itemId: args[1] });
+    console.log(`  ${r.action}d item ${r.itemId}  ${r.path}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
+    console.log(`  record  ${rel(podcastRecordFile(slug))}`);
   },
 
   async qa() {

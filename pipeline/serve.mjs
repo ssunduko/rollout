@@ -34,7 +34,8 @@ export function serveDir(dir, port = 0) {
 
 // The user's default browser.
 export function openInBrowser(url) {
-  const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
+  // not cmd /c start: cmd reads each & in the URL as a command separator
+  const [cmd, args] = process.platform === 'win32' ? ['rundll32', ['url.dll,FileProtocolHandler', url]]
     : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
   spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
 }

@@ -8,7 +8,8 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 `rollout-copywriter`, `rollout-visual-designer` and `rollout-qa` agents
 (`.claude/agents/`) around `node pipeline/rollout.mjs`, and the
 `rollout-help-writer` agent for the help-center article, and the
-`rollout-web-publisher` agent for the feature page on the website.
+`rollout-web-publisher` agent for the feature page on the website, and the
+`rollout-podcast-producer` agent for the podcast episode.
 
 ## Ground rules
 
@@ -28,13 +29,18 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
   and published to the help center only on request: `docs/help.md`. The
   feature page is built on the website — as an item of the site's feature
   CMS collection, or from the site's components — as a draft and only on
-  request, from `library/features/<slug>/site.json`: `docs/website.md`.
+  request, from `library/features/<slug>/site.json`: `docs/website.md`. The
+  podcast episode is made from the feature video into `output/<slug>/podcast/`
+  from `library/features/<slug>/podcast.json`, only on request, for the user
+  to upload to the show: `docs/podcast.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - Visuals are captured from the logged-in application: `docs/capture.md`.
   Targets in `targets/` (secrets in `.env` or `*.local.json`, never
   committed); signed-in profiles in `profiles/` (gitignored). The example
   app: `npm run demo-app`.
+- Tests: `npm test` (`test/README.md`); they run on every pull request. A
+  pipeline change comes with its tests.
 - Every `.env` key the code reads is listed in `.env.example`; add new ones
   there in the same change.
 - When the kit gains a class or icon, document it in `docs/scene-kit.md`; when

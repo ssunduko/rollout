@@ -1,0 +1,30 @@
+{
+  "video": { "file": "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing", "speakers": 1 },
+  "episode": {
+    "number": 7,
+    "title": "Episode 7: Book the Right Time in One Tap",
+    "description": "Acme's Smart Scheduling suggests open times from your calendars, books them from the conversation and reminds the customer before the meeting.",
+    "tags": ["scheduling", "sms"]
+  },
+  "script": {
+    "instructions": "Two hosts walk a sales team through Smart Scheduling; upbeat, practical.",
+    "notes": "Invented example; Acme is fictional.",
+    "minutes": 0.5,
+    "intro": "Welcome to the Acme Deep Dive. Today: Smart Scheduling.",
+    "lines": [
+      { "speaker": "guest", "text": "So the customer just picks a time from the message?" },
+      { "speaker": "host", "text": "[laughs] Exactly. Acme suggests the open times from your calendars, and the customer taps one." },
+      { "speaker": "guest", "text": "And if they need to move it later?" },
+      { "speaker": "host", "text": "[excited] They reply, and the meeting moves. Reminders go out before it, too." }
+    ],
+    "outro": "That is it for this episode of the Acme Deep Dive.",
+    "language": "en"
+  },
+  "site": {
+    "fields": {
+      "name": "Episode 7: Book the Right Time in One Tap",
+      "slug": "episode-7-smart-scheduling",
+      "main-image": { "asset": "assets/social/podcast-1280x720.png", "alt": "Smart Scheduling" }
+    }
+  }
+}

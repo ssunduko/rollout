@@ -5,7 +5,7 @@
 ' Render: see docs/c4/README.md
 !include <C4/C4_Dynamic>
 
-title Rollout — Dynamic: "roll out {slug}", then publish
+title Rollout — Dynamic: "roll out {slug}", then publish and the podcast
 
 Person(author, "Product marketer")
 Container(skill, "feature-rollout skill", "Claude Code")
@@ -22,6 +22,10 @@ System_Ext(browser, "User's browser")
 System_Ext(s3, "Amazon S3")
 System_Ext(intercom, "Intercom")
 System_Ext(webflow, "Webflow", "Data API + MCP server")
+Container(podproducer, "rollout-podcast-producer", "agent")
+System_Ext(drive, "Google Drive")
+System_Ext(elevenlabs, "ElevenLabs")
+System_Ext(spotify, "Spotify")
 
 Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
 Rel(skill, copywriter, "Write the brief")
@@ -55,6 +59,19 @@ Rel(webpublisher, library, "site.json; reports the plan")
 Rel(author, skill, "Approves: create or update, draft")
 Rel(webpublisher, webflow, "site-assets uploads images; MCP creates the draft CMS item (or page); site-record")
 Rel(author, webflow, "Publishes the item from the CMS (or asks to)")
+
+Rel(author, skill, "Asks for the podcast, with the video's Drive link")
+Rel(skill, podproducer, "Plan the podcast")
+Rel(podproducer, webflow, "podcast-site: the episode collection's recent items")
+Rel(podproducer, library, "podcast.json: the episode and its script (podcast-script to read it)")
+Rel(podproducer, drive, "podcast-transcribe: reads the video")
+Rel(podproducer, elevenlabs, "podcast-transcribe: the video as text, by speaker")
+Rel(author, skill, "Approves: produce")
+Rel(podproducer, elevenlabs, "podcast --yes: voices the script in parts; episode.mp3 + transcript")
+Rel(author, spotify, "Uploads episode.mp3 and publishes it (Spotify for Creators)")
+Rel(podproducer, spotify, "podcast-find: the episode's link and embed")
+Rel(author, skill, "Approves: the episode page")
+Rel(podproducer, webflow, "Draft episode page (MCP), linked from the feature item; podcast-site-record")
 
 SHOW_LEGEND()
 @enduml

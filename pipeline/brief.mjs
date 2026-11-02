@@ -111,8 +111,8 @@ export function validateBrief(slug) {
   if (b.slug && b.slug !== slug) errors.push(`slug is "${b.slug}" but the folder is "${slug}"`);
   len('feature', b.feature, [2, 60]);
   len('headline', b.headline, LIMITS.headline);
-  if (b.headline && !/\[[^\]]+\]/.test(b.headline)) warnings.push('headline has no [highlighted] words');
-  if (b.headline && (b.headline.match(/\[/g) ?? []).length > 2) warnings.push('headline highlights more than two runs of words');
+  if (typeof b.headline === 'string' && !/\[[^\]]+\]/.test(b.headline)) warnings.push('headline has no [highlighted] words');
+  if (typeof b.headline === 'string' && (b.headline.match(/\[/g) ?? []).length > 2) warnings.push('headline highlights more than two runs of words');
   len('intro', b.intro, LIMITS.intro);
   // the web page's line under the headline: the intro is the PDF's, too long there
   if (b.lead) len('lead', b.lead, LIMITS.lead);

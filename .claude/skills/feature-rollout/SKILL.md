@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets or help-center article from a feature description (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website"). Orchestrates the copywriter, visual-designer, QA, help-writer and web-publisher agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets, help-center article or podcast episode from a feature description or video (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website", "make the podcast for <slug> from its video"). Orchestrates the copywriter, visual-designer, QA, help-writer, web-publisher and podcast-producer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request, and the podcast episode made from the feature video, for the user to upload to the show, with its website page, on request.
 ---
 
 # Feature rollout
@@ -107,7 +107,26 @@ repo root.
    publish a CMS item, publish only that item (`docs/website.md`,
    "Publishing"), never the whole site.
 
-9. **Deliver.** Report:
+9. **Podcast episode (on request).** When the user wants the episode, with
+   the feature video's Drive link, run the `rollout-podcast-producer` agent:
+   "Plan the podcast for <slug>; video: <link>." It writes
+   `library/features/<slug>/podcast.json` (`docs/podcast.md`), transcribes
+   the video, writes the episode's two-host script, and reports the episode
+   (number, title, notes), the voices, the script's length and shape, and
+   the episode page's fields. Point the user to `node pipeline/rollout.mjs
+   podcast-script <slug>` to read the whole script; changes go back to the
+   agent. If a service fails in `podcast-check`, say which `.env` key is
+   missing and stop at that step.
+   **Ask before each costly or outward step**, naming it: produce (voices
+   the script, spends studio credits), build the website episode page. Resume the agent
+   with exactly what was approved: "Produce the podcast for <slug>; approved:
+   produce." The user uploads the episode to the show by hand (the agent
+   reports the MP3, image, title and description). After they publish it
+   there and `podcast-find` sees it on the directory: "Build the
+   podcast page for <slug>; approved: create draft." Publishing the page is
+   the user's (`docs/website.md`, "Publishing").
+
+10. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`
    - `output/<slug>/web/index.html` (self-contained folder; `page.json` is the
      same content as data for CMS import)
@@ -118,6 +137,9 @@ repo root.
    - `output/<slug>/help/` and, when it was sent, the help article's id,
      URL and state
    - when it was built, the website item's or page's id and path (a draft)
+   - when it was made, `output/<slug>/podcast/episode.mp3` with the
+     title and description to upload, its Spotify link once found, and the
+     episode page (a draft)
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.

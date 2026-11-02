@@ -13,8 +13,9 @@ export const ROOT = path.resolve(HERE, '..');
 export const KIT_DIR = path.join(HERE, 'kit');
 
 // Minimal KEY=VALUE reader. Only fills variables that are not already set, so
-// an explicit shell export always wins over the file.
-function loadDotEnv(file = path.join(ROOT, '.env')) {
+// an explicit shell export always wins over the file. ENV_FILE (shell only)
+// reads another file instead: the tests use .env.example, never the real .env.
+function loadDotEnv(file = path.resolve(ROOT, process.env.ENV_FILE || '.env')) {
   if (!fs.existsSync(file)) return;
   for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const line = raw.trim();

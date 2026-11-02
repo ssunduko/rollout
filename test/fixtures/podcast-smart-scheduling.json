@@ -22,7 +22,7 @@
   },
   "site": {
     "fields": {
-      "name": "Episode 7: Book the Right Time in One Tap",
+      "name": "Episode 7: Smart Scheduling Books the Right Time in One Tap",
       "slug": "episode-7-smart-scheduling",
       "main-image": { "asset": "assets/social/podcast-1280x720.png", "alt": "Smart Scheduling" }
     }

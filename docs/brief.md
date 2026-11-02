@@ -25,7 +25,8 @@ they are what physically fits the PDF.
   "pill": "#product update",
   "cta": { "title": "", "subtitle": "", "button": "", "url": "" },
   "web": { "video": "https://www.youtube.com/embed/<id>", "poster": "<scene id>", "sectionButton": { "label": "", "url": "" } },
-  "seo": { "title": "", "description": "" }
+  "seo": { "keyword": "Smart Scheduling", "title": "", "description": "" },
+  "faq": [{ "q": "What is Smart Scheduling?", "a": "Smart Scheduling lets customers book …" }]
 }
 ```
 
@@ -48,8 +49,10 @@ they are what physically fits the PDF.
 | `web.poster` | no | scene id | The scene the poster shows; default `hero.scene` |
 | `web.sectionButton` | no | | `{label, url}` of every row's button; default the brand's `web.sectionButton` |
 | `web.heroButton` | no | | Header button label for brands without a `web` block. Default `WEB_HERO_BUTTON` |
-| `seo.title` | no | | Default `<feature> \| <brand name>` |
-| `seo.description` | no | 155 | Default: start of the intro |
+| `seo.keyword` | recommended | | The words people search for the feature by; default `feature`. The SEO title and description, the headline or lead, and the FAQ name it (`docs/seo.md`) |
+| `seo.title` | recommended | 30–60 | The keyword first, the brand last. Default `<feature> \| <brand name>` |
+| `seo.description` | recommended | 120–160 | Names the keyword. Default: the intro cut at 155 characters, mid-sentence |
+| `faq` | recommended | 3–8 | `[{ "q", "a" }]`: questions customers ask, ending in "?"; answers of 40–320 characters that start with the answer and make sense quoted alone. The web page's FAQ section and its `FAQPage` structured data; web only |
 
 ## What good looks like
 
@@ -106,6 +109,11 @@ from `web` in the brand's `brand.json` — labels and links only, never copy:
   }
 }
 ```
+
+`pageUrl` is where the site keeps feature pages, with `{slug}` for the
+feature (`https://www.acme.example/features/{slug}`): the page's canonical
+link and the address in its structured data. `faq.title` names the FAQ
+section (default "Frequently asked questions").
 
 `titleCase: true` sets the page's headline and section titles in headline
 style ("Turn Every Rating into the Right Follow-Up") when the site does; the

@@ -143,3 +143,10 @@ episode's link and player embed, and the transcript with the hosts' names
 creates it as a draft, and links it from the feature's CMS item when that has
 a podcast link field. Publishing both is the user's (`docs/website.md`,
 "Publishing").
+
+The page is written for search and answer engines (`docs/seo.md`):
+- its SEO title (30–60 characters) and description (120–160) name the feature;
+- the image has alt text;
+- the transcript is on the page, since that is what answer engines read of an episode.
+
+Validation warns on each. `seo <slug>` writes the episode's `PodcastEpisode` structured data to `output/<slug>/seo/episode.jsonld.json`.

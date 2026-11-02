@@ -25,6 +25,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { env, featurePaths, readJson, writeJson, SLUG_RE } from './env.mjs';
+import { featureKeyword } from './brief.mjs';
+import { checkCmsFields, checkMeta } from './seo.mjs';
 
 const ADAPTERS = {
   webflow: () => import('./website/webflow.mjs'),
@@ -145,8 +147,11 @@ export function validateSite(slug) {
   if (!site) return { errors: [`no ${path.relative(process.cwd(), siteFile(slug))}`], warnings };
   const inventory = readInventoryFile(slug);
   if (site.cms && site.sections) errors.push('a plan is either "cms" (an item in the feature collection) or "sections" (a page of components), not both');
+  // what search and answer engines read of the page (pipeline/seo.mjs): warnings
+  const keyword = featureKeyword(slug);
   if (site.cms) {
     validateCms(site, inventory, errors, warnings);
+    warnings.push(...checkCmsFields(site.cms.fields, { keyword, where: 'cms.fields' }));
     checkFiles(slug, site, errors);
     if (site.publish?.itemId && !site.publish.updatedAt) errors.push('publish.updatedAt is required with publish.itemId: read the item with site-get --item and copy its updatedAt');
     return { errors, warnings };
@@ -154,7 +159,8 @@ export function validateSite(slug) {
   const p = site.page ?? {};
   if (!p.title?.trim()) errors.push('page.title is required');
   if (!SLUG_RE.test(p.slug ?? '')) errors.push(`page.slug "${p.slug ?? ''}" must be lower-case words joined by hyphens`);
-  if ((p.seo?.description ?? '').length > 160) warnings.push(`page.seo.description is ${p.seo.description.length} characters (search engines show about 160)`);
+  warnings.push(...checkMeta({ title: p.seo?.title ?? p.title, description: p.seo?.description, keyword, where: 'page.seo' }));
+  if (!p.structuredData) warnings.push('page.structuredData is missing — copy page.json structuredData so the page says what it is about (JSON-LD)');
   if (!Array.isArray(site.sections) || !site.sections.length) errors.push('sections must list the page\'s components, top to bottom');
 
   const known = new Set((inventory?.components ?? []).map((c) => c.name));

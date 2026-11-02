@@ -56,11 +56,17 @@ test('webChrome: the brief\'s section button overrides the brand\'s', () => {
 
 test('webpageHtml: the example page', () => {
   const html = page();
-  assert.match(html, /<title>Smart Scheduling \| Acme Cloud<\/title>/);
-  assert.match(html, /<meta name="description" content="Book meetings inside the text conversation/);
+  assert.match(html, /<title>Smart Scheduling: Book Meetings Over Text \| Acme Cloud<\/title>/);
+  assert.match(html, /<meta name="description" content="Smart Scheduling books meetings inside the text conversation/);
   assert.match(html, /<meta property="og:image" content="assets\/og\.png">/);
   assert.match(html, /<h1 class="display">Book meetings right inside the conversation<\/h1>/); // no brackets
-  assert.match(html, /<p class="lead">Offer open times/); // lead, not intro
+  assert.match(html, /<p class="lead">Smart Scheduling books meetings inside the text thread/); // lead, not intro
+  // search and answer engines: the canonical address (brand web.pageUrl), the FAQ on the page, and JSON-LD
+  assert.match(html, /<link rel="canonical" href="https:\/\/www\.acme\.example\/features\/smart-scheduling">/);
+  assert.equal(count(html, /<div class="qa"><h3>[^<]+\?<\/h3><p>/g), 5);
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);
+  assert.deepEqual(ld['@graph'].map((g) => g['@type']), ['WebPage', 'SoftwareApplication', 'FAQPage']);
+  assert.equal(ld['@graph'][2].mainEntity[0].name, 'What is Smart Scheduling?');
   assert.equal(count(html, /<div class="feature/g), 5);
   assert.equal(count(html, /<div class="feature flip">/g), 2);
   assert.equal(count(html, /class="btn cta" href="https:\/\/www\.acme\.example\/signup">Start Your 14-Day Trial</g), 5);

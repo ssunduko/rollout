@@ -65,6 +65,14 @@ report which key and stop at the step that needs it.
      "alt": "…" }`, the order number. Leave the Spotify link, the embed and the
      transcript fields `null`: they exist only after publishing, and you fill
      them in Page mode.
+     Write them for search and answer engines (`docs/seo.md`; the keyword is
+     the brief's `seo.keyword`, else the feature's name):
+     - the SEO title: 30–60 characters, naming the keyword;
+     - the SEO description: 120–160 characters, naming the keyword and what the listener learns;
+     - the title and subtitle name the feature;
+     - the image's alt text says what it shows, never a file name.
+
+     `podcast-transcribe` refuses errors; fix the SEO warnings it prints too.
    `podcast-transcribe` and the other commands refuse a podcast.json with
    errors; fix them.
 5. `node pipeline/rollout.mjs podcast-transcribe <slug>`, then read
@@ -137,8 +145,9 @@ Only after `podcast-find` has recorded the directory episode
    `site.fields` the way the recent items do: the directory episode's link
    (`directory.url`), its player embed (the recent items show the markup —
    use `directory.embedUrl` in it), and the transcript
-   (`output/<slug>/podcast/transcript.html`, as is). Related episodes: the
-   recent items' pattern, if any.
+   (`output/<slug>/podcast/transcript.html`, as is — the transcript is what
+   answer engines read of an episode, so it always goes on the page).
+   Related episodes: the recent items' pattern, if any.
 3. `podcast-site-assets <slug> --yes`; image fields take the asset's `id` and
    `url` from `output/<slug>/podcast/site-assets.json`, with the alt.
 4. Create the item as a **draft** (`data_cms_tool` > `create_collection_items`,
@@ -150,6 +159,10 @@ Only after `podcast-find` has recorded the directory episode
    podcast link field, set it to the episode page's URL with
    `update_collection_items` — no `isDraft` change; on a live item the change
    is staged until the user publishes.
+
+Once the user says the page is published, `seo <slug> --live` checks it as
+served; report what the template itself lacks (structured data, a second
+`og:image`) as a one-time template fix for a person (`docs/seo.md`).
 
 Never publish items (`publish_collection_items`), publish the site, unpublish,
 archive or delete, or change a collection's fields. Report the episode page's

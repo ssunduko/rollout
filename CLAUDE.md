@@ -32,7 +32,9 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
   request, from `library/features/<slug>/site.json`: `docs/website.md`. The
   podcast episode is made from the feature video into `output/<slug>/podcast/`
   from `library/features/<slug>/podcast.json`, only on request, for the user
-  to upload to the show: `docs/podcast.md`.
+  to upload to the show: `docs/podcast.md`. Every page put on the website is
+  written for search and answer engines (keyword, SEO text, FAQ, alt text,
+  structured data), checked by `seo <slug>`: `docs/seo.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - Visuals are captured from the logged-in application: `docs/capture.md`.

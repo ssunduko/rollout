@@ -57,6 +57,16 @@ test('build: captures, scenes, PDF, web page, social pack, help article', { skip
   for (const ref of refs) assert.ok(fs.existsSync(path.join(web, ref.split(/[?#]/)[0])), `web page references a missing file: ${ref}`);
   assert.ok(fs.existsSync(path.join(web, 'page.json')));
 
+  // what search and answer engines read: canonical, JSON-LD, the FAQ on the page and in page.json
+  assert.match(html, /<link rel="canonical" href="https:\/\/www\.acme\.example\/features\/smart-scheduling">/);
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);
+  assert.deepEqual(ld['@graph'].map((g) => g['@type']), ['WebPage', 'SoftwareApplication', 'FAQPage']);
+  assert.equal((html.match(/<div class="qa">/g) ?? []).length, 5);
+  const pageJson = JSON.parse(fs.readFileSync(path.join(web, 'page.json'), 'utf8'));
+  assert.equal(pageJson.keyword, 'Smart Scheduling');
+  assert.equal(pageJson.faq.length, 5);
+  assert.deepEqual(pageJson.structuredData['@graph'].map((g) => g['@type']), ['WebPage', 'SoftwareApplication', 'FAQPage']);
+
   // the scenes, as stills and GIFs
   const assets = path.join(out, 'assets');
   const media = files(assets);
@@ -95,6 +105,10 @@ test('qa: the measured checks pass and the screenshots exist', { skip, timeout: 
   assert.match(r.out, /VERDICT \(measured\): PASS\s+0 fail/);
   const qa = JSON.parse(fs.readFileSync(path.join(out, 'qa', 'qa.json'), 'utf8'));
   assert.ok(qa);
+  // the SEO audit ran on the page; the example's only finding is its headline, which does not name the feature
+  const seo = qa.findings.filter((f) => f.check === 'seo');
+  assert.deepEqual(seo.map((f) => f.level), ['warn']);
+  assert.match(seo[0].message, /the <h1> "Book meetings right inside the conversation" does not name "Smart Scheduling"/);
   for (const f of ['pdf-page-1.png', 'web-desktop.png', 'web-desktop-fold.png', 'web-mobile.png', 'web-mobile-fold.png']) {
     assert.ok(isPng(path.join(out, 'qa', f)), f);
   }

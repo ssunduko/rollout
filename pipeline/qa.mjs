@@ -12,6 +12,9 @@
 //              title/description/h1, links with no destination, missing alt,
 //              the video placeholder still in place (warn), section visuals
 //              fitted instead of cut for the web (warn, from build.json)
+//   seo        what search and answer engines read: title and description
+//              lengths, the keyword in them and the <h1>, canonical, og:image,
+//              structured data (fails only when it does not parse), FAQ
 //   brief      validate() errors and warnings
 //   animation  a GIF on the web page has fewer than 3 distinct frames
 //   terms      a QA_FORBIDDEN_TERMS word appears in the outputs (another
@@ -27,6 +30,7 @@ import { validateBrief } from './brief.mjs';
 import { pageSize, pdfName } from './onepager.mjs';
 import { sceneDir } from './library.mjs';
 import { serveDir } from './serve.mjs';
+import { auditHtml } from './seo.mjs';
 
 export async function runQa({ slug, brief, paths: p }) {
   const findings = [];
@@ -143,6 +147,14 @@ export async function runQa({ slug, brief, paths: p }) {
       }
     }
   });
+
+  // what search and answer engines read: title, description, heading,
+  // canonical, structured data, FAQ (pipeline/seo.mjs). The <h1> count and
+  // missing alt text are measured on the rendered page above.
+  if (fs.existsSync(web)) {
+    const seo = auditHtml(fs.readFileSync(web, 'utf8'), { keyword: brief.seo?.keyword ?? brief.feature });
+    seo.findings.filter((f) => !/<h1> elements|^image without alt/.test(f.message)).forEach((f) => add(f.level, 'seo', f.message, 'web'));
+  }
 
   // every GIF on the web page must actually move: count its distinct frames
   const assetsDir = path.join(p.web, 'assets');

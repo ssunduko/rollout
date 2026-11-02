@@ -167,6 +167,14 @@ record.
   content.
 - Never change an existing component's definition (every page using it would
   change), unlink an instance, delete anything, or publish.
+- Write for search and answer engines (`docs/seo.md`):
+  - the SEO title and description from the brief (or `page.json`);
+  - alt text on every image;
+  - headings in rich text with the same tag as the existing items' (the template styles them by tag); an `<h1>` there is reported as a template fix, never changed on its own;
+  - the FAQ (`page.json` `faq`) wherever the template or components have a place for it;
+  - on a page of components, the JSON-LD (`page.json` `structuredData`) as the page's head code, recorded in `site.json` `page.structuredData`.
+
+  `site-plan` warns on each; after publishing, `seo <slug> --live` checks the page as served.
 - Update the page or item recorded in `site.published.json`; if it changed in
   the site builder since it was read (`site-get` shows a newer `updatedAt`),
   stop and plan again from it as it is.

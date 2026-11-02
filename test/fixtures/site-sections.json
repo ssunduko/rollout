@@ -3,7 +3,8 @@
   "page": {
     "title": "Smart Scheduling",
     "slug": "smart-scheduling",
-    "seo": { "description": "Book meetings inside the text conversation." },
+    "seo": { "title": "Smart Scheduling: Book Meetings Over Text | Acme", "description": "Smart Scheduling books meetings inside the text conversation: suggest open times, sync team calendars and send reminders automatically." },
+    "structuredData": { "@context": "https://schema.org", "@type": "WebPage", "name": "Smart Scheduling" },
     "openGraph": { "image": { "asset": "assets/social/feature-1280x720.png" } }
   },
   "sections": [

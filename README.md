@@ -104,6 +104,7 @@ example brand (`brand/example/`), captured from the example app
 | `help-publish <slug> --yes [--state draft\|published] [--live]` | Create or update the article in the help center, after your approval |
 | `site` · `site-find <slug> [<words>]` · `site-get <slug> <id> [--item]` | The website: connection, folders and components; the inventory (with the feature collection) and pages or items that may be the feature's; one page, or with `--item` one collection item |
 | `site-plan <slug>` · `site-assets <slug> --yes` · `site-record <slug> <id> [--item]` | Check `site.json`; upload its images, after your approval; record the built page or item (`docs/website.md`) |
+| `seo <slug> [--live] [--url <url>]` | Search and answer-engine checks of the brief, website plan and episode page; their structured data (JSON-LD) into `output/<slug>/seo/`; `--live` audits the published pages (`docs/seo.md`) |
 | `podcast-check` · `google-login` | The podcast services: connections, voices, the show; the one-time sign-in to Google (to read the videos), saving its token in `.env` |
 | `podcast-transcribe <slug>` · `podcast-script <slug>` · `podcast <slug> --yes [--force]` | Transcribe the feature video; show the episode's script (written by the agent) with its length; voice it (spends studio credits) into `output/<slug>/podcast/` (`docs/podcast.md`) |
 | `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link |
@@ -196,6 +197,7 @@ brand; the previous brand's renders stay in the library.
 - `docs/social.md` — the social pack
 - `docs/help.md` — the help-center article, its images and publishing
 - `docs/website.md` — the feature page on the website (CMS item or components)
+- `docs/seo.md` — search (SEO) and answer engines (AEO): the rules, where they apply, structured data
 - `docs/podcast.md` — the podcast episode from the feature video, its services and page
 - `docs/rules.md` — standing rules
 - `test/README.md` — the tests: what they cover and how they stay off real data

@@ -105,7 +105,10 @@ repo root.
    the site; approved: <create | update <id>>, draft." It stays a draft.
    Publishing is the user's, from the site builder; if they ask you to
    publish a CMS item, publish only that item (`docs/website.md`,
-   "Publishing"), never the whole site.
+   "Publishing"), never the whole site. After any page is published, run
+   `node pipeline/rollout.mjs seo <slug> --live` and report what search and
+   answer engines would miss (`docs/seo.md`); fixes to the site's templates
+   are the user's to approve.
 
 9. **Podcast episode (on request).** When the user wants the episode, with
    the feature video's Drive link, run the `rollout-podcast-producer` agent:

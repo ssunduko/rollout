@@ -25,6 +25,7 @@ import { escapeHtml as e, writeJson } from './env.mjs';
 import { brandCss, brandFontFiles } from './brand.mjs';
 import { headlineParts, plainHeadline } from './brief.mjs';
 import { framedMedia, renderPoster, webSettings } from './webmedia.mjs';
+import { featureJsonLd, jsonLdScript } from './seo.mjs';
 
 const copyInto = (dir, file, name = path.basename(file)) => {
   fs.mkdirSync(dir, { recursive: true });
@@ -92,6 +93,13 @@ img{max-width:100%;height:auto;display:block}
 .integrations .logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:32px;max-width:1080px;margin:0 auto}
 .integrations .logos img{width:173px;height:65px;object-fit:contain}
 
+.faq{padding:24px 0 80px}
+.faq h2{font-size:50px;line-height:1.16;margin:0 0 40px;text-align:center}
+.faq .qa{max-width:860px;margin:0 auto;border-top:1px solid color-mix(in srgb,var(--ink) 12%,white);padding:28px 0}
+.faq .qa:last-child{border-bottom:1px solid color-mix(in srgb,var(--ink) 12%,white)}
+.faq h3{font-family:var(--font-display);font-size:22px;line-height:1.35;margin:0 0 10px}
+.faq p{font-size:18px;line-height:1.6;margin:0;color:color-mix(in srgb,var(--ink) 75%,white)}
+
 .closing{padding:40px 0 64px}
 .closing .frame{background:color-mix(in srgb,var(--hero-tint) 45%,white);border-radius:8px;padding:32px}
 .closing .band{background:var(--primary);color:var(--white);text-align:center;padding:72px 24px}
@@ -140,7 +148,9 @@ img{max-width:100%;height:auto;display:block}
   .feature.flip .media{order:0}
   .feature h2{font-size:30px}
   .feature p{text-align:center;margin-bottom:28px}
-  .integrations h2,.closing h2{font-size:34px}
+  .integrations h2,.closing h2,.faq h2{font-size:34px}
+  .faq h3{font-size:19px}
+  .faq p{font-size:16px}
   .integrations .logos{gap:16px 24px}
   .integrations .logos img{width:130px;height:50px}
   .integrations p,.closing p{font-size:16px}
@@ -205,8 +215,23 @@ export function webChrome(brief, brand) {
   };
 }
 
+// The page's own address, when the brand says where feature pages live
+// (web.pageUrl, e.g. "https://www.acme.example/features/{slug}"): the
+// canonical link and the structured data's url.
+export const pageUrl = (brief, brand) => (brand.web?.pageUrl ? brand.web.pageUrl.replace('{slug}', brief.slug) : null);
+
+// The page's FAQ: questions as <h3>, answers as text, so search and answer
+// engines read them on the page as well as in the structured data.
+const faqHtml = (brief, brand) => (brief.faq?.length
+  ? `<section class="faq"><div class="wrap">
+  <h2 class="display">${e(brand.web?.faq?.title ?? 'Frequently asked questions')}</h2>
+  ${brief.faq.map((x) => `<div class="qa"><h3>${e(x.q)}</h3><p>${e(x.a)}</p></div>`).join('\n  ')}
+</div></section>`
+  : '');
+
 export function webpageHtml({ brief, brand, media, fontUrl }) {
   const title = brief.seo.title ?? `${brief.feature} | ${brand.name}`;
+  const url = pageUrl(brief, brand);
   const chrome = webChrome(brief, brand);
   const heading = (t) => (brand.web?.titleCase ? titleCase(t) : t);
   const { header, signup, sectionButton, footer } = chrome;
@@ -243,7 +268,11 @@ export function webpageHtml({ brief, brand, media, fontUrl }) {
 <meta property="og:title" content="${e(title)}">
 <meta property="og:description" content="${e(brief.seo.description)}">
 <meta property="og:image" content="${e(media.og)}">
-<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+${url ? `<link rel="canonical" href="${e(url)}">
+<meta property="og:url" content="${e(url)}">
+` : ''}<meta name="twitter:card" content="summary_large_image">
+${jsonLdScript(featureJsonLd({ brief, brand, url, image: url ? new URL(media.og, url).href : null }))}
 <style>${brandCss(brand, { fontUrl })}</style>
 <style>${CSS}</style>
 </head>
@@ -279,6 +308,7 @@ export function webpageHtml({ brief, brand, media, fontUrl }) {
   ${sections}
 </div></section>
 
+${faqHtml(brief, brand)}
 ${integrations}
 <section class="closing"><div class="wrap"><div class="frame"><div class="band">
   <h2 class="display">${e(brief.cta.title)}</h2>
@@ -362,6 +392,12 @@ export async function buildWebpage({ brief, brand, renders, outDir }) {
     sections: brief.sections.map((s) => ({ eyebrow: s.eyebrow ?? null, title: s.title, body: s.body, media: media[s.scene], alt: s.alt, button: chrome.sectionButton })),
     cta: { ...brief.cta, note: chrome.closingNote },
     ogImage: media.og,
+    keyword: brief.seo.keyword,
+    url: pageUrl(brief, brand),
+    faq: brief.faq,
+    // JSON-LD for the published page's head (the web-publisher adds it as
+    // page code; on a CMS template, the template's embed builds it from fields)
+    structuredData: featureJsonLd({ brief, brand, url: pageUrl(brief, brand) }),
   });
   return { htmlFile, fitted };
 }

@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { env, featurePaths, assertSlug, readJson } from './env.mjs';
 import { SCENE_ID_RE, sceneFile } from './library.mjs';
+import { checkMeta, checkFaq, checkAlt, keywordIn } from './seo.mjs';
 
 export const LIMITS = {
   pill: 28,
@@ -57,8 +58,23 @@ export function loadBrief(slug, brand = null) {
       ...(brief.cta ?? {}),
     },
     web: { heroButton: brand?.cta?.heroButton ?? env('WEB_HERO_BUTTON', 'Try for free'), ...(brief.web ?? {}) },
-    seo: { title: brief.seo?.title ?? null, description: brief.seo?.description ?? brief.intro?.slice(0, 155) },
+    seo: { title: brief.seo?.title ?? null, description: brief.seo?.description ?? brief.intro?.slice(0, 155), keyword: brief.seo?.keyword ?? brief.feature },
+    faq: Array.isArray(brief.faq) ? brief.faq : [],
   };
+}
+
+// The words people search for the feature by: the brief's seo.keyword, else
+// its feature name; null without a brief. The website and podcast plans are
+// checked against it.
+export function featureKeyword(slug) {
+  const file = featurePaths(slug).brief;
+  if (!fs.existsSync(file)) return null;
+  try {
+    const b = readJson(file);
+    return (typeof b.seo?.keyword === 'string' && b.seo.keyword.trim()) || b.feature || null;
+  } catch {
+    return null;
+  }
 }
 
 // "Qualify leads [automatically] with AI" -> parts with the bracketed words marked.
@@ -106,6 +122,7 @@ export function validateBrief(slug) {
     if (!fs.existsSync(sceneFile(ref.scene))) errors.push(`${label}.scene "${ref.scene}" does not exist in library/scenes/ yet (the visual-designer agent creates it)`);
     if (!ref.alt) warnings.push(`${label}.alt is missing (alt text for the web page)`);
     else if (ref.alt.length > LIMITS.alt) warnings.push(`${label}.alt is long (${ref.alt.length} characters)`);
+    else warnings.push(...checkAlt(ref.alt, `${label}.alt`).filter((m) => /file name|starts with/.test(m)));
   };
 
   if (b.slug && b.slug !== slug) errors.push(`slug is "${b.slug}" but the folder is "${slug}"`);
@@ -138,6 +155,19 @@ export function validateBrief(slug) {
 
   if (b.cta?.title && b.cta.title.length > LIMITS.ctaTitle) errors.push(`cta.title is longer than ${LIMITS.ctaTitle} characters`);
   if (b.cta?.subtitle && b.cta.subtitle.length > LIMITS.ctaSubtitle) errors.push(`cta.subtitle is longer than ${LIMITS.ctaSubtitle} characters`);
+
+  // search and answer engines (pipeline/seo.mjs, docs/seo.md): warnings, never a blocker
+  const seo = b.seo ?? {};
+  if (seo.keyword != null && (typeof seo.keyword !== 'string' || !seo.keyword.trim())) errors.push('seo.keyword is the words people search for the feature by');
+  const keyword = typeof seo.keyword === 'string' && seo.keyword.trim() ? seo.keyword : b.feature;
+  if (!seo.description) warnings.push('seo.description is missing — the page falls back to the intro cut at 155 characters, mid-sentence');
+  warnings.push(...checkMeta({ title: seo.title, description: seo.description, keyword, where: 'seo' }).filter((m) => !/no (SEO title|meta description)$/.test(m)));
+  if (typeof keyword === 'string' && typeof b.headline === 'string' && !keywordIn(`${b.headline} ${b.lead ?? ''}`, keyword)) {
+    warnings.push(`neither the headline nor the lead names "${keyword}" — the heading and first lines are what search and answer engines read first`);
+  }
+  const faq = checkFaq(b.faq, 'faq');
+  errors.push(...faq.errors);
+  warnings.push(...faq.warnings);
 
   return { errors, warnings };
 }

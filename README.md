@@ -7,9 +7,9 @@ pipeline builds:
 
 - `output/<slug>/<Feature> One-Pager.pdf` — a branded two-page one-pager
 - `output/<slug>/assets/social/` — the social pack: a cover and one slide
-  per section (1080×1350, also a carousel PDF), feature, podcast and YouTube
-  thumbnails (1280×720), an email image and an email-signature banner
-  (`docs/social.md`)
+  per section with a short title only (1080×1350, also a carousel PDF),
+  feature, podcast and YouTube thumbnails (1280×720), an email image and an
+  email-signature banner cut from the hero (`docs/social.md`)
 - `output/<slug>/web/` — a matching, self-contained, responsive feature page
   with an animated GIF for every visual (plus `page.json`, the same content as
   data for a CMS)
@@ -21,7 +21,8 @@ pipeline builds:
   own components; as a draft, on your go-ahead (`docs/website.md`)
 - a podcast episode made from the feature's video — two hosts talking it
   through, voiced into an MP3 you upload to your show on Spotify, with its
-  page on your website, on your go-ahead (`docs/podcast.md`)
+  page on your website, on your go-ahead; once it is published, found on
+  Spotify and saved to your library if you signed in (`docs/podcast.md`)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
 
@@ -77,8 +78,9 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
 8. `rollout-podcast-producer` transcribes the feature's video, plans the
    episode and writes its two-host script for you to read; once you approve,
    it has the script voiced into an MP3 you
-   upload to your show, finds it on Spotify once published and
-   builds its draft page on your website
+   upload to your show, finds it on Spotify once published (saving it to
+   your Spotify library after a one-time `spotify-login`) and builds its
+   draft page on your website
 
 The example `input/smart-scheduling/` is fully built for the fictional
 example brand (`brand/example/`), captured from the example app
@@ -105,9 +107,9 @@ example brand (`brand/example/`), captured from the example app
 | `site` · `site-find <slug> [<words>]` · `site-get <slug> <id> [--item]` | The website: connection, folders and components; the inventory (with the feature collection) and pages or items that may be the feature's; one page, or with `--item` one collection item |
 | `site-plan <slug>` · `site-assets <slug> --yes` · `site-record <slug> <id> [--item]` | Check `site.json`; upload its images, after your approval; record the built page or item (`docs/website.md`) |
 | `seo <slug> [--live] [--url <url>]` | Search and answer-engine checks of the brief, website plan and episode page; their structured data (JSON-LD) into `output/<slug>/seo/`; `--live` audits the published pages (`docs/seo.md`) |
-| `podcast-check` · `google-login` | The podcast services: connections, voices, the show; the one-time sign-in to Google (to read the videos), saving its token in `.env` |
+| `podcast-check` · `google-login` · `spotify-login` | The podcast services: connections, voices, the show, whether you are signed in to Spotify; the one-time sign-ins to Google (to read the videos) and to Spotify (to save episodes to your library), saving their tokens in `.env` |
 | `podcast-transcribe <slug>` · `podcast-script <slug>` · `podcast <slug> --yes [--force]` | Transcribe the feature video; show the episode's script (written by the agent) with its length; voice it (spends studio credits) into `output/<slug>/podcast/` (`docs/podcast.md`) |
-| `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link |
+| `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link; signed in (`spotify-login`), save it to your library once |
 | `podcast-site <slug>` · `podcast-site-assets <slug> --yes` · `podcast-site-record <slug> <itemId>` | The website's episode collection; upload the page's images; record the built episode page |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
@@ -183,10 +185,12 @@ Every key, with its comment, is in `.env.example`.
 ## Adding a brand
 
 Copy `brand/example/` to `brand/<id>/`, replace the logos (SVG — inline
-`<text>` uses the brand fonts — or PNG), fonts (woff2) and `brand.json` values, set
-`BRAND_DIR=brand/<id>`, rebuild. Optional colour tokens: `ctaButton` (the CTA
-button colour if it differs from `cta`). Every scene re-renders in the new
-brand; the previous brand's renders stay in the library.
+`<text>` uses the brand fonts — or PNG), fonts (woff2, woff, ttf or otf) and
+`brand.json` values, set `BRAND_DIR=brand/<id>`, rebuild. Optional colour
+tokens: `ctaButton` (the CTA button colour if it differs from `cta`).
+Optional `cursor` block: the brand's own cursor over captures
+(`docs/capture.md`). Every scene re-renders in the new brand; the previous
+brand's renders stay in the library.
 
 ## Docs
 

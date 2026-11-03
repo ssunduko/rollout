@@ -16,7 +16,7 @@ the rest:
 | `podcast-transcribe <slug>` | Reads the video from the video source and transcribes it, by speaker → `output/<slug>/podcast/video-transcript.json` |
 | `podcast-script <slug>` | Shows the script as the hosts say it, with its length |
 | `podcast <slug> --yes [--force]` | The studio voices the script → `episode.mp3`, `transcript.html` / `.txt` / `.json`. Spends credits |
-| `podcast-find <slug>` | Finds the published episode in the directory; records its link and embed URL |
+| `podcast-find <slug>` | Finds the published episode in the directory; records its link and embed URL; when the user signed in once (`spotify-login`), saves it to their library — once, recorded |
 | `podcast-site <slug>` | Reads the website's episode collection (fields, recent items) → `output/<slug>/podcast/site-inventory.json` |
 | `podcast-site-assets <slug> --yes` | Uploads the episode page's images to the site |
 | `podcast-site-record <slug> <itemId>` | Records the episode page after you built it |
@@ -132,7 +132,10 @@ Only what the approval names, in order:
    `output/<slug>/podcast/episode.mp3`, the episode image
    (`output/<slug>/<episode.image>`), and the episode title and description
    from `podcast.json`, ready to paste. Once the user says it is published,
-   `podcast-find <slug>`; not there yet is normal — report it.
+   `podcast-find <slug>`; not there yet is normal — report it. Report
+   whether it was saved to the user's library; if `podcast-find` says no one
+   is signed in, mention `spotify-login` (the user runs it once; it opens a
+   browser sign-in) rather than running it yourself.
 
 ## Page
 

@@ -112,20 +112,20 @@ flowchart LR
 
 | Sidecar | Beside | Written by | Read by | Carries |
 |---|---|---|---|---|
-| `brand/<id>/brand.json` | logos, icons, fonts | a person, once per brand | every stage | name, contact, social, nav, colours, fonts, voice, rules |
+| `brand/<id>/brand.json` | logos, icons, fonts | a person, once per brand | every stage | name, contact, social, nav, colours, fonts (woff2, woff, ttf, otf), the capture cursor, voice, rules |
 | `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials, the help center, image store, website and podcast connections |
 | `targets/<name>.json` | `profiles/<name>/` | a person, once per app | `target.mjs`, `capture.mjs` | app URL, sign-in, viewport, hide/blur/block, secrets (as `env:` refs) |
 | `input/<slug>/feature.json` | `feature.md`, `assets/` | a person (from the template) | agents, `brief.mjs` | name, status, audience, section count, overrides, asset list |
-| `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what |
+| `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what, the one-pager's footer links |
 | `library/scenes/<id>/scene.json` | (`scene.html` for kit scenes) | visual-designer agent | `scenes.mjs`, `capture.mjs` | capture: target, start, setup, steps, clip · kit: size, animation · both: still moment, tags |
 | `library/renders/<hash>/render.json` | `still.png`, `anim.gif`, `web.gif` (captures) | `scenes.mjs` | `library.mjs` | which scene, which brand, settings, when |
-| `library/features/<slug>/social.json` | the feature's scenes | visual-designer agent | `social.mjs` | the social pack: slide title accents, crops ([social.md](social.md)) |
+| `library/features/<slug>/social.json` | the feature's scenes | visual-designer agent | `social.mjs` | the social pack: slide title accents, crops, the signature's crop of the hero, the podcast play button's place ([social.md](social.md)) |
 | `library/features/<slug>/help.json` | the feature's scenes | help-writer agent | `help.mjs`, `helpcenter.mjs` | the help article as blocks; which live article it updates ([help.md](help.md)) |
 | `library/features/<slug>/help.published.json` | help.json | `helpcenter.mjs` | `help.mjs`, the help-writer agent | the article in the help center: id, URL, state, when it last changed |
 | `library/features/<slug>/site.json` | `output/<slug>/web/page.json` | web-publisher agent | `website.mjs`, the web-publisher agent | the feature page: an item of the site's feature CMS collection (fields by slug), or site components in order with prop values and components to create ([website.md](website.md)) |
 | `library/features/<slug>/site.published.json` | site.json | `website.mjs` | the web-publisher agent | the page or CMS item in the website: id, path, URL, draft, when it last changed; uploaded image assets by hash |
 | `library/features/<slug>/podcast.json` | the brief, the feature video | podcast-producer agent | `podcast.mjs`, the podcast-producer agent | the episode: which video, title, number, show notes, how the conversation should sound, the website episode page's fields ([podcast.md](podcast.md)) |
-| `library/features/<slug>/podcast.published.json` | podcast.json | `podcast.mjs` | the podcast-producer agent | the video version transcribed, the studio project, the episode's directory link and embed, the episode page |
+| `library/features/<slug>/podcast.published.json` | podcast.json | `podcast.mjs` | the podcast-producer agent | the video version transcribed, the studio project, the episode's directory link and embed (and when it was saved to the signed-in person's library), the episode page |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | the web-publisher agent, a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -144,12 +144,14 @@ flowchart LR
 - **Visuals from the product.** A capture scene is a sidecar of steps
   against the real application: `capture.mjs` signs in through the target
   (form login off camera, or a persistent SSO profile), reaches the state,
-  and records the feature with a screencast and an injected cursor. The
+  and records the feature with a screencast and an injected cursor (the
+  brand's own, from its `cursor` block, or a plain arrow). The
   scene names *what* to show; the target says *where* and *how to sign in*,
   so the same scenes re-capture against another environment by switching
   targets, and no credential is ever in a scene. Captures are hashed on the
-  scene, the target's look and the capture engine — never the brand — so a
-  brand switch reuses them.
+  scene, the target's look, the capture engine and the brand's cursor —
+  nothing else of the brand — so a brand switch with the same cursor reuses
+  them.
 - **Kit scenes for what cannot be captured.** A kit scene is HTML from a fixed kit
   (`pipeline/kit/kit.css`) plus a step list. The runtime (`kit/runtime.js`)
   rebuilds the scene for any time `t`, so stills and every GIF frame are
@@ -190,8 +192,10 @@ flowchart LR
    `rollout.mjs podcast-transcribe` reads the feature video from the video
    source and transcribes it. On the user's approval `podcast` has the studio
    voice the script the agent wrote in `podcast.json` into an MP3, the user
-   uploads it to the show by hand, `podcast-find` finds it on the directory,
-   and the agent builds the website episode page as a draft CMS item.
+   uploads it to the show by hand, `podcast-find` finds it on the directory
+   (and, after a one-time `spotify-login`, saves it to that person's
+   library), and the agent builds the website episode page as a draft CMS
+   item.
 9. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
@@ -203,22 +207,22 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | File | Role |
 |---|---|
 | `pipeline/env.mjs` | `.env` loading, folders, per-feature paths |
-| `pipeline/brand.mjs` | brand sidecar → colours, fonts, marks, CSS |
+| `pipeline/brand.mjs` | brand sidecar → colours, fonts (any web or desktop format), marks, cursor, CSS |
 | `pipeline/brief.mjs` | feature input, brief defaults, validation limits |
 | `pipeline/library.mjs` | scenes, render hashes, derived index, search, fork |
 | `pipeline/scenes.mjs` | scene → still PNG + GIF: dispatches captures, renders kit scenes, resolves `scene:` embeds |
 | `pipeline/target.mjs` | target sidecars, `env:` references, secrets |
-| `pipeline/capture.mjs` | sign-in, steps, screencast, clip, GIF encoding; `probe`, `login` |
+| `pipeline/capture.mjs` | sign-in, steps, the cursor overlay (plain or the brand's), screencast, clip, GIF encoding; `probe`, `login` |
 | `pipeline/kit/` | scene kit CSS and seekable runtime |
-| `pipeline/onepager.mjs` | brief → paginated HTML → PDF |
+| `pipeline/onepager.mjs` | brief → paginated HTML → PDF; logo, website, phone and the brief's links clickable |
 | `pipeline/webpage.mjs` | brief + brand `web` block → the site's feature-page layout + page.json |
-| `pipeline/webmedia.mjs` | the web cut format: framed 1180×676 GIFs (from capture frames, or fitted); the framed help-article images |
+| `pipeline/webmedia.mjs` | the web cut format: framed 1180×676 GIFs (from capture frames, or fitted); the framed help-article images. The frame overlay is drawn on a canvas and cached, versioned, in the temp folder |
 | `pipeline/social.mjs` | social.json + brief + renders → the social pack (cover, carousel, thumbnails, email and signature images) |
 | `pipeline/help.mjs` | help.json + brand `help` block → the help article's HTML body, preview and images |
 | `pipeline/helpcenter.mjs` | find, read, create and update help articles over the help center's API (adapters in `helpcenter/`); the publish guards |
 | `pipeline/seo.mjs` | search and answer engines: title, description, keyword, alt text, FAQ and CMS-field checks, structured data (JSON-LD) for the feature and episode pages, the audit of a published page (`docs/seo.md`) |
 | `pipeline/website.mjs` | the website: reads its pages, components and feature CMS collection, checks site.json, uploads the page's images, records the built page or item (adapters in `website/`: `webflow`) |
-| `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
+| `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory and saves it to the signed-in person's library, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

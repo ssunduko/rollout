@@ -20,7 +20,7 @@ const outFile = (rel) => path.join(featurePaths(SLUG).output, rel);
 // Each test starts from the fixture podcast.json, no record, no podcast output, and no service keys.
 const KEYS = ['PODCAST_VIDEO_SOURCE', 'PODCAST_STUDIO', 'PODCAST_DIRECTORY', 'PODCAST_VIDEO_MAX_MB', 'GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET',
   'GOOGLE_OAUTH_REFRESH_TOKEN', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_URL', 'ELEVENLABS_HOST_VOICE_ID', 'ELEVENLABS_HOST_NAME', 'ELEVENLABS_GUEST_VOICE_ID',
-  'ELEVENLABS_GUEST_NAME', 'ELEVENLABS_STABILITY', 'SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_SHOW_ID', 'WEBFLOW_PODCASTS_COLLECTION_ID'];
+  'ELEVENLABS_GUEST_NAME', 'ELEVENLABS_STABILITY', 'SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'SPOTIFY_SHOW_ID', 'SPOTIFY_REFRESH_TOKEN', 'WEBFLOW_PODCASTS_COLLECTION_ID'];
 beforeEach(() => {
   for (const k of KEYS) delete process.env[k];
   putFixture('podcast-smart-scheduling.json', `library/features/${SLUG}/podcast.json`);
@@ -192,7 +192,7 @@ test('findEpisode: matched by title ignoring case and punctuation, and recorded'
 test('findEpisode: not there yet — null, nothing recorded', async () => {
   const m = spotify([{ id: 'e6', name: 'Episode 6' }]);
   try {
-    assert.deepEqual(await findEpisode({ slug: SLUG, podcast: fixture() }), { directory: 'spotify', episode: null });
+    assert.deepEqual(await findEpisode({ slug: SLUG, podcast: fixture() }), { directory: 'spotify', episode: null, library: null, savedNow: false, signedIn: false, rotatedRefreshToken: null });
     assert.equal(readPodcastRecord(SLUG), null);
   } finally {
     m.restore();
@@ -207,6 +207,65 @@ test('findEpisode: keeps the other parts of the record', async () => {
     const rec = readPodcastRecord(SLUG);
     assert.deepEqual(rec.studio, { state: 'produced' });
     assert.equal(rec.directory.id, 'e7');
+  } finally {
+    m.restore();
+  }
+});
+
+// signed in (spotify-login): the found episode is saved to the person's library
+const signedInSpotify = (items, { saved = false, refreshToken } = {}) => {
+  Object.assign(process.env, { PODCAST_DIRECTORY: 'spotify', SPOTIFY_CLIENT_ID: 'i', SPOTIFY_CLIENT_SECRET: 's', SPOTIFY_SHOW_ID: 'show1', SPOTIFY_REFRESH_TOKEN: 'r1' });
+  return mockFetch([
+    { url: 'https://accounts.spotify.com/api/token', reply: { json: { access_token: 't', expires_in: 3600, ...(refreshToken ? { refresh_token: refreshToken } : {}) } } },
+    { url: 'https://api.spotify.com/v1/shows/show1/episodes', reply: { json: { items } } },
+    { method: 'GET', url: 'https://api.spotify.com/v1/me/library/contains', reply: { json: [saved] } },
+    { method: 'PUT', url: 'https://api.spotify.com/v1/me/library', reply: { text: '' } },
+  ]);
+};
+
+test('findEpisode: signed in — saves the episode to the library once and records it', async () => {
+  const m = signedInSpotify([{ id: 'e7', name: 'Episode 7: Book the Right Time in One Tap' }]);
+  try {
+    const r = await findEpisode({ slug: SLUG, podcast: fixture() });
+    assert.equal(r.signedIn, true);
+    assert.equal(r.savedNow, true);
+    assert.equal(r.library.already, false);
+    assert.ok(m.calls.some((c) => c.method === 'PUT' && c.url.endsWith('uris=spotify%3Aepisode%3Ae7')));
+    const rec = readPodcastRecord(SLUG);
+    assert.equal(rec.directory.id, 'e7');
+    assert.ok(rec.directory.library.savedAt);
+    // a rerun finds it recorded and calls the library no more
+    const before = m.calls.length;
+    const again = await findEpisode({ slug: SLUG, podcast: fixture() });
+    assert.deepEqual(again.library, rec.directory.library);
+    assert.equal(again.savedNow, false, 'the save was recorded by the earlier run');
+    assert.ok(!m.calls.slice(before).some((c) => c.url.includes('/me/library')));
+  } finally {
+    m.restore();
+    delete process.env.SPOTIFY_REFRESH_TOKEN;
+  }
+});
+
+test('findEpisode: signed in, already in the library — recorded as already there; a new refresh token is passed back', async () => {
+  const m = signedInSpotify([{ id: 'e7', name: 'Episode 7: Book the Right Time in One Tap' }], { saved: true, refreshToken: 'r2' });
+  try {
+    const r = await findEpisode({ slug: SLUG, podcast: fixture() });
+    assert.equal(r.library.already, true);
+    assert.ok(!m.calls.some((c) => c.method === 'PUT'));
+    assert.equal(r.rotatedRefreshToken, 'r2');
+  } finally {
+    m.restore();
+    delete process.env.SPOTIFY_REFRESH_TOKEN;
+  }
+});
+
+test('findEpisode: not signed in — the episode is recorded, the library is not touched', async () => {
+  const m = spotify([{ id: 'e7', name: 'Episode 7: Book the Right Time in One Tap' }]);
+  try {
+    const r = await findEpisode({ slug: SLUG, podcast: fixture() });
+    assert.equal(r.signedIn, false);
+    assert.equal(r.library, null);
+    assert.equal(readPodcastRecord(SLUG).directory.library, undefined);
   } finally {
     m.restore();
   }

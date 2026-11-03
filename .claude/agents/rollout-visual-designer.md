@@ -100,30 +100,39 @@ later rollouts, so make clean, well-tagged scenes.
 
 The launch images beside the one-pager (`docs/social.md`): a cover and one
 1080×1350 slide per section (also a LinkedIn carousel PDF), the feature,
-podcast and YouTube thumbnails (1280×720), an email image (1100×600,
-transparent) and an email-signature banner (500×175). They are made from
+podcast and YouTube thumbnails (1280×720), an email image (1100×600, the
+hero band) and an email-signature banner (500×175). They are made from
 this rollout's own assets — the brief's copy, the hero composition and the
 section stills the PDF shows — in the one-pager's look, so they read as the
 same launch. The pipeline lays them out; you write
 `library/features/<slug>/social.json`:
 
-1. **Titles.** Each slide title is its section title, the same words, with
-   the one or two runs that carry the benefit in `[brackets]`. Copy comes
-   from the brief only: never add taglines, emoji, sample messages or
+1. **Titles.** Each slide carries a short title only (60 characters at
+   most): its section title, the same words, with the one or two runs that
+   carry the benefit in `[brackets]`. No paragraph on the image — a slide
+   body only when one line is indispensable (`body`, 140 at most). Copy
+   comes from the brief only: never add taglines, emoji, sample messages or
    "now available" lines, and never borrow another launch's layout or words.
 2. **Crops.** Read each section still. `crop` ([x, y, w, h] fractions)
-   removes empty page below the content and keeps the part the title is
-   about, so the panel is mostly UI; the cursor the capture recorded stays
-   as the PDF shows it.
-3. **Signature motif.** The email-signature banner is 500×175, too small
-   for the hero. Draw `<slug>--signature`: a kit scene, 224×167,
-   `transparent: true`, still only, that carries the same idea as the hero
-   in two or three large elements (the assistant: the ask pill, two
-   completed steps climbing the trail, the summit flag; link analytics: the
-   short link being clicked, the clicks card, the click rate). Real labels
-   and values from the captures; no text under 11 px. Name it in
-   `social.json` as `"signature"`.
-4. **Build and look.** `node pipeline/rollout.mjs social <slug>` writes
+   removes empty page and keeps the part the title is about, so the panel —
+   which shrinks to fit the still — is mostly UI. End every crop on a gap:
+   no line of text cut in half, no slice of a card, no strip of neighbouring
+   UI or empty page at an edge. The cursor the capture recorded stays as the
+   PDF shows it.
+3. **Signature.** The email-signature banner is 500×175 and must read as
+   part of the same campaign: give `"signature": { "crop": [x, y, w, h] }`,
+   a crop of the hero still holding its one or two most recognisable
+   elements (e.g. the request and the steps card), at most 224×159 at that
+   size, with no sliver of another element at its edges. Only when no crop
+   of the hero reads at that size, draw a `<slug>--signature` kit scene
+   (224×159, `transparent: true`, still only, real labels, no text under
+   11 px) and name it as `"signature"`.
+4. **Play button.** The podcast image puts its play button at
+   `podcast.play` ([x, y] fractions of the card, default the centre). Keep
+   the centre of the hero composition empty so the button sits there clear
+   of every card, badge and line of text; the web page's video placeholder
+   also puts its button at the centre.
+5. **Build and look.** `node pipeline/rollout.mjs social <slug>` writes
    `output/<slug>/assets/social/`. Read every PNG (an `ffmpeg … hstack`
    contact sheet is fine). Redo until: no headline is cut or overlapped by
    the hero; slide panels show no blank band; every personal name, number

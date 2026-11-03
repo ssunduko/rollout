@@ -45,7 +45,17 @@ export function socialHtml(brand) {
     .join('');
 }
 
-const contactLine = (brand) => [brand.websiteLabel, brand.phone].filter(Boolean).map(e).join('<span class="slash">/</span>');
+const tel = (phone) => `tel:${phone.replace(/[^\d+]/g, '')}`;
+const link = (url, label) => (url ? `<a href="${e(url)}">${e(label)}</a>` : e(label));
+
+// The footer line: website and phone, then the brief's own links (the help
+// article, the feature page), every one of them clickable in the PDF.
+export const contactLine = (brand, links = []) => [
+  brand.websiteLabel && link(brand.website, brand.websiteLabel),
+  brand.phone && link(tel(brand.phone), brand.phone),
+  ...links.map((l) => link(l.url, l.label)),
+].filter(Boolean).join('<span class="slash">/</span>');
+const logoLink = (brand) => (brand.website ? `<a class="logo" href="${e(brand.website)}" aria-label="${e(brand.name)}">${brand.logo.primary}</a>` : `<div class="logo">${brand.logo.primary}</div>`);
 
 function css(size) {
   return `
@@ -91,6 +101,8 @@ body { font-family: var(--font-body); color: var(--ink); -webkit-print-color-adj
 .row p { font-size: 10.6px; line-height: 1.6; margin: 0; color: color-mix(in srgb, var(--ink) 72%, white); }
 
 .foot { flex: none; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: var(--muted); }
+.foot a, .bar a { color: inherit; text-decoration: none; }
+a.logo { display: block; }
 .slash { margin: 0 8px; }
 
 .cta { flex: none; height: ${Math.round(size.height * 0.195)}px; position: relative; text-align: center; padding-top: 34px;
@@ -137,7 +149,7 @@ export function onepagerHtml({ brief, brand, stills, fontUrl, size = pageSize() 
     const last = i === pages.length - 1;
     return `<section class="page">
 ${first ? `<header class="hero">
-  <div class="top"><div class="logo">${brand.logo.primary}</div><div class="pill">${e(brief.pill)}</div></div>
+  <div class="top">${logoLink(brand)}<div class="pill">${e(brief.pill)}</div></div>
   <div class="copy"><h1>${headlineHtml(brief.headline)}</h1><p>${e(brief.intro)}</p></div>
   <div class="visual">${heroArt(stills[brief.hero.scene], stills)}</div>
 </header>` : ''}
@@ -145,8 +157,8 @@ ${first ? `<header class="hero">
 ${last ? `<footer class="cta">
   <h3>${e(brief.cta.title)}</h3>${brief.cta.subtitle ? `<p>${e(brief.cta.subtitle)}</p>` : ''}
   <a class="button" href="${e(brief.cta.url)}">${e(brief.cta.button)}</a>
-  <div class="bar"><div class="logo">${brand.logo.primary}</div><div>${contactLine(brand)}</div><div class="socials">${socialHtml(brand)}</div></div>
-</footer>` : `<footer class="foot">${contactLine(brand)}</footer>`}
+  <div class="bar">${logoLink(brand)}<div>${contactLine(brand, brief.links)}</div><div class="socials">${socialHtml(brand)}</div></div>
+</footer>` : `<footer class="foot">${contactLine(brand, brief.links)}</footer>`}
 </section>`;
   });
 

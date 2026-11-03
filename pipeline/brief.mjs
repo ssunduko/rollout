@@ -60,6 +60,7 @@ export function loadBrief(slug, brand = null) {
     web: { heroButton: brand?.cta?.heroButton ?? env('WEB_HERO_BUTTON', 'Try for free'), ...(brief.web ?? {}) },
     seo: { title: brief.seo?.title ?? null, description: brief.seo?.description ?? brief.intro?.slice(0, 155), keyword: brief.seo?.keyword ?? brief.feature },
     faq: Array.isArray(brief.faq) ? brief.faq : [],
+    links: Array.isArray(brief.links) ? brief.links : [],
   };
 }
 
@@ -155,6 +156,15 @@ export function validateBrief(slug) {
 
   if (b.cta?.title && b.cta.title.length > LIMITS.ctaTitle) errors.push(`cta.title is longer than ${LIMITS.ctaTitle} characters`);
   if (b.cta?.subtitle && b.cta.subtitle.length > LIMITS.ctaSubtitle) errors.push(`cta.subtitle is longer than ${LIMITS.ctaSubtitle} characters`);
+
+  // the one-pager footer's own links (the help article, the feature page)
+  if (b.links != null) {
+    if (!Array.isArray(b.links) || b.links.length > 3) errors.push('links is a list of at most 3 {label, url}');
+    else b.links.forEach((l, i) => {
+      if (typeof l?.label !== 'string' || !l.label.trim() || l.label.length > 24) errors.push(`links[${i}].label is 1-24 characters`);
+      if (typeof l?.url !== 'string' || !/^https:\/\//.test(l.url)) errors.push(`links[${i}].url is an https URL`);
+    });
+  }
 
   // search and answer engines (pipeline/seo.mjs, docs/seo.md): warnings, never a blocker
   const seo = b.seo ?? {};

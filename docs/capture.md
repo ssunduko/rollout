@@ -6,6 +6,17 @@ being used — with a smooth cursor, click ripples, banners hidden and personal
 data blurred. It is built from targets, a persistent signed-in Chrome profile,
 eased human-paced input, and a CDP screencast.
 
+The cursor is a plain dark arrow unless the brand draws its own: a `cursor`
+block in `brand.json` gives a rounded arrow with a gradient fill, a white edge
+and a soft shadow, as in the brand's own designs:
+
+```json
+"cursor": { "from": "#9fd6ff", "to": "#2a7fff", "shadow": "rgba(42,127,255,.35)", "size": 38 }
+```
+
+`from` colours the tip, `to` the tail, and `size` is the height in CSS px. The
+cursor is part of every capture's hash, so changing it re-captures.
+
 Drawn kit scenes (`docs/scene-kit.md`) remain for two things only: the hero
 composition (which embeds a captured still) and UI that does not exist yet
 (coming soon).

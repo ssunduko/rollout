@@ -208,12 +208,13 @@ async function renderKitWeb(browser, scene, brand, settings, dir, stills) {
 }
 
 // A capture's hash covers what it shows and where — never the brand (the app
-// paints itself) and never credentials. --force re-captures when the app changed.
-function captureHash(scene, target, settings) {
+// paints itself) and never credentials, except the brand's cursor, which is
+// drawn over the app. --force re-captures when the app changed.
+function captureHash(scene, target, settings, cursor = null) {
   const look = Object.fromEntries(Object.entries(scene).filter(([k]) => !['title', 'description', 'tags', 'feature', 'notes', 'forkedFrom', 'dir', 'htmlFile', 'markup', 'id'].includes(k)));
   // the engine itself too: a change in how captures are framed or encoded re-captures
   const engine = fs.readFileSync(new URL('./capture.mjs', import.meta.url));
-  return crypto.createHash('sha256').update(JSON.stringify({ look, target: targetLook(target), settings })).update(engine).digest('hex').slice(0, 16);
+  return crypto.createHash('sha256').update(JSON.stringify({ look, target: targetLook(target), settings, ...(cursor ? { cursor } : {}) })).update(engine).digest('hex').slice(0, 16);
 }
 
 // Scenes plus everything they embed, dependencies first.
@@ -255,7 +256,7 @@ export async function renderScenes(ids, brand, { force = false, allowMutations =
       const capture = isCapture(scene);
       const target = capture ? loadTarget(targetNameFor(scene)) : null;
       const hash = capture
-        ? captureHash(scene, target, capSettings)
+        ? captureHash(scene, target, capSettings, brand.cursor)
         : renderHash({ ...scene, embeds: sceneRefs(scene).map((d) => result[d].hash) }, brand, kitSettings);
       const dir = renderDir(hash);
       const meta = path.join(dir, 'render.json');
@@ -276,7 +277,7 @@ export async function renderScenes(ids, brand, { force = false, allowMutations =
       const t0 = Date.now();
       const stills = Object.fromEntries(sceneRefs(scene).map((d) => [d, result[d].still]));
       const out = capture
-        ? await captureScene(scene, target, dir, { allowMutations, log })
+        ? await captureScene(scene, target, dir, { allowMutations, log, cursor: brand.cursor })
         : await renderKit(await kitBrowser(), scene, brand, kitSettings, dir, stills);
       entry.gif = out.gif ? path.join(dir, 'anim.gif') : null;
       entry.webGif = out.webGif ? path.join(dir, 'web.gif') : null;

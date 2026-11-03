@@ -69,7 +69,9 @@ test('onepagerHtml: the example on two A4 pages', () => {
   assert.match(html, /<span class="eyebrow">Coming soon!<\/span>Reschedule with a single text/);
   assert.match(html, /class="anim capture" src="assets\/smart-scheduling--calendars\.gif"/);
   assert.match(html, /<a class="button" href="https:\/\/www\.acme\.example\/signup">Start a free 14-day trial<\/a>/);
-  assert.match(html, /acme\.example<span class="slash">\/<\/span>\(555\) 010-0199/);
+  // website, phone and logos are links in the PDF
+  assert.match(html, /<a href="https:\/\/www\.acme\.example">acme\.example<\/a><span class="slash">\/<\/span><a href="tel:5550100199">\(555\) 010-0199<\/a>/);
+  assert.equal(count(html, /<a class="logo" href="https:\/\/www\.acme\.example"/g), 2); // hero and closing bar
   assert.match(html, /@page \{ size: A4; margin: 0; \}/);
   assert.match(html, /src:url\("fonts\/Inter-Regular\.woff2"\)/);
 });
@@ -103,4 +105,11 @@ test('onepagerHtml: no subtitle, no subtitle paragraph', () => {
   b.cta = { ...b.cta, subtitle: '' };
   const html = onepagerHtml({ brief: b, brand, stills: stillsFor(b), fontUrl: (p) => p });
   assert.match(html, /<h3>[^<]+<\/h3>\s*<a class="button"/);
+});
+
+test('onepagerHtml: the brief\'s links join the footer line on every page', () => {
+  const b = { ...brief(), links: [{ label: 'Help article', url: 'https://help.acme.example/a/1' }, { label: 'Feature page', url: 'https://www.acme.example/f' }] };
+  const html = onepagerHtml({ brief: b, brand, stills: stillsFor(b), fontUrl: (p) => p });
+  assert.equal(count(html, /<a href="https:\/\/help\.acme\.example\/a\/1">Help article<\/a>/g), 2);
+  assert.equal(count(html, /<a href="https:\/\/www\.acme\.example\/f">Feature page<\/a>/g), 2);
 });

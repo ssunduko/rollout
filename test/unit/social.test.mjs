@@ -37,15 +37,15 @@ test('loadSocial: an empty social.json takes everything from the brief and brand
   const s = loadSocial(SLUG, brief, brand);
   assert.equal(s.name, brief.feature);
   assert.equal(s.headline, brief.headline);
-  assert.equal(s.lead, brief.lead);
   assert.equal(s.pill, brief.pill);
   assert.equal(s.button, brand.socialPack.button);
   assert.equal(s.hero, brief.hero.scene);
   assert.equal(s.signature, null);
+  assert.deepEqual(s.podcast, { play: [0.5, 0.5] });
   assert.equal(s.slides.length, brief.sections.length);
   s.slides.forEach((slide, i) => {
     assert.equal(slide.title, brief.sections[i].title);
-    assert.equal(slide.body, brief.sections[i].body);
+    assert.equal(slide.body, '', 'slides carry a title only unless the sidecar gives a body');
     assert.deepEqual(slide.panel, { scene: brief.sections[i].scene });
   });
   assert.deepEqual(s.formats, Object.keys(SOCIAL_FORMATS));
@@ -59,7 +59,7 @@ test('loadSocial: the sidecar\'s own values win; slides pick sections', () => {
   assert.equal(s.signature, raw.signature);
   assert.equal(s.slides.length, 2);
   assert.equal(s.slides[0].title, 'Offer [open times]');
-  assert.equal(s.slides[0].body, brief.sections[0].body);
+  assert.equal(s.slides[0].body, '');
   assert.deepEqual(s.slides[0].panel, { scene: brief.sections[0].scene, crop: [0, 0.1, 1, 0.6] });
   assert.equal(s.slides[1].title, brief.sections[2].title);
   assert.deepEqual(s.formats, ['cover', 'slide', 'signature']);
@@ -110,14 +110,37 @@ test('validateSocial: crops must be fractions inside the still', () => {
 });
 
 test('validateSocial: unknown formats, long bodies, plain headlines', () => {
-  write({ headline: 'No highlight', formats: ['cover', 'tiktok'], slides: [{ section: 0, title: '[x]', body: 'y'.repeat(341) }] });
+  write({ headline: 'No highlight', formats: ['cover', 'tiktok'], slides: [{ section: 0, title: `[x] ${'z'.repeat(70)}`, body: 'y'.repeat(141) }] });
   const r = validateSocial(SLUG, brief, brand);
   assert.match(r.errors.join(), /unknown format "tiktok"/);
-  assert.ok(r.warnings.some((w) => /body is 341 characters/.test(w)));
+  assert.ok(r.warnings.some((w) => /body is 141 characters/.test(w)));
+  assert.ok(r.warnings.some((w) => /slide 1: title is 72 characters/.test(w)));
   assert.ok(r.warnings.includes('headline has no [highlighted] words'));
 });
 
 test('validateSocial: a load error becomes the error', () => {
   write({ slides: [{ section: 7 }] });
   assert.deepEqual(validateSocial(SLUG, brief, brand).errors, ['social.json slide 1: brief has no section 7']);
+});
+
+test('signature: a scene id adds a scene; a crop of the hero adds none', () => {
+  write({ signature: { crop: [0, 0, 0.6, 0.5] } });
+  const s = loadSocial(SLUG, brief, brand);
+  assert.deepEqual(s.signature, { crop: [0, 0, 0.6, 0.5] });
+  assert.deepEqual(validateSocial(SLUG, brief, brand).errors, []);
+  assert.equal(socialSceneIds(s).length, 1 + s.slides.length);
+  for (const signature of [{ crop: [0, 0, 1.2, 1] }, { scene: 'x' }, 7]) {
+    write({ signature });
+    assert.match(validateSocial(SLUG, brief, brand).errors.join(), /signature must be a scene id or \{"crop"/, JSON.stringify(signature));
+  }
+});
+
+test('podcast.play: the play button centre, fractions of the card', () => {
+  write({ podcast: { play: [0.7, 0.4] } });
+  assert.deepEqual(loadSocial(SLUG, brief, brand).podcast.play, [0.7, 0.4]);
+  assert.deepEqual(validateSocial(SLUG, brief, brand).errors, []);
+  for (const play of [[1.2, 0.5], [0.5], 'center']) {
+    write({ podcast: { play } });
+    assert.match(validateSocial(SLUG, brief, brand).errors.join(), /podcast\.play must be/, JSON.stringify(play));
+  }
 });

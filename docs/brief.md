@@ -24,6 +24,7 @@ they are what physically fits the PDF.
   ],
   "pill": "#product update",
   "cta": { "title": "", "subtitle": "", "button": "", "url": "" },
+  "links": [{ "label": "Help article", "url": "https://…" }, { "label": "Feature page", "url": "https://…" }],
   "web": { "video": "https://www.youtube.com/embed/<id>", "poster": "<scene id>", "sectionButton": { "label": "", "url": "" } },
   "seo": { "keyword": "Smart Scheduling", "title": "", "description": "" },
   "faq": [{ "q": "What is Smart Scheduling?", "a": "Smart Scheduling lets customers book …" }]
@@ -45,6 +46,7 @@ they are what physically fits the PDF.
 | `*.alt` | recommended | 140 | Web alt text; the designer's spec |
 | `pill` | no | 28 | Default: feature.json `pill`, then `TOPIC_PILL` |
 | `cta.*` | no | title 64, subtitle 110 | Default: feature.json `cta`, then `CTA_*` in .env |
+| `links` | no | 3; label 24 | `[{ "label", "url" }]`, https: the one-pager footer's own links after the website and phone (the help article, the feature page), clickable in the PDF. The logo, website and phone are always links |
 | `web.video` | no | https URL | Embed URL of the feature video; until set, the video slot shows a poster (`assets/video-poster.png`, 1600×900): the hero composition on the brand's hero gradient with a play button, framed like the section GIFs — no logo, pill or headline |
 | `web.poster` | no | scene id | The scene the poster shows; default `hero.scene` |
 | `web.sectionButton` | no | | `{label, url}` of every row's button; default the brand's `web.sectionButton` |

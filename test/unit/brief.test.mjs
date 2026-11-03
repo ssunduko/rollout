@@ -161,6 +161,16 @@ test('web.video must be https; web.poster must be a scene', () => {
   assert.match(errorsOf(feature((b) => ({ ...b, web: { poster: 'smart-scheduling--gone' } }))), /web\.poster\.scene "smart-scheduling--gone" does not exist/);
 });
 
+test('links: at most 3, each a short label and an https URL', () => {
+  assert.deepEqual(validateBrief(feature((b) => ({ ...b, links: [{ label: 'Help article', url: 'https://help.example/a' }] }))).errors, []);
+  assert.deepEqual(loadBrief(feature((b) => b)).links, []);
+  assert.match(errorsOf(feature((b) => ({ ...b, links: Array(4).fill({ label: 'x', url: 'https://x.example' }) }))), /links is a list of at most 3/);
+  const errs = errorsOf(feature((b) => ({ ...b, links: [{ label: '', url: 'http://x.example' }, { label: 'l'.repeat(25), url: 'https://x.example' }] })));
+  assert.match(errs, /links\[0\]\.label is 1-24 characters/);
+  assert.match(errs, /links\[0\]\.url is an https URL/);
+  assert.match(errs, /links\[1\]\.label/);
+});
+
 test('cta limits', () => {
   const errs = errorsOf(feature((b) => ({ ...b, cta: { title: 't'.repeat(LIMITS.ctaTitle + 1), subtitle: 's'.repeat(LIMITS.ctaSubtitle + 1) } })));
   assert.match(errs, /cta\.title is longer than 64/);

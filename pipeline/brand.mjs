@@ -98,6 +98,8 @@ export function loadBrand(dir = BRAND_DIR) {
     // the help article's fixed parts (trial link, FAQ title, closing); see docs/help.md
     help: raw.help ?? null,
     legal: raw.legal ?? [],
+    // the cursor drawn over captures (pipeline/capture.mjs cursorLook); null: a plain dark arrow
+    cursor: raw.cursor ?? null,
     voice: raw.voice ?? [],
     rules: raw.rules ?? [],
     colors,
@@ -123,6 +125,11 @@ export function loadBrand(dir = BRAND_DIR) {
   return brand;
 }
 
+// The CSS format() of a font file, from its extension: brands ship web fonts
+// (woff2, woff) or the desktop files a designer hands over (ttf, otf).
+const FONT_FORMATS = { '.woff2': 'woff2', '.woff': 'woff', '.ttf': 'truetype', '.otf': 'opentype' };
+export const fontFormat = (file) => FONT_FORMATS[path.extname(file).toLowerCase()] ?? 'woff2';
+
 const stack = (f) => [f.family, ...f.fallback].map((n) => (/\s/.test(n) ? `"${n}"` : n)).join(', ');
 
 // The brand as CSS: @font-face rules plus custom properties. fontUrl maps a
@@ -133,7 +140,7 @@ export function brandCss(brand, { fontUrl = (p) => pathToFileURL(p).href } = {})
   for (const f of [brand.fonts.body, brand.fonts.display]) {
     for (const face of f.faces) {
       faces.push(
-        `@font-face{font-family:"${f.family}";font-weight:${face.weight};font-style:normal;font-display:block;src:url("${fontUrl(face.path)}") format("woff2");}`,
+        `@font-face{font-family:"${f.family}";font-weight:${face.weight};font-style:normal;font-display:block;src:url("${fontUrl(face.path)}") format("${fontFormat(face.path)}");}`,
       );
     }
   }

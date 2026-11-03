@@ -67,12 +67,36 @@ export const captureSettings = () => ({
 });
 
 // ---- the cursor overlay, injected into every document ----
-function cursorOverlay() {
-  const SVG = '<svg viewBox="0 0 30 30" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.5l21 9.6-9.2 2.6L11.6 24 4 2.5z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+// The cursor drawn over a capture. With no brand cursor it is a plain dark
+// arrow. A brand's `cursor` block (brand.json) draws the brand's own: a
+// rounded arrow filled with a gradient (`from` at the tip to `to`), a white
+// edge and a soft shadow in `shadow`, `size` CSS px tall. Returns the SVG,
+// the drop-shadow filter, and the hotspot (the tip) in CSS px.
+export function cursorLook(spec) {
+  if (!spec) {
+    return {
+      svg: '<svg viewBox="0 0 30 30" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.5l21 9.6-9.2 2.6L11.6 24 4 2.5z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
+      shadow: 'drop-shadow(0 3px 4px rgba(0,0,0,.3))',
+      hot: [4, 2],
+    };
+  }
+  const size = Number(spec.size) || 40;
+  const k = size / 40;
+  const from = spec.from ?? '#7cc4ff';
+  const to = spec.to ?? '#0a84ff';
+  const shadow = spec.shadow ?? 'rgba(10,132,255,.35)';
+  const svg = `<svg viewBox="0 0 40 40" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="__rc_g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>`
+    + '<path d="M6.2 6.9c-.5-1.6 1.1-3 2.6-2.3l25.4 11.6c1.7.8 1.5 3.2-.3 3.7l-10.1 2.7c-.7.2-1.2.7-1.5 1.3l-4.2 9.6c-.7 1.6-3.1 1.5-3.6-.2L6.2 6.9z" fill="url(#__rc_g)" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></svg>';
+  return { svg, shadow: `drop-shadow(0 ${(6 * k).toFixed(1)}px ${(10 * k).toFixed(1)}px ${shadow})`, hot: [Math.round(6.5 * k), Math.round(5 * k)] };
+}
+
+function cursorOverlay(look) {
+  const SVG = look.svg;
   const install = () => {
     if (document.getElementById('__rc_cursor') || !document.documentElement) return;
     const style = document.createElement('style');
-    style.textContent = `#__rc_cursor{position:fixed;left:0;top:0;z-index:2147483647;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));transition:scale .08s}
+    style.textContent = `#__rc_cursor{position:fixed;left:0;top:0;z-index:2147483647;pointer-events:none;filter:${look.shadow};transition:scale .08s}
 #__rc_cursor.down{scale:.86}
 .__rc_ripple{position:fixed;z-index:2147483646;pointer-events:none;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;border:2px solid rgba(37,99,235,.9);animation:__rc 450ms ease-out forwards}
 @keyframes __rc{to{transform:scale(4);opacity:0}}`;
@@ -80,7 +104,7 @@ function cursorOverlay() {
     c.id = '__rc_cursor';
     c.innerHTML = SVG;
     document.documentElement.append(style, c);
-    const put = (x, y) => { c.style.transform = `translate(${x - 4}px,${y - 2}px)`; };
+    const put = (x, y) => { c.style.transform = `translate(${x - look.hot[0]}px,${y - look.hot[1]}px)`; };
     const last = JSON.parse(sessionStorage.getItem('__rc_pos') || 'null');
     if (last) put(last[0], last[1]); else c.style.transform = 'translate(-60px,-60px)';
     addEventListener('mousemove', (e) => { put(e.clientX, e.clientY); sessionStorage.setItem('__rc_pos', JSON.stringify([e.clientX, e.clientY])); }, true);
@@ -113,7 +137,7 @@ function cssInjector(css) {
 
 // ---- session ----
 
-export async function openSession(target, { headless = env('CAPTURE_HEADLESS', 'true') !== 'false', viewport, hide = [], blur = [], scale = 1 } = {}) {
+export async function openSession(target, { headless = env('CAPTURE_HEADLESS', 'true') !== 'false', viewport, hide = [], blur = [], scale = 1, cursor = null } = {}) {
   const vp = viewport ?? target.viewport;
   fs.mkdirSync(target.profile, { recursive: true });
   const browser = await puppeteer.launch({
@@ -138,7 +162,7 @@ export async function openSession(target, { headless = env('CAPTURE_HEADLESS', '
     blurAll.length ? `${blurAll.join(',\n')} { filter: blur(6px) !important; }` : '',
   ].join('\n');
   if (css.trim()) await page.evaluateOnNewDocument(cssInjector, css);
-  await page.evaluateOnNewDocument(cursorOverlay);
+  await page.evaluateOnNewDocument(cursorOverlay, cursorLook(cursor));
   // no red spell-check underline under text the steps type: off for the whole
   // document (inherited by every field that does not set its own), and on
   // fields that do
@@ -548,10 +572,10 @@ function jpegSize(buf) {
 }
 
 // Capture one scene into dir: still.png, anim.gif, web.gif. Returns { size, gif, webGif }.
-export async function captureScene(scene, target, dir, { allowMutations = false, log = console.log } = {}) {
+export async function captureScene(scene, target, dir, { allowMutations = false, log = console.log, cursor = null } = {}) {
   checkMutations(scene, allowMutations);
   const settings = captureSettings();
-  const session = await openSession(target, { viewport: scene.viewport, hide: scene.hide, blur: scene.blur, scale: settings.scale });
+  const session = await openSession(target, { viewport: scene.viewport, hide: scene.hide, blur: scene.blur, scale: settings.scale, cursor });
   const framesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-'));
   try {
     const { page, cdp, viewport } = session;

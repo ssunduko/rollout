@@ -2,21 +2,23 @@
 // stills -> output/<slug>/assets/social/
 //
 // The launch images that go beside the one-pager, made from the rollout's own
-// assets so they read as part of it: the brief's headline, lead and sections,
+// assets so they read as part of it: the brief's headline and sections,
 // the hero composition and the same section stills the PDF shows, in the
 // one-pager's look (hero band, soft surface panels, tinted pill).
 //
 //   cover      1080x1350  headline over the hero composition (carousel slide 1)
-//   slide      1080x1350  one per section: step counter, title, body, the
-//                         section still on a surface panel, progress dots
+//   slide      1080x1350  one per section: step counter, a short title, the
+//                         section still on a surface panel, progress dots (a
+//                         body only when social.json gives one)
 //   carousel   PDF        cover + slides, one page each (LinkedIn)
-//   feature    1280x720   the one-pager's hero band: headline and lead beside
-//                         the hero composition
-//   podcast    1280x720   the hero composition in a framed card with a play button
-//   youtube    1280x720   big headline, hero composition bleeding off the right
-//   email      1100x600   the hero composition alone, transparent
-//   signature  500x175    headline, CTA button, and the feature's own small
-//                         motif (social.json "signature", a kit scene), else the hero
+//   feature    1280x720   the one-pager's hero band: headline beside the hero
+//                         composition
+//   podcast    1280x720   the hero composition in a framed card with a play
+//                         button; no headline (the episode title sits beside it)
+//   youtube    1280x720   big headline, the whole hero composition on the right
+//   email      1100x600   the hero band: logo, pill, headline, hero composition
+//   signature  500x175    headline, CTA button, and a crop of the hero (social.json
+//                         "signature": {crop}) or a kit scene id, else the hero
 //
 // social.json is the visual designer's sidecar (docs/social.md): which words
 // of each title are accented and how each still is cropped. Everything else
@@ -43,7 +45,7 @@ export const SOCIAL_FORMATS = {
   feature: { width: 1280, height: 720, label: 'Landing page / feature thumbnail' },
   podcast: { width: 1280, height: 720, label: 'Podcast / video thumbnail with a play button' },
   youtube: { width: 1280, height: 720, label: 'YouTube thumbnail' },
-  email: { width: 1100, height: 600, label: 'Email image, transparent background' },
+  email: { width: 1100, height: 600, label: 'Email body image' },
   signature: { width: 500, height: 175, label: 'Email signature banner' },
 };
 
@@ -64,23 +66,31 @@ export function loadSocial(slug, brief, brand) {
   const slides = (raw.slides ?? brief.sections.map((_, i) => ({ section: i }))).map((s, i) => {
     const section = brief.sections[s.section ?? i];
     if (!section) throw new Error(`social.json slide ${i + 1}: brief has no section ${s.section ?? i}`);
-    return { title: s.title ?? section.title, body: s.body ?? section.body, panel: { scene: section.scene, ...(s.panel ?? {}) } };
+    // slides carry a short title only; a body appears when the sidecar asks for one
+    return { title: s.title ?? section.title, body: s.body ?? '', panel: { scene: section.scene, ...(s.panel ?? {}) } };
   });
   return {
     name: raw.name ?? brief.feature,
     pill: raw.pill ?? brief.pill ?? brand.pill ?? `#${raw.name ?? brief.feature}`,
     headline: raw.headline ?? brief.headline,
-    lead: raw.lead ?? brief.lead ?? '',
     button: raw.button ?? pack.button ?? brand.cta?.heroButton ?? 'Learn more',
     hero: raw.hero ?? brief.hero.scene,
+    // a scene id (its own small motif), or {crop} of the hero still, so the
+    // signature reads as part of the same campaign
     signature: raw.signature ?? null,
+    podcast: { play: raw.podcast?.play ?? [0.5, 0.5] },
     slides,
     formats: raw.formats ?? Object.keys(SOCIAL_FORMATS),
   };
 }
 
 // Every scene the pack shows, for rendering before it is laid out.
-export const socialSceneIds = (social) => [social.hero, ...(social.signature ? [social.signature] : []), ...social.slides.map((s) => s.panel.scene)];
+const signatureScene = (social) => (typeof social.signature === 'string' ? social.signature : null);
+export const socialSceneIds = (social) => [social.hero, ...(signatureScene(social) ? [signatureScene(social)] : []), ...social.slides.map((s) => s.panel.scene)];
+
+const validCrop = (c) => Array.isArray(c) && c.length === 4 && c.every((n) => typeof n === 'number' && n >= 0 && n <= 1)
+  && c[0] + c[2] <= 1.0001 && c[1] + c[3] <= 1.0001 && c[2] > 0 && c[3] > 0;
+const plain = (t) => t.replace(/[[\]]/g, '');
 
 export function validateSocial(slug, brief, brand) {
   const errors = [];
@@ -93,16 +103,19 @@ export function validateSocial(slug, brief, brand) {
   }
   if (!social) return { errors, warnings: ['no social.json — the social pack is not built'] };
   social.slides.forEach((s, i) => {
-    const c = s.panel.crop;
-    if (c) {
-      const [x, y, w, h] = c;
-      if (![x, y, w, h].every((n) => typeof n === 'number' && n >= 0 && n <= 1) || x + w > 1.0001 || y + h > 1.0001) {
-        errors.push(`slide ${i + 1}: crop must be [x, y, width, height] as fractions of the still, inside it`);
-      }
-    }
+    if (s.panel.crop && !validCrop(s.panel.crop)) errors.push(`slide ${i + 1}: crop must be [x, y, width, height] as fractions of the still, inside it`);
     if (!/\[[^\]]+\]/.test(s.title)) warnings.push(`slide ${i + 1}: title has no [highlighted] words`);
-    if (s.body.length > 340) warnings.push(`slide ${i + 1}: body is ${s.body.length} characters; slides fit about 340`);
+    if (plain(s.title).length > 60) warnings.push(`slide ${i + 1}: title is ${plain(s.title).length} characters; a slide title should be short (60 at most)`);
+    if (s.body.length > 140) warnings.push(`slide ${i + 1}: body is ${s.body.length} characters; slides carry a short title, a body of 140 at most`);
   });
+  const sig = social.signature;
+  if (sig !== null && typeof sig !== 'string' && !(typeof sig === 'object' && validCrop(sig.crop))) {
+    errors.push('signature must be a scene id or {"crop": [x, y, width, height]} of the hero still');
+  }
+  const play = social.podcast.play;
+  if (!(Array.isArray(play) && play.length === 2 && play.every((n) => typeof n === 'number' && n >= 0 && n <= 1))) {
+    errors.push('podcast.play must be [x, y], the centre of the play button as fractions of the card');
+  }
   if (!/\[[^\]]+\]/.test(social.headline)) warnings.push('headline has no [highlighted] words');
   for (const f of social.formats) if (!SOCIAL_FORMATS[f]) errors.push(`formats: unknown format "${f}" (${Object.keys(SOCIAL_FORMATS).join(', ')})`);
   return { errors, warnings };
@@ -134,19 +147,19 @@ const LAYOUTS = {
 <div class="text">${headline(s.headline, 420)}</div>${hero(img)}
 <div class="foot"><span>${e(b.websiteLabel)}</span><span class="swipe">${s.slides.length} ways it helps <b>→</b></span></div>`,
   slide: (s, b, img, i) => `${logo(b)}<div class="count"><b>${pad2(i + 1)}</b> / ${pad2(s.slides.length)}</div>
-<div class="text"><div class="eyebrow">${e(s.name)}</div>${headline(s.slides[i].title, 250)}<p class="body" data-fit="200">${e(s.slides[i].body)}</p></div>
-<div class="surface"><img class="shot" src="${src(img.slides[i])}" alt=""></div>
+<div class="text"><div class="eyebrow">${e(s.name)}</div>${headline(s.slides[i].title, 250)}${s.slides[i].body ? `<p class="body" data-fit="120">${e(s.slides[i].body)}</p>` : ''}</div>
+<div class="surface"><div class="pane"><img class="shot" src="${src(img.slides[i])}" alt=""></div></div>
 <div class="foot"><span>${e(b.websiteLabel)}</span><span class="dots">${s.slides.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span></div>`,
   feature: (s, b, img) => `<div class="band"></div>${logo(b)}${pill(s.pill)}
-<div class="text">${headline(s.headline, 300)}<p class="lead" data-fit="150">${e(s.lead)}</p></div>${hero(img)}`,
+<div class="text">${headline(s.headline, 330)}</div>${hero(img)}`,
   podcast: (s, b, img) => `<div class="band"></div>${logo(b)}${pill(s.pill)}
-<div class="card">${hero(img)}<div class="play">${PLAY_SVG}</div></div>
-<div class="caption">${twoTone(s.headline, { breaks: false })}</div>`,
+<div class="card">${hero(img)}<div class="play" style="left:${(s.podcast.play[0] * 100).toFixed(2)}%;top:${(s.podcast.play[1] * 100).toFixed(2)}%">${PLAY_SVG}</div></div>`,
   youtube: (s, b, img) => `<div class="band"></div><div class="text">${pill(s.name)}${headline(s.headline, 480)}</div>${hero(img)}${logo(b)}`,
-  email: (s, b, img) => hero(img),
-  signature: (s, b, img) => `<div class="band"></div>${logo(b)}
-<div class="text">${headline(s.headline, 64, { breaks: false })}</div>
-<div class="button">${e(s.button)} <span>→</span></div>${img.signature ? `<img class="art" src="${src(img.signature)}" alt="">` : hero(img)}`,
+  email: (s, b, img) => `<div class="band"></div>${logo(b)}${pill(s.pill)}
+<div class="text">${headline(s.headline, 300)}</div>${hero(img)}`,
+  signature: (s, b, img) => `<div class="band"></div>
+<div class="col">${logo(b)}${headline(s.headline, 54, { breaks: false })}<div class="button">${e(s.button)} <span>→</span></div></div>
+${img.signature ? `<img class="art" src="${src(img.signature)}" alt="">` : hero(img)}`,
 };
 
 const CSS = `
@@ -156,7 +169,7 @@ html,body{background:transparent}
 .band{position:absolute;inset:0;background:radial-gradient(120% 120% at 0% 0%, #fff 30%, var(--hero-tint) 100%)}
 .logo{position:absolute;z-index:3;display:flex;align-items:center}
 .logo svg,.logo img{height:100%;width:auto;display:block}
-.pill{position:absolute;z-index:3;background:color-mix(in srgb, var(--primary) 10%, #fff);color:var(--primary-dark);font-weight:600;border-radius:999px;white-space:nowrap;line-height:1}
+.pill{position:absolute;z-index:3;background:var(--primary);color:#fff;font-weight:600;border-radius:999px;white-space:nowrap;line-height:1}
 .headline{font-family:var(--font-display);font-weight:var(--display-weight);letter-spacing:-.02em;line-height:1.04;color:var(--ink);text-wrap:balance}
 .headline .hl{color:var(--primary)}
 .text{position:absolute;z-index:2}
@@ -164,7 +177,7 @@ html,body{background:transparent}
 .foot{position:absolute;z-index:3;display:flex;justify-content:space-between;align-items:center;color:var(--muted)}
 .play{position:absolute;z-index:4;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;
   box-shadow:0 0 0 12px rgba(255,255,255,.7),0 18px 40px color-mix(in srgb, var(--primary) 40%, transparent)}
-.play svg{width:46%;height:46%;margin-left:6%}
+.play svg{width:46%;height:46%;display:block}
 
 /* cover 1080x1350 */
 .f-cover .logo{left:72px;top:64px;height:60px}
@@ -184,9 +197,10 @@ html,body{background:transparent}
 .f-slide .eyebrow{display:inline-block;background:color-mix(in srgb, var(--primary) 10%, #fff);color:var(--primary-dark);font-weight:600;font-size:24px;padding:10px 18px;border-radius:999px;margin-bottom:28px}
 .f-slide .headline{font-size:76px;line-height:1.06}
 .f-slide .body{margin-top:28px;font-size:30px;line-height:1.45;color:var(--ink);max-height:200px;overflow:hidden}
-.f-slide .surface{position:absolute;left:72px;right:72px;top:var(--panel-top,700px);bottom:128px;border-radius:40px;background:var(--surface);
-  display:flex;align-items:center;justify-content:center;padding:40px}
-.f-slide .shot{display:block;max-width:100%;max-height:100%;border-radius:18px;background:#fff;
+/* the area under the title; the surface pane shrinks to the still inside it */
+.f-slide .surface{position:absolute;left:72px;right:72px;top:var(--panel-top,700px);bottom:128px;display:flex;align-items:center;justify-content:center}
+.f-slide .pane{border-radius:40px;background:var(--surface);padding:40px;display:flex}
+.f-slide .shot{display:block;max-width:var(--shot-w,856px);max-height:var(--shot-h,442px);border-radius:18px;background:#fff;
   box-shadow:0 0 0 1px color-mix(in srgb, var(--hero-tint) 70%, #fff),0 24px 48px color-mix(in srgb, var(--navy) 14%, transparent)}
 .f-slide .foot{left:72px;right:72px;bottom:52px;font-size:26px}
 .f-slide .dots{display:flex;gap:12px}
@@ -196,39 +210,42 @@ html,body{background:transparent}
 /* feature 1280x720: the hero band */
 .f-feature .logo{left:64px;top:52px;height:52px}
 .f-feature .pill{right:64px;top:50px;font-size:24px;padding:13px 22px}
-.f-feature .text{left:64px;top:150px;width:560px}
-.f-feature .headline{font-size:78px}
-.f-feature .lead{margin-top:26px;font-size:24px;line-height:1.45;max-height:150px;overflow:hidden}
-.f-feature .hero{right:24px;top:120px;width:640px}
+.f-feature .text{left:64px;top:130px;bottom:40px;width:520px;display:flex;align-items:center}
+.f-feature .headline{font-size:88px}
+.f-feature .hero{right:24px;top:50%;transform:translateY(-44%);width:660px}
 
 /* podcast 1280x720: the hero in a framed card */
 .f-podcast .logo{left:64px;top:46px;height:48px}
 .f-podcast .pill{right:64px;top:44px;font-size:22px;padding:12px 20px}
-.f-podcast .card{position:absolute;left:150px;right:150px;top:124px;height:470px;border-radius:36px;
+.f-podcast .card{position:absolute;left:110px;right:110px;top:124px;bottom:56px;border-radius:36px;
   background:radial-gradient(110% 120% at 0% 0%, #fff 35%, color-mix(in srgb, var(--hero-tint) 80%, #fff) 100%);
   box-shadow:0 0 0 1.5px #fff inset,0 30px 70px color-mix(in srgb, var(--navy) 16%, transparent);overflow:hidden}
-.f-podcast .card .hero{left:50%;top:22px;height:430px;width:auto;transform:translateX(-50%)}
-.f-podcast .play{left:calc(50% - 72px);top:calc(50% - 72px);width:144px;height:144px}
-.f-podcast .caption{position:absolute;left:150px;right:150px;bottom:40px;text-align:center;font-family:var(--font-display);font-weight:var(--display-weight);font-size:38px;letter-spacing:-.01em}
-.f-podcast .caption .hl{color:var(--primary)}
+.f-podcast .card .hero{left:50%;top:50%;height:500px;width:auto;transform:translate(-50%,-50%)}
+.f-podcast .play{width:144px;height:144px;transform:translate(-50%,-50%)}
 
 /* youtube 1280x720 */
 .f-youtube .text{left:64px;top:96px;width:560px}
 .f-youtube .pill{position:static;display:inline-block;font-size:26px;padding:14px 22px;margin-bottom:30px}
 .f-youtube .headline{font-size:94px;line-height:1}
-.f-youtube .hero{right:-110px;top:90px;width:740px}
+/* whole, never cut at the edge: a cut falls mid-word on whatever the hero shows */
+.f-youtube .hero{right:32px;top:50%;transform:translateY(-50%);width:620px}
 .f-youtube .logo{left:64px;bottom:50px;height:50px}
 
-/* email 1100x600, transparent: the hero composition alone */
-.f-email .hero{left:50%;top:10px;height:580px;width:auto;transform:translateX(-50%)}
+/* email 1100x600: the hero band, opaque so it holds on any mail background */
+.f-email .logo{left:56px;top:44px;height:46px}
+.f-email .pill{right:56px;top:42px;font-size:22px;padding:12px 20px}
+.f-email .text{left:56px;top:120px;bottom:40px;width:440px;display:flex;align-items:center}
+.f-email .headline{font-size:72px}
+.f-email .hero{right:20px;top:50%;transform:translateY(-42%);width:580px}
 
 /* signature 500x175 */
-.f-signature .logo{left:16px;top:14px;height:22px}
-.f-signature .text{left:16px;top:48px;width:246px}
+/* one left column: logo, headline and button on the same edge, evenly spaced */
+.f-signature .col{position:absolute;z-index:2;left:18px;top:16px;bottom:16px;width:240px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start}
+.f-signature .logo{position:static;height:22px}
 .f-signature .headline{font-size:22px;line-height:1.1}
-.f-signature .button{position:absolute;left:16px;bottom:14px;background:var(--cta);color:#fff;font-weight:600;font-size:13px;padding:8px 12px;border-radius:6px;white-space:nowrap}
+.f-signature .button{background:var(--cta);color:#fff;font-weight:600;font-size:13px;padding:8px 12px;border-radius:6px;white-space:nowrap;line-height:1.2}
 .f-signature .hero{right:-6px;top:6px;width:212px;filter:drop-shadow(0 8px 14px color-mix(in srgb, var(--navy) 16%, transparent))}
-.f-signature .art{position:absolute;right:8px;top:50%;transform:translateY(-50%);max-width:224px;max-height:167px;display:block}
+.f-signature .art{position:absolute;right:8px;top:50%;transform:translateY(-50%);max-width:224px;max-height:159px;display:block;border-radius:10px}
 `;
 
 // Shrink each [data-fit] element until it is no taller than its data-fit px
@@ -239,7 +256,12 @@ const FIT = `for (const el of document.querySelectorAll('[data-fit]')) {
   while (over() && size > floor) { size -= 1; el.style.fontSize = size + 'px'; }
 }
 { const t = document.querySelector('.f-slide .text');
-  if (t) document.querySelector('.f-slide .surface').style.setProperty('--panel-top', (t.offsetTop + t.offsetHeight + 48) + 'px'); }`;
+  if (t) {
+    const area = document.querySelector('.f-slide .surface');
+    area.style.setProperty('--panel-top', (t.offsetTop + t.offsetHeight + 48) + 'px');
+    area.style.setProperty('--shot-w', (area.clientWidth - 80) + 'px');
+    area.style.setProperty('--shot-h', (area.clientHeight - 80) + 'px');
+  } }`;
 
 const pageHtml = (brand, format, body) => `<!doctype html><html><head><meta charset="utf-8">
 <style>${brandCss(brand)}</style><style>${CSS}</style>
@@ -267,7 +289,8 @@ export async function buildSocial({ slug, brief, brand, renders, log = console.l
     };
     const img = {
       hero: still(social.hero),
-      signature: social.signature ? still(social.signature) : null,
+      signature: typeof social.signature === 'string' ? still(social.signature)
+        : social.signature?.crop ? cropStill(still(social.hero), social.signature.crop, tmp, 'signature') : null,
       slides: social.slides.map((s, i) => cropStill(still(s.panel.scene), s.panel.crop, tmp, `slide-${i + 1}`)),
     };
 
@@ -288,7 +311,7 @@ export async function buildSocial({ slug, brief, brand, renders, log = console.l
         await page.goto(pathToFileURL(html).href, { waitUntil: 'load' });
         await settle(page);
         await page.evaluate(FIT);
-        await (await page.$('#frame')).screenshot({ path: path.join(out, job.name), omitBackground: job.format === 'email' });
+        await (await page.$('#frame')).screenshot({ path: path.join(out, job.name) });
         files.push(job.name);
         log(`  ${job.name}`);
       }

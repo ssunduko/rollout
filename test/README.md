@@ -2,13 +2,14 @@
 
 ```
 npm test                    # everything
-npm run test:unit           # the modules, in seconds; no Chrome, ffmpeg or network
+npm run test:unit           # the modules, in seconds; no network (a few use Chrome and ffmpeg)
 npm run test:integration    # the CLI, the demo app, the podcast and the whole pipeline
 ```
 
 Node's own test runner (`node:test`), no other dependency. GitHub Actions runs
 both on every pull request (`.github/workflows/test.yml`): unit tests on Linux
-and Windows, integration tests on Linux with Chrome and ffmpeg.
+and Windows with ffmpeg installed, integration tests on Linux with Chrome and
+ffmpeg.
 
 ## What keeps them safe to run
 

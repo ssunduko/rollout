@@ -1,5 +1,5 @@
 # Runs the test suite on every pull request (and on pushes to main):
-# unit tests on Linux and Windows, and the integration tests — the CLI, the
+# unit tests on Linux and Windows (with ffmpeg), and the integration tests — the CLI, the
 # demo app, the podcast and the whole pipeline end to end on the example
 # feature — on Linux with Chrome and ffmpeg. The tests read .env.example and a
 # throwaway copy of the example feature; no secret is needed. (test/README.md)
@@ -34,6 +34,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # the unit tests that encode with ffmpeg (podcast parts, the help-image
+      # frame overlay) run here too instead of skipping
+      - name: Install ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Install ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
+      - name: Check ffmpeg
+        run: ffmpeg -version
       - run: npm run test:unit
 
   integration:

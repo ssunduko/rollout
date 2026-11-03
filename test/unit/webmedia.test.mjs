@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { frameOverlay, frameSvg } from '../../pipeline/webmedia.mjs';
-import { haveChrome, haveFfmpeg } from '../helpers.mjs';
+import { haveChrome, haveFfmpeg, required } from '../helpers.mjs';
 
 const CHROME = await haveChrome();
 const FF = haveFfmpeg();
@@ -25,7 +25,7 @@ test('frameSvg: a white mask outside the rounded corners and a border inside', (
   assert.match(svg, /stroke="#e3e7ec" stroke-width="2"/);
 });
 
-test('frameOverlay: transparent inside, opaque only at the edges — no band repeated across the middle', { skip: CHROME && FF ? false : 'needs Chrome and ffmpeg (the unit job has no ffmpeg)' }, async () => {
+test('frameOverlay: transparent inside, opaque only at the edges — no band repeated across the middle', { skip: required(CHROME && FF, 'Chrome and ffmpeg') }, async () => {
   // a size whose screenshot-drawn overlay repeated its top band near the bottom
   const s = { width: 608, height: 492, radius: 12, border: '#a1b2c3' };
   const file = await frameOverlay(s);

@@ -135,8 +135,8 @@ repo root.
      same content as data for CMS import)
    - `output/<slug>/assets/social/`: the cover and carousel slides
      (1080×1350, plus the carousel as one PDF for LinkedIn), the feature,
-     podcast and YouTube thumbnails (1280×720), the email image (1100×600,
-     transparent) and the email-signature banner (500×175)
+     podcast and YouTube thumbnails (1280×720), the email image (1100×600)
+     and the email-signature banner (500×175)
    - `output/<slug>/help/` and, when it was sent, the help article's id,
      URL and state
    - when it was built, the website item's or page's id and path (a draft)

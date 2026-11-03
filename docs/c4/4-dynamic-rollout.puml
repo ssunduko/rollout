@@ -69,7 +69,7 @@ Rel(podproducer, elevenlabs, "podcast-transcribe: the video as text, by speaker"
 Rel(author, skill, "Approves: produce")
 Rel(podproducer, elevenlabs, "podcast --yes: voices the script in parts; episode.mp3 + transcript")
 Rel(author, spotify, "Uploads episode.mp3 and publishes it (Spotify for Creators)")
-Rel(podproducer, spotify, "podcast-find: the episode's link and embed")
+Rel(podproducer, spotify, "podcast-find: the episode's link and embed; saves it to the signed-in person's library")
 Rel(author, skill, "Approves: the episode page")
 Rel(podproducer, webflow, "Draft episode page (MCP), linked from the feature item; podcast-site-record")
 

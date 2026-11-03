@@ -36,6 +36,7 @@ and Windows, integration tests on Linux with Chrome and ffmpeg.
 | `integration/demo-app.test.mjs` | the example app: login, session, pages, the blur and hide markers |
 | `integration/pipeline.test.mjs` | `build` on the example (captures from the demo app, kit scenes, PDF, web page, social pack, help article), the cached rebuild, `qa`, `serve`, and `help-publish` create → update → refused after an edit in the help center |
 | `integration/podcast.test.mjs` | `podcast-script` and `podcast --yes`: voiced in parts, joined by ffmpeg, the transcript, a rerun spending nothing, a changed script only with `--force` |
+| `integration/webmedia.test.mjs` | the frame overlay over help images and web GIFs, drawn by Chrome and read back with ffmpeg: clear inside, opaque only at the edges |
 | `fixtures/` | sidecars the example does not have (social, site, podcast); fictional (Acme) only |
 
 Without Chrome or ffmpeg, the tests that need them are skipped locally; in CI

@@ -23,7 +23,7 @@ The website episode page is a draft CMS item the user publishes.
 | script | agent | writes the conversation in `script.lines` from the brief, the video transcript and the instructions; `podcast-script <slug>` shows it as the hosts say it, with its length, for the user to read |
 | produce | pipeline | `podcast <slug> --yes`: the studio voices the script in parts of up to about 2,000 characters (Text to Dialogue), each conditioned on the parts before it; the pipeline joins them into `episode.mp3` and writes the transcript (`transcript.html` / `.txt` / `.json`) — the script as said |
 | upload | person | in the show's app (Spotify for Creators): a new episode with `episode.mp3`, the social pack's podcast image, and `podcast.json`'s episode title and description; publish it there |
-| find | pipeline | `podcast-find <slug>`: the published episode on the directory, by title → its link and embed URL |
+| find | pipeline | `podcast-find <slug>`: the published episode on the directory, by title → its link and embed URL; signed in (`spotify-login`), it also saves the episode to your library |
 | page | agent | `podcast-site-assets --yes`, then the episode page as a draft CMS item (Webflow MCP server), linked from the feature page; `podcast-site-record` |
 
 Every step is recorded in `library/features/<slug>/podcast.published.json`:
@@ -39,7 +39,7 @@ Each is an adapter folder, chosen in `.env`; nothing else names a provider.
 |---|---|---|---|
 | video source | `PODCAST_VIDEO_SOURCE=gdrive` | `pipeline/videosource/gdrive.mjs` | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` (from `google-login`); or `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` |
 | studio | `PODCAST_STUDIO=elevenlabs` | `pipeline/podcaststudio/elevenlabs.mjs` | `ELEVENLABS_API_KEY` (Voices read, Speech to Text, Text to Speech), `ELEVENLABS_HOST_VOICE_ID` / `_NAME`, `ELEVENLABS_GUEST_VOICE_ID` / `_NAME`; optional `ELEVENLABS_MODEL_ID`, `ELEVENLABS_STT_MODEL`, `ELEVENLABS_API_URL` |
-| directory | `PODCAST_DIRECTORY=spotify` | `pipeline/podcastdirectory/spotify.mjs` | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_SHOW_ID`; optional `SPOTIFY_MARKET` |
+| directory | `PODCAST_DIRECTORY=spotify` | `pipeline/podcastdirectory/spotify.mjs` | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_SHOW_ID`; optional `SPOTIFY_MARKET`, `SPOTIFY_REFRESH_TOKEN` (from `spotify-login`), `SPOTIFY_REDIRECT_URI` |
 | website | (the website's) | `pipeline/website/webflow.mjs` | `WEBFLOW_PODCASTS_COLLECTION_ID` |
 
 `node pipeline/rollout.mjs podcast-check` tests all of them and lists the
@@ -79,7 +79,17 @@ studio's voices and the directory's show.
   answers only when the app's owner has an active Spotify Premium
   subscription (otherwise 403, "Active premium subscription required"; after
   subscribing it can take a few hours). The show itself is hosted on Spotify
-  for Creators, where episodes are uploaded by hand.
+  for Creators, where episodes are uploaded by hand: no Spotify API publishes
+  an episode.
+- **Saving to your library (optional).** To have `podcast-find` also save each
+  episode it finds to your Spotify library, add the redirect URI
+  `http://127.0.0.1:8767/callback` to the app's settings (Spotify refuses
+  `localhost`; another address goes in `SPOTIFY_REDIRECT_URI`), then run
+  `node pipeline/rollout.mjs spotify-login` once: it opens Spotify's sign-in,
+  asks for permission to read and change your library, and saves
+  `SPOTIFY_REFRESH_TOKEN` in `.env`. When Spotify issues a new refresh token,
+  the pipeline writes it there in place of the old one. A saved episode is
+  recorded (`directory.library`), so a rerun does not save it again.
 
 ## podcast.json
 

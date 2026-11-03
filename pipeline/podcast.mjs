@@ -67,6 +67,7 @@ export const videoSource = () => connectTo('video', {
 export const podcastStudio = () => connectTo('studio', { apiKey: env('ELEVENLABS_API_KEY'), baseUrl: env('ELEVENLABS_API_URL') });
 export const podcastDirectory = () => connectTo('directory', {
   clientId: env('SPOTIFY_CLIENT_ID'), clientSecret: env('SPOTIFY_CLIENT_SECRET'), showId: env('SPOTIFY_SHOW_ID'), market: env('SPOTIFY_MARKET'),
+  refreshToken: env('SPOTIFY_REFRESH_TOKEN'),
 });
 
 // The show's two fixed voices (the guest is optional: one voice reads alone).
@@ -293,12 +294,28 @@ const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').tr
 
 // Look for the published episode in the directory, by title. Found, it is
 // recorded with its link and embed URL; not yet, null.
+// Find the published episode on the directory and record its link. When a
+// person signed in (spotify-login), also save it to their library; that is
+// recorded too, so a rerun does not save it again (savedNow tells a save made
+// by this run from one recorded before). rotatedRefreshToken is a new refresh
+// token the directory issued, for the caller to store.
 export async function findEpisode({ slug, podcast }) {
   const dir = await podcastDirectory();
   const want = norm(podcast.episode.title);
   const hit = (await dir.episodes()).find((x) => norm(x.title) === want) ?? null;
-  if (hit) record(slug, 'directory', { provider: dir.name, ...hit, foundAt: new Date().toISOString() });
-  return { directory: dir.name, episode: hit };
+  let library = null;
+  let savedNow = false;
+  if (hit) {
+    const prev = readPodcastRecord(slug)?.directory;
+    library = prev?.id === hit.id ? prev.library ?? null : null;
+    if (dir.signedIn && !library) {
+      const r = await dir.saveEpisode(hit.id);
+      library = { savedAt: new Date().toISOString(), already: r.already };
+      savedNow = true;
+    }
+    record(slug, 'directory', { provider: dir.name, ...hit, ...(library ? { library } : {}), foundAt: new Date().toISOString() });
+  }
+  return { directory: dir.name, episode: hit, library, savedNow, signedIn: Boolean(dir.signedIn), rotatedRefreshToken: dir.rotatedRefreshToken?.() ?? null };
 }
 
 // ---- 4. the episode page on the website ----

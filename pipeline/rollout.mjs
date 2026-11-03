@@ -29,10 +29,12 @@
 //   node pipeline/rollout.mjs site-record <slug> <id> [--item]      after the page (or item) is built: record where it lives (site.published.json)
 //   node pipeline/rollout.mjs podcast-check                         check the podcast services; list the studio's voices and the directory's show
 //   node pipeline/rollout.mjs google-login                          sign in to Google once, to read the feature videos; saves a refresh token in .env
+//   node pipeline/rollout.mjs spotify-login                         sign in to Spotify once, so podcast-find saves the episode to your library; saves a refresh token in .env
 //   node pipeline/rollout.mjs podcast-transcribe <slug> [--force]   the feature video (podcast.json video.file) as text, by speaker
 //   node pipeline/rollout.mjs podcast-script <slug>                 the episode's script (podcast.json) as the hosts say it, with its length
 //   node pipeline/rollout.mjs podcast <slug> --yes [--force]        voice the script into the episode (spends studio credits: only on the user's approval)
-//   node pipeline/rollout.mjs podcast-find <slug>                   once uploaded to the show: find the episode in the directory; record its link and embed
+//   node pipeline/rollout.mjs podcast-find <slug>                   once uploaded to the show: find the episode in the directory; record its link and embed;
+//                                                                   signed in (spotify-login): save it to your Spotify library
 //   node pipeline/rollout.mjs podcast-site <slug>                   read the website's episode collection into output/<slug>/podcast/site-inventory.json
 //   node pipeline/rollout.mjs podcast-site-assets <slug> --yes      upload the episode page's images to the site's assets
 //   node pipeline/rollout.mjs podcast-site-record <slug> <itemId>   after the episode page is built: record it (podcast.published.json)
@@ -580,7 +582,8 @@ const commands = {
     await check('directory', async () => {
       const dir = await podcastDirectory();
       const s = await dir.show();
-      console.log(`directory: ${dir.name}  show ${s.title} (${s.id}) by ${s.publisher}, ${s.episodes ?? '?'} episodes  ${s.url ?? ''}`);
+      console.log(`directory: ${dir.name}  show ${s.title} (${s.id})${s.publisher ? ` by ${s.publisher}` : ''}, ${s.episodes ?? '?'} episodes  ${s.url ?? ''}`);
+      console.log(`  library: ${dir.signedIn ? 'signed in — podcast-find saves new episodes to the library' : 'not signed in (rollout.mjs spotify-login to save episodes to your library)'}`);
     });
   },
 
@@ -598,6 +601,22 @@ const commands = {
     const t = await exchangeCode({ clientId, clientSecret, redirectUri, code, verifier });
     setEnvKey('GOOGLE_OAUTH_REFRESH_TOKEN', t.refreshToken);
     console.log('  saved GOOGLE_OAUTH_REFRESH_TOKEN in .env — next: rollout.mjs podcast-check');
+  },
+
+  // Spotify's sign-in, once, as the person whose library the episodes are
+  // saved to. The redirect URI must be listed in the Spotify app's settings.
+  async 'spotify-login'() {
+    const { authorizeUrl, exchangeCode } = await import('./podcastdirectory/spotify.mjs');
+    const clientId = env('SPOTIFY_CLIENT_ID');
+    const clientSecret = env('SPOTIFY_CLIENT_SECRET');
+    if (!clientId || !clientSecret) throw new Error('set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in .env first (the Spotify app — docs/podcast.md)');
+    const redirectUri = env('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:8767/callback');
+    if (/\/\/localhost[:/]/i.test(redirectUri)) throw new Error('SPOTIFY_REDIRECT_URI: Spotify does not accept "localhost" — use http://127.0.0.1:<port>/callback');
+    const state = crypto.randomBytes(12).toString('hex');
+    const code = await oauthCode({ redirectUri, state, url: authorizeUrl({ clientId, redirectUri, state }), label: 'Spotify' });
+    const t = await exchangeCode({ clientId, clientSecret, redirectUri, code });
+    setEnvKey('SPOTIFY_REFRESH_TOKEN', t.refreshToken);
+    console.log(`  saved SPOTIFY_REFRESH_TOKEN in .env (${t.scope || 'no scope reported'}) — next: rollout.mjs podcast-check`);
   },
 
   async 'podcast-transcribe'() {
@@ -639,9 +658,13 @@ const commands = {
   async 'podcast-find'() {
     const slug = assertSlug(args[0]);
     const r = await findEpisode({ slug, podcast: podcastFor(slug) });
+    if (r.rotatedRefreshToken) setEnvKey('SPOTIFY_REFRESH_TOKEN', r.rotatedRefreshToken);
     if (!r.episode) return console.log(`  not in ${r.directory} yet — it appears once the episode is uploaded to the show and published`);
     console.log(`  ${r.episode.title}  ${r.episode.url}`);
     console.log(`  embed   ${r.episode.embedUrl}`);
+    if (r.library && !r.savedNow) console.log(`  library already saved to your ${r.directory} library on ${r.library.savedAt} — not saved again`);
+    else if (r.library) console.log(`  library ${r.library.already ? 'was already in' : 'saved to'} your ${r.directory} library`);
+    else if (!r.signedIn) console.log(`  library not saved — run rollout.mjs spotify-login once to save episodes to your ${r.directory} library`);
     console.log(`  record  ${rel(podcastRecordFile(slug))}`);
   },
 

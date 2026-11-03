@@ -2,7 +2,7 @@ import '../setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mockFetch, bodyOf } from '../helpers.mjs';
-import { connect } from '../../pipeline/podcastdirectory/spotify.mjs';
+import { connect, authorizeUrl, exchangeCode, SCOPE } from '../../pipeline/podcastdirectory/spotify.mjs';
 
 const TOKEN = 'https://accounts.spotify.com/api/token';
 const API = 'https://api.spotify.com/v1';
@@ -119,6 +119,124 @@ test('plain-text errors are shown as text', async () => {
   const m = mockFetch([signIn(), { url: `${API}/shows/s1`, reply: { status: 502, text: 'Bad Gateway' } }]);
   try {
     await assert.rejects(connect({ clientId: 'i', clientSecret: 's', showId: 's1' }).show(), /-> 502 Bad Gateway/);
+  } finally {
+    m.restore();
+  }
+});
+
+// ---- a person's sign-in (spotify-login) and saving to their library ----
+
+test('authorizeUrl: the code flow back to the loopback address, asking for the library', () => {
+  const u = new URL(authorizeUrl({ clientId: 'id', redirectUri: 'http://127.0.0.1:8767/callback', state: 'st' }));
+  assert.equal(`${u.origin}${u.pathname}`, 'https://accounts.spotify.com/authorize');
+  assert.equal(u.searchParams.get('client_id'), 'id');
+  assert.equal(u.searchParams.get('response_type'), 'code');
+  assert.equal(u.searchParams.get('redirect_uri'), 'http://127.0.0.1:8767/callback');
+  assert.equal(u.searchParams.get('state'), 'st');
+  assert.equal(u.searchParams.get('scope'), SCOPE);
+  assert.match(SCOPE, /user-library-modify/);
+});
+
+test('exchangeCode: Basic auth, the code and redirect URI; returns the refresh token', async () => {
+  const m = mockFetch([{ method: 'POST', url: TOKEN, reply: { json: { access_token: 'a', refresh_token: 'r1', scope: 'user-library-modify user-library-read', expires_in: 3600 } } }]);
+  try {
+    const t = await exchangeCode({ clientId: 'id', clientSecret: 'secret', redirectUri: 'http://127.0.0.1:8767/callback', code: 'c1' });
+    assert.deepEqual(t, { refreshToken: 'r1', scope: 'user-library-modify user-library-read' });
+    assert.equal(Buffer.from(m.calls[0].headers.get('authorization').replace('Basic ', ''), 'base64').toString(), 'id:secret');
+    const body = new URLSearchParams(await bodyOf(m.calls[0]));
+    assert.equal(body.get('grant_type'), 'authorization_code');
+    assert.equal(body.get('code'), 'c1');
+    assert.equal(body.get('redirect_uri'), 'http://127.0.0.1:8767/callback');
+  } finally {
+    m.restore();
+  }
+});
+
+test('exchangeCode: a refused code and a missing refresh token are readable errors', async () => {
+  let m = mockFetch([{ url: TOKEN, reply: { status: 400, json: { error: 'invalid_grant', error_description: 'Invalid authorization code' } } }]);
+  try {
+    await assert.rejects(exchangeCode({ clientId: 'i', clientSecret: 's', redirectUri: 'r', code: 'x' }), /Spotify sign-in -> 400 Invalid authorization code/);
+  } finally {
+    m.restore();
+  }
+  m = mockFetch([{ url: TOKEN, reply: { json: { access_token: 'a', expires_in: 3600 } } }]);
+  try {
+    await assert.rejects(exchangeCode({ clientId: 'i', clientSecret: 's', redirectUri: 'r', code: 'x' }), /no refresh token — run spotify-login again/);
+  } finally {
+    m.restore();
+  }
+});
+
+const userGrant = (n = { count: 0 }, extra = {}) => ({ method: 'POST', url: TOKEN, reply: () => { n.count++; return { json: { access_token: `user${n.count}`, expires_in: 3600, ...extra } }; } });
+
+test('saveEpisode: the person\'s token from the refresh token; checks the library, then saves the episode URI', async () => {
+  const n = { count: 0 };
+  const m = mockFetch([
+    userGrant(n),
+    { method: 'GET', url: `${API}/me/library/contains`, reply: { json: [false] } },
+    { method: 'PUT', url: `${API}/me/library`, reply: { status: 200, text: '' } },
+  ]);
+  try {
+    const d = connect({ clientId: 'id', clientSecret: 'secret', showId: 's1', refreshToken: 'r1' });
+    assert.equal(d.signedIn, true);
+    assert.deepEqual(await d.saveEpisode('e7'), { saved: true, already: false });
+    const body = new URLSearchParams(await bodyOf(m.calls[0]));
+    assert.equal(body.get('grant_type'), 'refresh_token');
+    assert.equal(body.get('refresh_token'), 'r1');
+    assert.equal(m.calls[1].url, `${API}/me/library/contains?uris=spotify%3Aepisode%3Ae7`);
+    assert.equal(m.calls[2].method, 'PUT');
+    assert.equal(m.calls[2].url, `${API}/me/library?uris=spotify%3Aepisode%3Ae7`);
+    assert.equal(m.calls[2].headers.get('authorization'), 'Bearer user1');
+    assert.equal(d.rotatedRefreshToken(), null, 'no new refresh token issued');
+  } finally {
+    m.restore();
+  }
+});
+
+test('saveEpisode: already in the library — nothing is saved again', async () => {
+  const m = mockFetch([userGrant(), { method: 'GET', url: `${API}/me/library/contains`, reply: { json: [true] } }]);
+  try {
+    const d = connect({ clientId: 'i', clientSecret: 's', refreshToken: 'r1' });
+    assert.deepEqual(await d.saveEpisode('e7'), { saved: true, already: true });
+    assert.ok(!m.calls.some((c) => c.method === 'PUT'));
+  } finally {
+    m.restore();
+  }
+});
+
+test('saveEpisode: a new refresh token from Spotify is kept for the caller to store', async () => {
+  const m = mockFetch([
+    userGrant({ count: 0 }, { refresh_token: 'r2' }),
+    { method: 'GET', url: `${API}/me/library/contains`, reply: { json: [true] } },
+  ]);
+  try {
+    const d = connect({ clientId: 'i', clientSecret: 's', refreshToken: 'r1' });
+    await d.saveEpisode('e7');
+    assert.equal(d.rotatedRefreshToken(), 'r2');
+  } finally {
+    m.restore();
+  }
+});
+
+test('saveEpisode: not signed in, refused, or a revoked sign-in — each says what to do', async () => {
+  let m = mockFetch([]);
+  try {
+    const d = connect({ clientId: 'i', clientSecret: 's' });
+    assert.equal(d.signedIn, false);
+    await assert.rejects(d.saveEpisode('e7'), /no Spotify sign-in: run rollout\.mjs spotify-login/);
+    assert.equal(m.calls.length, 0);
+  } finally {
+    m.restore();
+  }
+  m = mockFetch([userGrant(), { url: `${API}/me/library/contains`, reply: { status: 403, json: { error: { status: 403, message: 'Insufficient client scope' } } } }]);
+  try {
+    await assert.rejects(connect({ clientId: 'i', clientSecret: 's', refreshToken: 'r1' }).saveEpisode('e7'), /GET \/me\/library\/contains -> 403 Insufficient client scope — sign in again with rollout\.mjs spotify-login/);
+  } finally {
+    m.restore();
+  }
+  m = mockFetch([{ url: TOKEN, reply: { status: 400, json: { error: 'invalid_grant', error_description: 'Refresh token revoked' } } }]);
+  try {
+    await assert.rejects(connect({ clientId: 'i', clientSecret: 's', refreshToken: 'r1' }).saveEpisode('e7'), /Refresh token revoked — the sign-in expired or was revoked: run rollout\.mjs spotify-login again/);
   } finally {
     m.restore();
   }

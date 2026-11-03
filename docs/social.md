@@ -9,10 +9,11 @@ sidecar exists; `node pipeline/rollout.mjs social <slug>` remakes only the
 pack.
 
 The pack is made from the rollout's own assets, so it reads as part of the
-same launch: the brief's headline, lead and sections, the hero composition
+same launch: the brief's headline and sections, the hero composition
 (`hero.scene`) and the same section stills the PDF shows, in the one-pager's
-look — the hero band, soft surface panels, the tinted pill. It never adds
-copy of its own.
+look — the hero band, soft surface panels, the solid primary-colour pill (as
+on the PDF). It never adds copy of its own, and keeps copy on the images
+short: a headline or a slide title, never a paragraph.
 
 ## What it makes
 
@@ -22,13 +23,13 @@ PNGs are rendered at `STILL_SCALE` (default 2), so a 1080×1350 slide is a
 | File | Size | Use | Layout |
 |---|---|---|---|
 | `slide-1-cover-1080x1350.png` | 1080×1350 | Facebook, X; carousel slide 1 | hero band, logo and pill, the brief headline left-aligned, the hero composition below it, website and "N ways it helps →" |
-| `slide-<n>-1080x1350.png` | 1080×1350 | Carousel slides 2…, one per section (Instagram, LinkedIn) | white page, logo and step counter (`01 / 05`), feature-name pill, section title and body, the section still on a surface panel, website and progress dots |
+| `slide-<n>-1080x1350.png` | 1080×1350 | Carousel slides 2…, one per section (Instagram, LinkedIn) | white page, logo and step counter (`01 / 05`), feature-name pill, a short section title, the section still on a surface panel that fits it, website and progress dots |
 | `carousel-1080x1350.pdf` | 1080×1350 pages | LinkedIn document post | the cover and the slides, one page each |
-| `feature-1280x720.png` | 1280×720 | Landing page / feature thumbnail | the one-pager's hero band: headline and lead left, hero composition right |
-| `podcast-1280x720.png` | 1280×720 | Podcast / video thumbnail | the hero composition in a framed card with a play button, the headline under it |
-| `youtube-1280x720.png` | 1280×720 | YouTube thumbnail | feature-name pill and a large headline, the hero composition bleeding off the right, logo bottom left |
-| `email-1100x600.png` | 1100×600 | Email body image | the hero composition alone, transparent background |
-| `signature-500x175.png` | 500×175 | Email signature banner | logo, headline, a CTA-coloured button, the feature's signature motif (`signature`), else the hero |
+| `feature-1280x720.png` | 1280×720 | Landing page / feature thumbnail | the one-pager's hero band: logo, pill, headline left, hero composition right; no lead under the headline |
+| `podcast-1280x720.png` | 1280×720 | Podcast / video thumbnail | logo, pill, the hero composition in a framed card with a play button (`podcast.play`); no headline — the episode title sits beside the image |
+| `youtube-1280x720.png` | 1280×720 | YouTube thumbnail | feature-name pill and a large headline, the whole hero composition on the right (never cut at the edge), logo bottom left |
+| `email-1100x600.png` | 1100×600 | Email body image | the hero band, opaque: logo, pill, headline left, hero composition right |
+| `signature-500x175.png` | 500×175 | Email signature banner | logo, headline and a CTA-coloured button in one left-aligned column, and beside it a crop of the hero (`signature`), so it reads as the same campaign |
 | `social.json` | | | what was built, with each file's use |
 
 ## social.json
@@ -36,8 +37,9 @@ PNGs are rendered at `STILL_SCALE` (default 2), so a 1080×1350 slide is a
 ```json
 {
   "name": "Smart Scheduling",
-  "signature": "smart-scheduling--signature",
+  "signature": { "crop": [0.1, 0, 0.6, 0.5] },
   "button": "See how it works",
+  "podcast": { "play": [0.5, 0.5] },
   "slides": [
     { "section": 0, "title": "Offer [open times] without leaving the thread", "panel": { "crop": [0, 0, 1, 0.8] } }
   ]
@@ -49,19 +51,19 @@ PNGs are rendered at `STILL_SCALE` (default 2), so a 1080×1350 slide is a
 | `name` | brief `feature` | The slides' and YouTube pill |
 | `pill` | brief `pill`, then the brand's `pill` | Cover, feature, podcast pill |
 | `headline` | brief `headline` | `\n` breaks a line (ignored by the signature) |
-| `lead` | brief `lead` | The feature thumbnail's text |
 | `button` | brand `socialPack.button`, then `cta.heroButton` | The signature's button |
 | `hero` | brief `hero.scene` | The composition every wide format and the cover show. It must carry the feature's core idea (the visual designer's hero rules) |
-| `signature` | the hero | A kit scene, 224×167, transparent: the hero's idea at signature size (`<slug>--signature`) |
+| `signature` | the hero | `{ "crop": [x, y, width, height] }` of the hero still (preferred: the campaign's own image), or a kit scene id, 224×159, transparent |
+| `podcast.play` | `[0.5, 0.5]` | The play button's centre, fractions of the card: put it on a quiet part of the hero, never over text |
 | `slides[]` | one per section | `section` is the brief section index |
-| `slides[].title` | the section title | The same words with one or two `[accent]` runs |
-| `slides[].body` | the section body | Fits about 340 characters |
+| `slides[].title` | the section title | A short title, 60 characters at most, with one or two `[accent]` runs |
+| `slides[].body` | none | Only when a slide needs one line under its title; 140 characters at most |
 | `slides[].panel.scene` | the section's scene | |
 | `slides[].panel.crop` | whole still | `[x, y, width, height]`, fractions of the still: cut the empty page so the panel shows what the title is about |
 | `formats` | all | Which formats to make |
 
-Validation (`rollout.mjs validate <slug>`) checks crops, accent brackets and
-body length.
+Validation (`rollout.mjs validate <slug>`) checks crops, the signature and
+play button, accent brackets and title and body length.
 
 ## Brand
 

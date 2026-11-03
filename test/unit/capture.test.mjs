@@ -1,7 +1,7 @@
 import '../setup.mjs';
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureSettings, checkMutations } from '../../pipeline/capture.mjs';
+import { captureSettings, checkMutations, cursorLook } from '../../pipeline/capture.mjs';
 
 afterEach(() => { for (const k of ['CAPTURE_SCALE', 'GIF_FPS', 'GIF_WIDTH', 'CAPTURE_MAX_WAIT_MS']) delete process.env[k]; });
 
@@ -40,4 +40,18 @@ test('checkMutations refuses mutating steps without approval, naming them', () =
 test('checkMutations finds mutating steps nested in ifAppears', () => {
   const scene = { id: 'x--nested', steps: [{ op: 'ifAppears', sel: '.modal', then: [{ op: 'click', sel: '.ok', then: [{ op: 'press', key: 'Enter', mutates: true }] }] }] };
   assert.throws(() => checkMutations(scene, false), /1 step\(s\) marked "mutates" \(press /);
+});
+
+test('cursorLook: a plain dark arrow by default; the brand cursor from its block', () => {
+  const plain = cursorLook(null);
+  assert.match(plain.svg, /fill="#111"/);
+  assert.deepEqual(plain.hot, [4, 2]);
+  const brand = cursorLook({ from: '#aaccff', to: '#0066ff', shadow: 'rgba(0,102,255,.4)', size: 60 });
+  assert.match(brand.svg, /width="60" height="60"/);
+  assert.match(brand.svg, /stop-color="#aaccff"/);
+  assert.match(brand.svg, /stop-color="#0066ff"/);
+  assert.match(brand.svg, /fill="url\(#__rc_g\)"/);
+  assert.match(brand.shadow, /rgba\(0,102,255,\.4\)/);
+  assert.deepEqual(brand.hot, [10, 8]); // the tip, scaled with the size
+  assert.match(cursorLook({}).svg, /width="40"/); // defaults
 });

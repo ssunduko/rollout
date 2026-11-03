@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SANDBOX, ROOT } from '../helpers.mjs';
-import { loadBrand, brandCss, brandForFeature, brandFontFiles } from '../../pipeline/brand.mjs';
+import { loadBrand, brandCss, brandForFeature, brandFontFiles, fontFormat } from '../../pipeline/brand.mjs';
 
 const EXAMPLE = path.join(ROOT, 'brand', 'example');
 const OVERRIDES = ['BRAND_NAME', 'BRAND_PHONE', 'BRAND_WEBSITE', 'BRAND_WEBSITE_LABEL', 'BRAND_EMAIL', 'BRAND_COLOR_PRIMARY', 'BRAND_COLOR_HEROTINT'];
@@ -106,6 +106,14 @@ test('brandCss: @font-face per face and a custom property per colour', () => {
   assert.match(css, /--font-display:"Inter Display", Inter, Arial;/);
   assert.match(css, /--display-weight:700;/);
   assert.match(brandCss(b), /src:url\("file:\/\//); // default: file URLs
+});
+
+test('fontFormat: the CSS format from the extension, woff2 by default', () => {
+  assert.equal(fontFormat('a/Inter-Regular.woff2'), 'woff2');
+  assert.equal(fontFormat('a/x.WOFF'), 'woff');
+  assert.equal(fontFormat('a/ProductSans-Bold.ttf'), 'truetype');
+  assert.equal(fontFormat('a/x.otf'), 'opentype');
+  assert.equal(fontFormat('a/x'), 'woff2');
 });
 
 test('brandFontFiles: each font file once', () => {

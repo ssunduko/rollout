@@ -26,22 +26,44 @@ export const webSettings = () => ({
   radius: envNumber('WEB_FRAME_RADIUS', 20),
 });
 
-// The frame as a transparent PNG laid over every GIF frame: white outside the
-// rounded corners, a 2px border along them. Drawn once per size and colour.
-export async function frameOverlay(s = webSettings()) {
-  const file = path.join(os.tmpdir(), `rollout-webframe-${s.width}x${s.height}-${s.radius}-${s.border.replace(/\W/g, '')}.png`);
-  if (fs.existsSync(file)) return file;
-  await withBrowser(async (browser) => {
-    const page = await browser.newPage();
-    await page.setViewport({ width: s.width, height: s.height, deviceScaleFactor: 1 });
-    const r = s.radius;
-    await page.setContent(`<html><body style="margin:0;background:transparent">
-<svg width="${s.width}" height="${s.height}" xmlns="http://www.w3.org/2000/svg">
+// The frame's SVG: white outside the rounded corners, a 2px border along them.
+export function frameSvg(s) {
+  const r = s.radius;
+  return `<svg width="${s.width}" height="${s.height}" xmlns="http://www.w3.org/2000/svg">
   <path fill="#fff" fill-rule="evenodd" d="M0 0H${s.width}V${s.height}H0Z M${r} 0H${s.width - r}A${r} ${r} 0 0 1 ${s.width} ${r}V${s.height - r}A${r} ${r} 0 0 1 ${s.width - r} ${s.height}H${r}A${r} ${r} 0 0 1 0 ${s.height - r}V${r}A${r} ${r} 0 0 1 ${r} 0Z"/>
   <rect x="1" y="1" width="${s.width - 2}" height="${s.height - 2}" rx="${r - 1}" fill="none" stroke="${s.border}" stroke-width="2"/>
-</svg></body></html>`);
-    await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: s.width, height: s.height } });
+</svg>`;
+}
+
+// The frame as a transparent PNG laid over every GIF frame. Drawn once per
+// size and colour and cached in the temp folder.
+//
+// It is drawn on a canvas and read back, not screenshotted: a page screenshot
+// can repeat a band of the page lower down (a compositor tile drawn twice),
+// and that band — the top border and corners — then sat across every frame of
+// every image of that size, looking like the image was split. The file is
+// written whole or not at all, so two builds at once never leave half of one.
+// "v2" in the name retires overlays cached by the screenshot version.
+export async function frameOverlay(s = webSettings()) {
+  const file = path.join(os.tmpdir(), `rollout-webframe-v2-${s.width}x${s.height}-${s.radius}-${s.border.replace(/\W/g, '')}.png`);
+  if (fs.existsSync(file)) return file;
+  const png = await withBrowser(async (browser) => {
+    const page = await browser.newPage();
+    const b64 = await page.evaluate(async (svg, w, h) => {
+      const img = new Image();
+      img.src = `data:image/svg+xml;base64,${btoa(svg)}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c.toDataURL('image/png').split(',')[1];
+    }, frameSvg(s), s.width, s.height);
+    return Buffer.from(b64, 'base64');
   });
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, png);
+  fs.renameSync(tmp, file);
   return file;
 }
 
@@ -78,7 +100,8 @@ export async function framedMedia({ file, out, pad = 40 }) {
 // the temp folder by content, so rebuilds give the same bytes (and hash).
 export async function framedHelpImage({ file, out, size, pad, radius, border }) {
   const data = fs.readFileSync(file);
-  const key = crypto.createHash('sha256').update(data).update(`${pad}|${radius}|${border}`).digest('hex').slice(0, 16);
+  // v2: the overlay version (frameOverlay), so no image framed with a broken overlay is reused
+  const key = crypto.createHash('sha256').update(data).update(`v2|${pad}|${radius}|${border}`).digest('hex').slice(0, 16);
   const cached = path.join(os.tmpdir(), `rollout-helpframe-${key}${path.extname(file)}`);
   if (!fs.existsSync(cached)) {
     const s = { width: size.width + 2 * pad, height: size.height + 2 * pad, radius, border };

@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets, help-center article or podcast episode from a feature description or video (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website", "make the podcast for <slug> from its video"). Orchestrates the copywriter, visual-designer, QA, help-writer, web-publisher and podcast-producer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request, and the podcast episode made from the feature video, for the user to upload to the show, with its website page, on request.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets, help-center article or podcast episode from a feature description or video (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website", "make the podcast for <slug> from its video", "put the video page for <slug> on the website"). Orchestrates the copywriter, visual-designer, QA, help-writer, web-publisher and podcast-producer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request, and the podcast episode made from the feature video, for the user to upload to the show, with its website page, on request, and the feature video's own page on the website (an item of its video collection), on request.
 ---
 
 # Feature rollout
@@ -129,7 +129,19 @@ repo root.
    podcast page for <slug>; approved: create draft." Publishing the page is
    the user's (`docs/website.md`, "Publishing").
 
-10. **Deliver.** Report:
+10. **Video page (on request).** When the user wants the feature video's own
+   page on the website, with its YouTube link, run the
+   `rollout-web-publisher` agent: "Plan the video page for <slug>; video:
+   <YouTube link>." It reads the site's video collection
+   (`WEBFLOW_VIDEOS_COLLECTION_ID`), transcribes the feature video, and
+   plans the page in `library/features/<slug>/video.json` (`docs/video.md`):
+   the title, description, summary, transcript, cover image, related videos
+   and SEO fields, as an update when a page for the feature exists.
+   **Ask before building** (create, or update of an item id); on a yes:
+   "Build the video page for <slug>; approved: <create | update <id>>,
+   draft." Publishing the item is the user's, as for the feature page.
+
+11. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`
    - `output/<slug>/web/index.html` (self-contained folder; `page.json` is the
      same content as data for CMS import)
@@ -143,6 +155,7 @@ repo root.
    - when it was made, `output/<slug>/podcast/episode.mp3` with the
      title and description to upload, its Spotify link once found, and the
      episode page (a draft)
+   - when it was built, the video page's item id and path (a draft)
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.

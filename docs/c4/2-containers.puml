@@ -14,11 +14,11 @@ System_Boundary(rollout, "Rollout") {
   Container(designer, "rollout-visual-designer", "Claude Code agent", "Probes the signed-in app, writes capture and kit scenes and social.json, inspects stills, GIFs and web cuts.")
   Container(qa_agent, "rollout-qa", "Claude Code agent, read-only", "Reviews PDF pages and the served web page; returns PASS/FAIL with proposed fixes.")
   Container(helpwriter, "rollout-help-writer", "Claude Code agent", "Finds the help article that covers the feature, writes help.json (new or revised), sends it as a draft after approval.")
-  Container(webpublisher, "rollout-web-publisher", "Claude Code agent", "Maps page.json to the site's feature CMS collection or components, writes site.json, builds a draft through the Webflow MCP server after approval.")
+  Container(webpublisher, "rollout-web-publisher", "Claude Code agent", "Maps page.json to the site's feature CMS collection or components, writes site.json, builds a draft through the Webflow MCP server after approval; on request the feature video's page (video.json, an item of the video collection).")
 
   Container(podproducer, "rollout-podcast-producer", "Claude Code agent", "Writes podcast.json — the episode and its two-host script — from the brief, the video transcript and the episode collection; after approval produces, sends and publishes the episode and builds its draft page through the Webflow MCP server.")
 
-  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record; podcast-check/transcribe/find/site*, podcast, google-login, spotify-login.")
+  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record; podcast-check/transcribe/find/site*, podcast, google-login, spotify-login; video-transcribe/site/plan/site-assets/site-record.")
   Container(kit, "Scene kit", "CSS + seekable JS runtime", "pipeline/kit/: branded HTML scenes for the hero and coming-soon UI, rendered frame-exactly.")
   Container(demo, "Example app", "Node.js HTTP server, demo-app/", "A stand-in product with a real login, for trying the pipeline end to end.")
 
@@ -66,8 +66,8 @@ Rel(qa_agent, cli, "qa {slug}", "shell")
 Rel(qa_agent, output, "Reads screenshots and web/")
 Rel(helpwriter, library, "Writes help.json")
 Rel(helpwriter, cli, "help, help-find, help-get, help-publish", "shell")
-Rel(webpublisher, library, "Writes site.json")
-Rel(webpublisher, cli, "site-find, site-plan, site-get, site-assets, site-record", "shell")
+Rel(webpublisher, library, "Writes site.json, video.json")
+Rel(webpublisher, cli, "site-find, site-plan, site-get, site-assets, site-record; video-site, video-transcribe, video-plan, video-site-assets, video-site-record", "shell")
 Rel(webpublisher, webflow_mcp, "Creates draft CMS item, or page and components", "MCP")
 
 Rel(cli, input, "Reads")

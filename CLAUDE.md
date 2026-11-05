@@ -8,7 +8,8 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 `rollout-copywriter`, `rollout-visual-designer` and `rollout-qa` agents
 (`.claude/agents/`) around `node pipeline/rollout.mjs`, and the
 `rollout-help-writer` agent for the help-center article, and the
-`rollout-web-publisher` agent for the feature page on the website, and the
+`rollout-web-publisher` agent for the feature page and the feature video's
+page on the website, and the
 `rollout-podcast-producer` agent for the podcast episode.
 
 ## Ground rules
@@ -32,7 +33,10 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
   request, from `library/features/<slug>/site.json`: `docs/website.md`. The
   podcast episode is made from the feature video into `output/<slug>/podcast/`
   from `library/features/<slug>/podcast.json`, only on request, for the user
-  to upload to the show: `docs/podcast.md`. Every page put on the website is
+  to upload to the show: `docs/podcast.md`. The feature video's own page is
+  an item of the site's video collection, built as a draft and only on
+  request, from `library/features/<slug>/video.json`: `docs/video.md`.
+  Every page put on the website is
   written for search and answer engines (keyword, SEO text, FAQ, alt text,
   structured data), checked by `seo <slug>`: `docs/seo.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`

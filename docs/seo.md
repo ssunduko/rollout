@@ -1,7 +1,8 @@
 # Search and answer engines (SEO and AEO)
 
 Every page a rollout puts on the website — the feature page, as a CMS item or
-a page of components, and the podcast episode page — is written to be found
+a page of components, the podcast episode page and the feature video's page —
+is written to be found
 by search engines (SEO) and quoted by answer engines: AI search and
 assistants that answer a question with a passage from a page (AEO). The
 rules live in `pipeline/seo.mjs`; the copywriter writes for them, the
@@ -36,6 +37,7 @@ is an error; everything else is a warning — SEO never blocks a build.
 | `qa` | the built page as an engine reads it (`seo` findings in `qa.json`) |
 | Web publisher (`site.json`) | the item's or page's SEO fields from the brief, alt text on every image, rich-text headings in the existing items' tag, the FAQ where the template has a place for it, JSON-LD as page code on a page of components; `site-plan` warns on each |
 | Podcast producer (`podcast.json`) | the episode page's SEO title and description, image alt text, the transcript; `podcast-check`-style validation warns on each |
+| Web publisher (`video.json`) | the video page's meta title and description, its slug, the cover and thumbnail alt text, the transcript; `video-plan` warns on each (`docs/video.md`) |
 | `seo <slug> [--live] [--url <url>]` | all of the above for one feature, the JSON-LD for its feature and episode pages written to `output/<slug>/seo/`, and with `--live` (the recorded published pages) or `--url` the pages as served — read only |
 
 ## Structured data on CMS pages

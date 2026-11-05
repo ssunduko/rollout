@@ -6,7 +6,7 @@ import path from 'node:path';
 import { mockFetch } from '../helpers.mjs';
 import { featurePaths, writeJson, readJson } from '../../pipeline/env.mjs';
 import {
-  youtubeId, youtubeWatchUrl, nextSortOrder, transcriptHtml, validateVideoPage, transcribeVideoPage,
+  youtubeId, youtubeWatchUrl, nextSortOrder, transcriptHtml, validateVideoPage, transcribeVideoPage, pageItemId,
   readVideoCollection, uploadVideoPageAssets, recordVideoPageItem,
   videoPageFile, videoPageRecordFile, videoPageDir, readVideoPageRecord,
 } from '../../pipeline/videopage.mjs';
@@ -131,6 +131,35 @@ test('validateVideoPage: the page\'s own recorded item may keep its slug and sor
   write(page({ slug: 'newest-video', 'custom-sort-order': 2450 }));
   assert.doesNotMatch(errorsOf(), /already exists/);
   assert.doesNotMatch(warningsOf(), /a new one takes/);
+});
+
+test('publish.itemId: an existing item the page takes over keeps its slug and sort order before it is recorded', async () => {
+  process.env.WEBFLOW_VIDEOS_COLLECTION_ID = 'col1';
+  await readVideoCollection(SLUG, fakeWs());
+  // the plan takes over v2 (the newest, sort 2450) and keeps its slug and order
+  write({ ...page({ slug: 'newest-video', 'custom-sort-order': 2450 }), publish: { itemId: 'v2' } });
+  assert.equal(pageItemId(SLUG), 'v2');
+  assert.deepEqual(validateVideoPage(SLUG).errors, []);
+  assert.doesNotMatch(warningsOf(), /a new one takes/);
+  // an id the collection does not have, or not a string
+  write({ ...page(), publish: { itemId: 'gone' } });
+  assert.match(errorsOf(), /publish\.itemId gone is not an item of Videos/);
+  write({ ...page(), publish: { itemId: 7 } });
+  assert.match(errorsOf(), /publish\.itemId is the id of the item this page updates/);
+  // once recorded, the record decides; a different publish.itemId is an error
+  writeJson(videoPageRecordFile(SLUG), { site: { itemId: 'v1' } });
+  write({ ...page(), publish: { itemId: 'v2' } });
+  assert.equal(pageItemId(SLUG), 'v1');
+  assert.match(errorsOf(), /publish\.itemId v2 is not the recorded item v1/);
+});
+
+test('recordVideoPageItem: the item publish.itemId names is recorded as an update the first time', async () => {
+  process.env.WEBFLOW_VIDEOS_COLLECTION_ID = 'col1';
+  write({ ...page(), publish: { itemId: 'item9' } });
+  assert.equal((await recordVideoPageItem({ slug: SLUG, ws: fakeWs(), itemId: 'item9' })).action, 'update');
+  fs.rmSync(videoPageRecordFile(SLUG), { force: true });
+  write({ ...page(), publish: { itemId: 'other' } });
+  assert.equal((await recordVideoPageItem({ slug: SLUG, ws: fakeWs(), itemId: 'item9' })).action, 'create', 'a different item than named is a new one');
 });
 
 test('readVideoCollection: needs the collection id; writes the inventory, the next sort order and the newest published pages as text', async () => {

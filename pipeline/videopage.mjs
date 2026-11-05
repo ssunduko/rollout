@@ -62,6 +62,11 @@ export function nextSortOrder(inv) {
   return { field: f.slug, max: values.length ? Math.max(...values) : null, next: values.length ? Math.max(...values) + 10 : 10 };
 }
 
+// The item this page is: the recorded one (video.published.json), else the
+// one video.json's publish.itemId names — an existing page the plan updates,
+// e.g. a draft someone started — else null (a new item).
+export const pageItemId = (slug, page = loadVideoPage(slug)) => readVideoPageRecord(slug)?.site?.itemId ?? page?.publish?.itemId ?? null;
+
 const isImageValue = (v) => v && typeof v === 'object' && !Array.isArray(v) && ('asset' in v || 'url' in v || 'fileId' in v);
 
 export function validateVideoPage(slug) {
@@ -71,6 +76,10 @@ export function validateVideoPage(slug) {
   if (!v) return { errors: [`no ${path.relative(process.cwd(), videoPageFile(slug))}`], warnings };
   const id = youtubeId(v.video?.url);
   if (!id) errors.push('video.url is the video\'s YouTube link (youtube.com/watch?v=…, youtu.be/…)');
+  const named = v.publish?.itemId;
+  const recorded = readVideoPageRecord(slug)?.site?.itemId;
+  if (named != null && (typeof named !== 'string' || !named.trim())) errors.push('publish.itemId is the id of the item this page updates');
+  else if (named && recorded && named !== recorded) errors.push(`publish.itemId ${named} is not the recorded item ${recorded} (video.published.json)`);
   const f = v.site?.fields;
   if (!f || typeof f !== 'object') {
     errors.push('site.fields is required: the video page by the collection\'s field slugs (video-site lists them)');
@@ -102,7 +111,8 @@ export function validateVideoPage(slug) {
     const vid = youtubeId(typeof val === 'object' && val ? val.url : val);
     if (val != null && id && vid !== id) errors.push(`site.fields["${x.slug}"] plays ${vid ?? 'no YouTube video'}, not video.url's ${id}`);
   }
-  const mine = readVideoPageRecord(slug)?.site?.itemId;
+  if (typeof named === 'string' && named && !inv.items.some((i) => i.id === named)) errors.push(`publish.itemId ${named} is not an item of ${inv.name}`);
+  const mine = pageItemId(slug, v);
   const taken = inv.items.find((i) => i.slug === f.slug);
   if (taken && taken.id !== mine) errors.push(`a video page with slug "${f.slug}" already exists (${taken.id})`);
   const sort = nextSortOrder(inv);
@@ -168,5 +178,8 @@ export async function uploadVideoPageAssets({ slug, page, ws, log = console.log 
 export async function recordVideoPageItem({ slug, ws, itemId }) {
   const cid = videosCollectionId();
   if (!cid) throw new Error('WEBFLOW_VIDEOS_COLLECTION_ID is not set in .env');
-  return record(slug, 'site', await itemRecord({ ws, cid, itemId, prior: readVideoPageRecord(slug)?.site ?? {} })).site;
+  // an item video.json took over is an update the first time it is recorded too
+  const prior = readVideoPageRecord(slug)?.site ?? {};
+  const named = loadVideoPage(slug)?.publish?.itemId;
+  return record(slug, 'site', await itemRecord({ ws, cid, itemId, prior: prior.itemId ? prior : { ...prior, itemId: named ?? null } })).site;
 }

@@ -38,13 +38,18 @@
 //   node pipeline/rollout.mjs podcast-site <slug>                   read the website's episode collection into output/<slug>/podcast/site-inventory.json
 //   node pipeline/rollout.mjs podcast-site-assets <slug> --yes      upload the episode page's images to the site's assets
 //   node pipeline/rollout.mjs podcast-site-record <slug> <itemId>   after the episode page is built: record it (podcast.published.json)
+//   node pipeline/rollout.mjs video-transcribe <slug> [--force]     the feature video (video.json video.file) as text -> output/<slug>/video/transcript.html
+//   node pipeline/rollout.mjs video-site <slug>                     read the website's video collection into output/<slug>/video/site-inventory.json
+//   node pipeline/rollout.mjs video-plan <slug>                     check library/features/<slug>/video.json against the collection
+//   node pipeline/rollout.mjs video-site-assets <slug> --yes        upload the video page's images to the site's assets
+//   node pipeline/rollout.mjs video-site-record <slug> <itemId>     after the video page is built: record it (video.published.json)
 //   node pipeline/rollout.mjs qa <slug>                            measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
 //   node pipeline/rollout.mjs brand [<slug>]                        the resolved brand (the feature's, else BRAND_DIR)
 //
 // Agents write sidecars (brief.json, social.json, help.json, site.json,
-// podcast.json, scene.json + scene.html); this renders them. It never writes
+// podcast.json, video.json, scene.json + scene.html); this renders them. It never writes
 // copy or invents visuals, and sends nothing anywhere without --yes.
 
 import fs from 'node:fs';
@@ -67,6 +72,10 @@ import {
   findEpisode, readEpisodeCollection, uploadEpisodeAssets, recordEpisodeItem, videoSource, podcastStudio, podcastDirectory, showVoices,
   scriptLines, scriptLength,
 } from './podcast.mjs';
+import {
+  loadVideoPage, validateVideoPage, videoPageFile, videoPageDir, videoPageRecordFile, readVideoPageRecord,
+  transcribeVideoPage, readVideoCollection, uploadVideoPageAssets, recordVideoPageItem,
+} from './videopage.mjs';
 import { serveDir, openInBrowser } from './serve.mjs';
 import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir } from './library.mjs';
 import { loadTarget, listTargets } from './target.mjs';
@@ -102,6 +111,17 @@ function printHelpValidation(slug, brief, brand) {
   errors.forEach((m) => console.log(`  error  help: ${m}`));
   warnings.forEach((m) => console.log(`  warn   help: ${m}`));
   return errors.length === 0;
+}
+
+// video.json for a command that needs it: loaded and checked
+function videoPageFor(slug) {
+  const page = loadVideoPage(slug);
+  if (!page) throw new Error(`no ${rel(videoPageFile(slug))} — the rollout-web-publisher agent writes it (docs/video.md)`);
+  const { errors, warnings } = validateVideoPage(slug);
+  errors.forEach((m) => console.log(`  error  video page: ${m}`));
+  warnings.forEach((m) => console.log(`  warn   video page: ${m}`));
+  if (errors.length) throw new Error(`${rel(videoPageFile(slug))} has errors`);
+  return page;
 }
 
 // podcast.json for a command that needs it: loaded and checked
@@ -464,6 +484,7 @@ const commands = {
     const podcast = loadPodcast(slug);
     const podRec = readPodcastRecord(slug);
     if (podcast) show('episode page', validatePodcast(slug).warnings.filter((m) => m.startsWith('site.fields')));
+    if (loadVideoPage(slug)) show('video page', validateVideoPage(slug).warnings.filter((m) => m.startsWith('site.fields')));
 
     // the JSON-LD each page should carry: page code on a page built from
     // components, the template's embed on a CMS item (docs/seo.md)
@@ -695,6 +716,51 @@ const commands = {
     const r = await recordEpisodeItem({ slug, ws: await website(brandForFeature(slug)), itemId: args[1] });
     console.log(`  ${r.action}d item ${r.itemId}  ${r.path}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
     console.log(`  record  ${rel(podcastRecordFile(slug))}`);
+  },
+
+  async 'video-transcribe'() {
+    const slug = assertSlug(args[0]);
+    const page = loadVideoPage(slug);
+    if (!page) throw new Error(`no ${rel(videoPageFile(slug))} — the rollout-web-publisher agent writes it, with video.file (docs/video.md)`);
+    console.log('video');
+    const { transcript } = await transcribeVideoPage({ slug, page, force: flags.has('--force') });
+    console.log(`  ${transcript.utterances.length} passages${transcript.seconds ? `, ${Math.round(transcript.seconds)} s` : ''}  -> ${rel(path.join(videoPageDir(slug), 'transcript.html'))}`);
+  },
+
+  async 'video-site'() {
+    const slug = assertSlug(args[0]);
+    const ws = await website(brandForFeature(slug));
+    const c = await readVideoCollection(slug, ws);
+    console.log(`  ${c.name} (${c.id}): ${c.items.length} items at /${c.slug}/<item> -> ${rel(path.join(videoPageDir(slug), 'site-inventory.json'))}`);
+    console.log(`  fields  ${c.fields.map((f) => `${f.slug}${f.required ? '*' : ''} (${f.type})`).join(', ')}`);
+    if (c.sortOrder) console.log(`  sort    ${c.sortOrder.field}: newest ${c.sortOrder.max ?? 'none'}, a new video takes ${c.sortOrder.next}`);
+    c.items.slice(0, 5).forEach((i) => console.log(`  item ${i.id}  /${c.slug}/${i.slug}  ${i.name}${i.draft ? '  [draft]' : ''}`));
+    const rec = readVideoPageRecord(slug)?.site;
+    if (rec?.itemId) console.log(`  recorded item: ${rec.itemId} ${rec.path ?? ''}`);
+  },
+
+  'video-plan'() {
+    const slug = assertSlug(args[0]);
+    videoPageFor(slug);
+    console.log(`  ${rel(videoPageFile(slug))} OK`);
+  },
+
+  async 'video-site-assets'() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('video-site-assets uploads images to the website: run it only after the user approved, with --yes');
+    const page = videoPageFor(slug);
+    const ws = await website(brandForFeature(slug));
+    console.log('assets');
+    const a = await uploadVideoPageAssets({ slug, page, ws });
+    console.log(`  ${Object.keys(a).length} assets -> ${rel(path.join(videoPageDir(slug), 'site-assets.json'))}`);
+  },
+
+  async 'video-site-record'() {
+    const slug = assertSlug(args[0]);
+    if (!args[1]) throw new Error('video-site-record <slug> <itemId>');
+    const r = await recordVideoPageItem({ slug, ws: await website(brandForFeature(slug)), itemId: args[1] });
+    console.log(`  ${r.action}d item ${r.itemId}  ${r.path}${r.draft ? '  [draft]' : ''}  ${r.url ?? ''}`);
+    console.log(`  record  ${rel(videoPageRecordFile(slug))}`);
   },
 
   async qa() {

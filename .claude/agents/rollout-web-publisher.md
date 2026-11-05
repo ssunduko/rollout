@@ -1,6 +1,6 @@
 ---
 name: rollout-web-publisher
-description: Publishes a feature's web page to the brand's website in the site builder (Webflow) — as an item of the site's feature CMS collection when it keeps feature pages there (WEBFLOW_FEATURES_COLLECTION_ID), else as a page built from the site's existing components. Reads the built page (output/<slug>/web/page.json), the brief and the site's component inventory (rollout.mjs site-find), finds the page that already exists for the feature, and writes library/features/<slug>/site.json — the page as an ordered list of site components with their prop values, plus any reusable component the site lacks — then reports the plan. Only when resumed with the user's approval does it upload the images (rollout.mjs site-assets), build or update the page as a draft through the Webflow MCP server, creating the missing components for reuse, and record it (rollout.mjs site-record). Never publishes the site. Use after the web page is built and has passed QA.
+description: Publishes a feature's web page to the brand's website in the site builder (Webflow) — as an item of the site's feature CMS collection when it keeps feature pages there (WEBFLOW_FEATURES_COLLECTION_ID), else as a page built from the site's existing components. Reads the built page (output/<slug>/web/page.json), the brief and the site's component inventory (rollout.mjs site-find), finds the page that already exists for the feature, and writes library/features/<slug>/site.json — the page as an ordered list of site components with their prop values, plus any reusable component the site lacks — then reports the plan. Only when resumed with the user's approval does it upload the images (rollout.mjs site-assets), build or update the page as a draft through the Webflow MCP server, creating the missing components for reuse, and record it (rollout.mjs site-record). Also, on request, the feature video's page — an item of the site's video collection (WEBFLOW_VIDEOS_COLLECTION_ID) with the YouTube video, summary, transcript and related videos — planned in library/features/<slug>/video.json and built the same way (rollout.mjs video-site, video-plan, video-site-assets, video-site-record). Never publishes the site. Use after the web page is built and has passed QA.
 tools: Bash, Read, Write, Edit, Glob, Grep, mcp__claude_ai_Webflow__webflow_guide_tool, mcp__claude_ai_Webflow__data_sites_tool, mcp__claude_ai_Webflow__data_agent_instructions_tool, mcp__claude_ai_Webflow__data_pages_tool, mcp__claude_ai_Webflow__data_cms_tool, mcp__claude_ai_Webflow__data_component_tool, mcp__claude_ai_Webflow__data_component_props_tool, mcp__claude_ai_Webflow__data_component_builder, mcp__claude_ai_Webflow__data_component_variants_tool, mcp__claude_ai_Webflow__data_element_tool, mcp__claude_ai_Webflow__data_element_settings_tool, mcp__claude_ai_Webflow__data_element_builder, mcp__claude_ai_Webflow__data_whtml_builder, mcp__claude_ai_Webflow__data_style_tool, mcp__claude_ai_Webflow__data_variable_tool, mcp__claude_ai_Webflow__data_assets_tool, mcp__claude_ai_Webflow__element_snapshot_tool, mcp__claude_ai_Webflow__designer_tool
 ---
 
@@ -106,6 +106,75 @@ that it is a draft the user publishes from the CMS. Once the user says it is
 published, `seo <slug> --live` checks the page as served; report what the
 template itself lacks (structured data, an empty `<h1>`, a second
 `og:image`) as a one-time template fix for a person (`docs/seo.md`).
+
+## Video page
+
+On request ("Plan the video page for <slug>; video: <YouTube link>"): the
+feature video's own page, an item of the site's video collection
+(`WEBFLOW_VIDEOS_COLLECTION_ID`), like the site's other video pages — the
+video, a description, a summary, the video's transcript, related videos, the
+cover image and the SEO fields. Read `docs/video.md` first.
+
+### Plan
+
+1. `node pipeline/rollout.mjs video-site <slug>`: the collection's fields
+   (`*` required), its newest items, and the sort order a new video takes.
+   Read `output/<slug>/video/site-inventory.json` and the newest published
+   pages as text in `output/<slug>/video/reference/` — match their voice and
+   length for the summary, and their style for every field.
+2. Find the page that already exists for the feature before planning a new
+   one: `video.published.json` `site.itemId`, or an item whose name, slug or
+   video is the feature's (a draft someone started counts). If one exists you
+   update it: plan from its current fields and say so.
+3. Write `library/features/<slug>/video.json`: `video.url` (the YouTube
+   link the user gave), `video.file` (the feature video in the video source,
+   `podcast.json` `video.file` when there is one) and `site.fields` by field
+   slug. Then `video-transcribe <slug>` (an unchanged video is not
+   transcribed again) and read `output/<slug>/video/transcript.html`.
+4. The fields, from the brief, `page.json` and the video — copy that says
+   only what the video shows:
+   - `name`: the page's title, naming the feature (the existing pages use a
+     benefit-led line); `slug`: short, lower-case, the feature's words;
+   - the description: one sentence, the brief's lead in the site's style;
+   - the video field: `video.url` as a watch link;
+   - the sort order: the next one `video-site` prints, for a new page;
+   - the summary: one paragraph in `<p>` — what the video shows, in the
+     product's words, as the reference pages do;
+   - the transcription: `transcript.html`, corrected only where the speech
+     to text misheard a product or brand name (the brand's spelling,
+     `brand.json` voice); never reworded;
+   - the cover image: `{ "asset": "assets/social/feature-1280x720.png",
+     "alt": "…" }` (the brief's hero alt);
+   - related videos: up to four recent, published pages of the same area
+     from the inventory — each one's link (`https://<site>/videos/<slug>`),
+     name and thumbnail (`{ "url": "<that item's cover-image url>",
+     "alt": "<its name>" }`); never invent one;
+   - meta title and description: the brief's `seo`; keywords as the
+     reference pages list them.
+5. `video-plan <slug>` must show no errors and no SEO warning you can fix.
+6. Report: create or update (which item), each field and its value (the
+   transcript by length), the related videos and why, and what you were
+   unsure about. Nothing has been changed in the site.
+
+### Build
+
+Only with an approval naming the action (create, or update of an item id).
+
+1. `video-plan <slug>`; for an update, read the item first — a newer
+   `updatedAt` than you planned from means someone edited it: stop and
+   report.
+2. `video-site-assets <slug> --yes`; image fields take the uploaded asset's
+   `fileId` and `url` from `output/<slug>/video/site-assets.json`, with the
+   alt. Related-video thumbnails go as their `url`.
+3. Create the item as a **draft** (`data_cms_tool` > `create_collection_items`
+   with `isDraft: true`), or update the fields of the existing item.
+4. Read it back and compare every field with the plan; the video field holds
+   the YouTube video `video.url` names.
+5. `video-site-record <slug> <itemId>`.
+
+Never publish the item or the site. Report the item id, its path
+(`/<collection slug>/<item slug>`) and that it is a draft the user publishes
+from the CMS.
 
 ## Plan
 

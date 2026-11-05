@@ -73,5 +73,13 @@ Rel(podproducer, spotify, "podcast-find: the episode's link and embed; saves it 
 Rel(author, skill, "Approves: the episode page")
 Rel(podproducer, webflow, "Draft episode page (MCP), linked from the feature item; podcast-site-record")
 
+Rel(author, skill, "Asks for the video page, with the YouTube link")
+Rel(skill, webpublisher, "Plan the video page")
+Rel(webpublisher, webflow, "video-site: the video collection's fields, items, next sort order")
+Rel(webpublisher, elevenlabs, "video-transcribe: the video as text (unchanged: reused)")
+Rel(webpublisher, library, "video.json; reports the plan (video-plan)")
+Rel(author, skill, "Approves: create or update, draft")
+Rel(webpublisher, webflow, "video-site-assets; MCP creates the draft video item; video-site-record")
+
 SHOW_LEGEND()
 @enduml

@@ -125,6 +125,8 @@ flowchart LR
 | `library/features/<slug>/site.json` | `output/<slug>/web/page.json` | web-publisher agent | `website.mjs`, the web-publisher agent | the feature page: an item of the site's feature CMS collection (fields by slug), or site components in order with prop values and components to create ([website.md](website.md)) |
 | `library/features/<slug>/site.published.json` | site.json | `website.mjs` | the web-publisher agent | the page or CMS item in the website: id, path, URL, draft, when it last changed; uploaded image assets by hash |
 | `library/features/<slug>/podcast.json` | the brief, the feature video | podcast-producer agent | `podcast.mjs`, the podcast-producer agent | the episode: which video, title, number, show notes, how the conversation should sound, the website episode page's fields ([podcast.md](podcast.md)) |
+| `library/features/<slug>/video.json` | the brief, the feature video | web-publisher agent | `videopage.mjs`, the web-publisher agent | the feature video's page: its YouTube link, the video in the video source, and the item's fields by slug — title, description, summary, transcript, cover, related videos, SEO ([video.md](video.md)) |
+| `library/features/<slug>/video.published.json` | video.json | `videopage.mjs` | the web-publisher agent | the video transcribed, the page's item (id, path, URL, draft, when it last changed) and its uploaded images by hash |
 | `library/features/<slug>/podcast.published.json` | podcast.json | `podcast.mjs` | the podcast-producer agent | the video version transcribed, the studio project, the episode's directory link and embed (and when it was saved to the signed-in person's library), the episode page |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | the web-publisher agent, a CMS import | the page as structured content |
@@ -196,7 +198,13 @@ flowchart LR
    (and, after a one-time `spotify-login`, saves it to that person's
    library), and the agent builds the website episode page as a draft CMS
    item.
-9. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+9. On request, `rollout-web-publisher` → the feature video's page:
+   `video-site` reads the site's video collection, `video-transcribe` the
+   video (shared with the podcast), the agent plans the item in `video.json`
+   (`video-plan`); on the user's approval `video-site-assets` uploads its
+   images, the agent creates the draft item through the site builder's MCP
+   server, and `video-site-record` records it.
+10. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -223,6 +231,8 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/seo.mjs` | search and answer engines: title, description, keyword, alt text, FAQ and CMS-field checks, structured data (JSON-LD) for the feature and episode pages, the audit of a published page (`docs/seo.md`) |
 | `pipeline/website.mjs` | the website: reads its pages, components and feature CMS collection, checks site.json, uploads the page's images, records the built page or item (adapters in `website/`: `webflow`) |
 | `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory and saves it to the signed-in person's library, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
+| `pipeline/videopage.mjs` | the feature video's page: reads the site's video collection, transcribes the video (through `podcast.mjs`), checks video.json, uploads its images, records the item |
+| `pipeline/cmsitem.mjs` | what every page kept as a CMS item shares (the episode page, the video page): the collection inventory, reference text of recent items, image upload by hash, the item record |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

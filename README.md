@@ -23,6 +23,9 @@ pipeline builds:
   through, voiced into an MP3 you upload to your show on Spotify, with its
   page on your website, on your go-ahead; once it is published, found on
   Spotify and saved to your library if you signed in (`docs/podcast.md`)
+- the feature video's own page on your website — an item of the site's video
+  collection with the YouTube video, a summary, the transcript and related
+  videos; as a draft, on your go-ahead (`docs/video.md`)
 - `output/<slug>/onepager.html` — the PDF's source: animated GIFs when viewed
   in a browser, high-resolution stills when printed
 
@@ -74,7 +77,8 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
 7. `rollout-web-publisher` plans the feature page for your website — as an
    item of its feature CMS collection, or from its components — and, once you
    approve, builds it there as a draft (creating any component the site lacks,
-   for reuse); you publish it
+   for reuse); you publish it. On request it does the same for the feature
+   video's page, an item of the site's video collection
 8. `rollout-podcast-producer` transcribes the feature's video, plans the
    episode and writes its two-host script for you to read; once you approve,
    it has the script voiced into an MP3 you
@@ -111,6 +115,7 @@ example brand (`brand/example/`), captured from the example app
 | `podcast-transcribe <slug>` · `podcast-script <slug>` · `podcast <slug> --yes [--force]` | Transcribe the feature video; show the episode's script (written by the agent) with its length; voice it (spends studio credits) into `output/<slug>/podcast/` (`docs/podcast.md`) |
 | `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link; signed in (`spotify-login`), save it to your library once |
 | `podcast-site <slug>` · `podcast-site-assets <slug> --yes` · `podcast-site-record <slug> <itemId>` | The website's episode collection; upload the page's images; record the built episode page |
+| `video-transcribe <slug>` · `video-site <slug>` · `video-plan <slug>` · `video-site-assets <slug> --yes` · `video-site-record <slug> <itemId>` | The feature video's page: the video as text (shared with the podcast); the website's video collection and the next sort order; check `video.json`; upload its images; record the built item (`docs/video.md`) |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
@@ -179,6 +184,7 @@ runs them on every pull request. See `test/README.md`.
 | `WEBSITE`, `WEBFLOW_API_URL`, `WEBFLOW_API_TOKEN`, `WEBFLOW_SITE_ID`, `WEBFLOW_FEATURES_COLLECTION_ID`, `WEBFLOW_PAGE_FOLDER_ID`, `WEBFLOW_COMPONENT_GROUP` | | The website connection (`docs/website.md`) |
 | `PODCAST_VIDEO_SOURCE`, `PODCAST_STUDIO`, `PODCAST_DIRECTORY` | | The podcast's services: `gdrive`, `elevenlabs`, `spotify` (`docs/podcast.md`) |
 | `GOOGLE_OAUTH_*` or `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`, `ELEVENLABS_*`, `SPOTIFY_*`, `WEBFLOW_PODCASTS_COLLECTION_ID`, `PODCAST_VIDEO_MAX_MB` | | Their keys, the show's two voices, the show, the website's episode collection |
+| `WEBFLOW_VIDEOS_COLLECTION_ID` | | The website's video collection, for the feature video's page (`docs/video.md`) |
 
 Every key, with its comment, is in `.env.example`.
 
@@ -203,6 +209,7 @@ brand's renders stay in the library.
 - `docs/website.md` — the feature page on the website (CMS item or components)
 - `docs/seo.md` — search (SEO) and answer engines (AEO): the rules, where they apply, structured data
 - `docs/podcast.md` — the podcast episode from the feature video, its services and page
+- `docs/video.md` — the feature video's own page, an item of the site's video collection
 - `docs/rules.md` — standing rules
 - `test/README.md` — the tests: what they cover and how they stay off real data
 - `docs/c4/` — C4 architecture diagrams (PlantUML)

@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process';
 import { env, envNumber, escapeHtml as e, featurePaths, readJson, writeJson, SLUG_RE } from './env.mjs';
 import { featureKeyword } from './brief.mjs';
 import { checkCmsFields } from './seo.mjs';
+import { readCollectionInventory, writeReferences, uploadFieldAssets, itemRecord } from './cmsitem.mjs';
 
 const ADAPTERS = {
   video: { key: 'PODCAST_VIDEO_SOURCE', dir: 'videosource', all: { gdrive: () => import('./videosource/gdrive.mjs') } },
@@ -326,41 +327,18 @@ const readSiteInventory = (slug) => {
 };
 
 // Read the episode collection's fields and items into
-// output/<slug>/podcast/site-inventory.json; long text values are cut, so the
-// agent sees how items are filled without the whole transcripts.
+// output/<slug>/podcast/site-inventory.json, and the newest published
+// episodes' transcripts as text into reference/, for the agent to write the
+// script in the show's own style.
 export async function readEpisodeCollection(slug, ws) {
   const cid = podcastsCollectionId();
   if (!cid) throw new Error('WEBFLOW_PODCASTS_COLLECTION_ID is not set in .env');
-  const [c, items] = await Promise.all([ws.collection(cid), ws.items(cid)]);
-  const cut = (v) => (typeof v === 'string' && v.length > 400 ? `${v.slice(0, 400)}… [${v.length} characters]` : v);
-  const inv = {
-    $comment: 'The website\'s episode collection, read by pipeline/podcast.mjs (rollout.mjs podcast-site). Never edit; read it again instead.',
-    ...c,
-    items: items
-      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-      .map((i) => ({ ...i, fields: Object.fromEntries(Object.entries(i.fields).map(([k, v]) => [k, cut(v)])) })),
-    readAt: new Date().toISOString(),
-  };
-  writeJson(path.join(podcastDir(slug), 'site-inventory.json'), inv);
-  writeReferences(slug, items);
+  const { inv, items } = await readCollectionInventory({
+    ws, cid, file: path.join(podcastDir(slug), 'site-inventory.json'),
+    comment: 'The website\'s episode collection, read by pipeline/podcast.mjs (rollout.mjs podcast-site). Never edit; read it again instead.',
+  });
+  writeReferences(path.join(podcastDir(slug), 'reference'), items);
   return inv;
-}
-
-// The show's newest published episodes as plain text, for the agent to write
-// the script in the show's own style: output/<slug>/podcast/reference/<item>.txt.
-// An episode's transcript is its longest rich-text field.
-function writeReferences(slug, items, count = 3) {
-  const dir = path.join(podcastDir(slug), 'reference');
-  fs.rmSync(dir, { recursive: true, force: true });
-  const text = (html) => html.replace(/<\/p>\s*/g, '\n\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '')
-    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, x) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' })[x]).trim();
-  const published = items.filter((i) => !i.draft && i.publishedAt).sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
-  for (const i of published.slice(0, count)) {
-    const longest = Object.values(i.fields).filter((v) => typeof v === 'string' && v.includes('<p')).sort((a, b) => b.length - a.length)[0];
-    if (!longest) continue;
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, `${i.slug}.txt`), `${i.name}\n\n${text(longest)}\n`);
-  }
 }
 
 // Upload the site.fields images ({ "asset": "<path in output/<slug>/>" }) to
@@ -368,22 +346,7 @@ function writeReferences(slug, items, count = 3) {
 export async function uploadEpisodeAssets({ slug, podcast, ws, log = console.log }) {
   const rec = readPodcastRecord(slug)?.site ?? {};
   const kept = rec.assets ?? {};
-  const out = {};
-  for (const v of Object.values(podcast.site?.fields ?? {})) {
-    if (!v || typeof v !== 'object' || typeof v.asset !== 'string') continue;
-    if (out[v.asset]) continue; // one file named in two fields is uploaded once
-    const data = fs.readFileSync(path.join(featurePaths(slug).output, v.asset));
-    const hash = sha(data);
-    if (kept[v.asset]?.hash === hash) {
-      out[v.asset] = kept[v.asset];
-      log(`  reuse   ${v.asset}`);
-      continue;
-    }
-    const type = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }[path.extname(v.asset).toLowerCase()] ?? 'application/octet-stream';
-    const a = await ws.uploadAsset({ name: path.basename(v.asset), data, type });
-    out[v.asset] = { id: a.id, url: a.url, hash };
-    log(`  upload  ${v.asset}  -> asset ${a.id}`);
-  }
+  const out = await uploadFieldAssets({ fields: podcast.site?.fields, outputDir: featurePaths(slug).output, kept, ws, log });
   record(slug, 'site', { ...rec, assets: { ...kept, ...out } });
   writeJson(path.join(podcastDir(slug), 'site-assets.json'), out);
   return out;
@@ -393,13 +356,5 @@ export async function uploadEpisodeAssets({ slug, podcast, ws, log = console.log
 export async function recordEpisodeItem({ slug, ws, itemId }) {
   const cid = podcastsCollectionId();
   if (!cid) throw new Error('WEBFLOW_PODCASTS_COLLECTION_ID is not set in .env');
-  const [i, c, s] = await Promise.all([ws.item(cid, itemId), ws.collection(cid), ws.site()]);
-  const prior = readPodcastRecord(slug)?.site ?? {};
-  const itemPath = `/${c.slug}/${i.slug}`;
-  return record(slug, 'site', {
-    provider: ws.name, siteId: ws.siteId, collectionId: c.id, itemId: i.id, title: i.name, path: itemPath,
-    url: s.domains[0] ? `https://${s.domains[0]}${itemPath}` : null,
-    draft: i.draft, updatedAt: i.updatedAt, publishedAt: i.publishedAt,
-    assets: prior.assets ?? {}, action: prior.itemId === i.id ? 'update' : 'create', recordedAt: new Date().toISOString(),
-  }).site;
+  return record(slug, 'site', await itemRecord({ ws, cid, itemId, prior: readPodcastRecord(slug)?.site ?? {} })).site;
 }

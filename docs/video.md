@@ -66,12 +66,14 @@ the transcript is shared with the podcast (`output/<slug>/podcast/video-transcri
 | `video.url` | the video's YouTube link (watch, `youtu.be`, embed or Shorts) |
 | `video.file` | the feature video in the video source, for `video-transcribe` |
 | `video.speakers` | optional: how many people speak (the speech to text's hint) |
+| `publish.itemId` | the existing item this page updates, before it is first recorded (e.g. a draft someone started): its slug and sort order then count as the page's own, and `video-site-record` records an update. Once recorded, `video.published.json` names the item and a different `publish.itemId` is an error. Omit for a new item |
 | `site.fields` | the page by the collection's field slugs (`video-site` lists them; `*` is required). Images as `{ "asset": "<path in output/<slug>/>", "alt": "…" }` (uploaded by `video-site-assets`) or `{ "url": "https://…", "alt": "…" }` (an image already on the site, e.g. a related video's cover) |
 
 `video-plan` checks:
 - the collection's required fields are filled, and no field is unknown;
 - every video field plays `video.url`'s video;
-- the slug is free, unless it is this page's recorded item;
+- the slug is free, unless it is this page's item (recorded, or `publish.itemId`);
+- `publish.itemId` is an item of the collection, and the recorded one once there is a record;
 - a new page's sort order is above the newest video's (the site counts up by 10);
 - images exist or are https links;
 - the search and answer-engine checks of `docs/seo.md` (title, description, keyword, slug, alt text).

@@ -125,7 +125,8 @@ cover image and the SEO fields. Read `docs/video.md` first.
 2. Find the page that already exists for the feature before planning a new
    one: `video.published.json` `site.itemId`, or an item whose name, slug or
    video is the feature's (a draft someone started counts). If one exists you
-   update it: plan from its current fields and say so.
+   update it: plan from its current fields, set `publish.itemId` to its id in
+   `video.json` (until the page is recorded), and say so.
 3. Write `library/features/<slug>/video.json`: `video.url` (the YouTube
    link the user gave), `video.file` (the feature video in the video source,
    `podcast.json` `video.file` when there is one) and `site.fields` by field

@@ -275,6 +275,42 @@
           "url": "https://www.acme.example/privacy"
         }
       ]
+    },
+    "productUpdate": {
+      "$comment": "The product-update page template (brief web.template \"product-update\"): monthly release posts. Values over the rest of the web block.",
+      "accent": "#12b76a",
+      "pageUrl": "https://www.acme.example/product-updates/{slug}",
+      "back": {
+        "label": "All product updates",
+        "url": "https://www.acme.example/product-updates"
+      },
+      "trial": {
+        "label": "Not an Acme Cloud customer? Try it free for 14 days",
+        "url": "https://www.acme.example/signup"
+      },
+      "sectionButton": {
+        "label": "Start Your 14-Day Free Trial"
+      },
+      "closing": {
+        "title": "The best way to get something done is to start",
+        "button": "Start Your Free 14-Day Trial"
+      },
+      "apps": {
+        "title": "Text & call from your phone",
+        "subtitle": "Everything in the web app, in your pocket.",
+        "stores": [
+          {
+            "note": "4.8 • 1,204 Ratings",
+            "url": "https://www.acme.example/ios",
+            "alt": "Acme Cloud for iOS"
+          },
+          {
+            "note": "4.6 • 312 Ratings",
+            "url": "https://www.acme.example/android",
+            "alt": "Acme Cloud for Android"
+          }
+        ]
+      }
     }
   },
   "socialPack": {

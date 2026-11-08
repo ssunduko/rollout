@@ -43,6 +43,12 @@ Feature visuals are captured from the logged-in app. Kit-drawn scenes only for
 the hero composition and UI that does not exist yet.
 *Why:* the user asked for screenshots of the real product (2026-10-26).
 
+### Never hide conversation history
+A capture never hides the messages or history of a conversation (no `hide`
+on the message list or timeline). Hiding a small banner over it is fine.
+*Why:* the history is what shows the feature in context; the user asked that
+it never be hidden (2026-11-08).
+
 ### Captures sign in with their own profile
 A target uses its own Chrome profile (`profiles/<target>/`, filled by
 `node pipeline/rollout.mjs login <target>`), never another project's

@@ -1,7 +1,7 @@
 import '../setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { titleCase, webChrome, webpageHtml } from '../../pipeline/webpage.mjs';
+import { pageUrl, productUpdateHtml, templateOf, titleCase, updateChrome, webChrome, webpageHtml } from '../../pipeline/webpage.mjs';
 import { loadBrand } from '../../pipeline/brand.mjs';
 import { loadBrief } from '../../pipeline/brief.mjs';
 
@@ -119,4 +119,65 @@ test('webpageHtml escapes copy and alt text', () => {
   assert.equal(count(html, /<script>/g), 1); // only the menu script
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /alt="&quot;quoted&quot;"/);
+});
+
+const update = (b) => { b.web.template = 'product-update'; b.pill = 'November 2026'; return b; };
+const updatePage = (b = update(brief()), br = brand) => productUpdateHtml({ brief: b, brand: br, media: mediaFor(b), fontUrl: (p) => `assets/fonts/${p.split(/[\\/]/).pop()}` });
+
+test('templateOf: feature unless the brief names product-update', () => {
+  assert.equal(templateOf(brief()), 'feature');
+  assert.equal(templateOf(update(brief())), 'product-update');
+});
+
+test('updateChrome: the brand\'s productUpdate block over the web block, the brief over both', () => {
+  const c = updateChrome(update(brief()), brand);
+  assert.deepEqual(c.back, { label: 'All product updates', url: 'https://www.acme.example/product-updates' });
+  assert.deepEqual(c.sectionButton, { label: 'Start Your 14-Day Free Trial', url: 'https://www.acme.example/signup' });
+  assert.equal(c.accent, '#12b76a');
+  assert.equal(c.trial.url, 'https://www.acme.example/signup');
+  assert.equal(c.apps.stores.length, 2);
+  const b = update(brief());
+  b.web.back = { url: 'https://www.acme.example/news' };
+  assert.deepEqual(updateChrome(b, brand).back, { label: 'All product updates', url: 'https://www.acme.example/news' });
+  // a brand without the block: the feature chrome
+  const plain = updateChrome(update(brief()), { ...brand, web: { ...brand.web, productUpdate: undefined } });
+  assert.deepEqual(plain.back, { label: 'All features', url: 'https://www.acme.example/features' });
+  assert.equal(plain.accent, null);
+  assert.equal(plain.apps, null);
+});
+
+test('pageUrl: product updates live at the productUpdate address', () => {
+  assert.equal(pageUrl(brief(), brand), 'https://www.acme.example/features/smart-scheduling');
+  assert.equal(pageUrl(update(brief()), brand), 'https://www.acme.example/product-updates/smart-scheduling');
+});
+
+test('productUpdateHtml: one column of stacked cards, the month pill, the apps block', () => {
+  const html = updatePage();
+  assert.match(html, /<a class="pu-back" href="https:\/\/www\.acme\.example\/product-updates">All product updates<\/a>/);
+  assert.match(html, /<span class="pu-pill">November 2026<\/span>/);
+  assert.match(html, /<h1 class="display">Book meetings right inside the conversation<\/h1>/);
+  assert.match(html, /<a class="pu-trial" href="https:\/\/www\.acme\.example\/signup">Not an Acme Cloud customer\?/);
+  assert.match(html, /data-placeholder="video"/);
+  assert.equal(count(html, /<article class="pu-card">/g), 5);
+  assert.equal(count(html, /class="btn" href="https:\/\/www\.acme\.example\/signup">Start Your 14-Day Free Trial</g), 5);
+  assert.match(html, /<article class="pu-card">\s*<img src="assets\/smart-scheduling--[^"]+\.gif" width="1180" height="676"/); // visual first
+  assert.match(html, /<span class="eyebrow">Coming soon!<\/span><h2 class="display">/);
+  assert.match(html, /<section class="pu-apps">[\s\S]*<span>4\.8 • 1,204 Ratings<\/span>/);
+  assert.match(html, /--update-accent:#12b76a/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/www\.acme\.example\/product-updates\/smart-scheduling">/);
+  // the brand's closing band, over the brief's CTA (subtitle and URL kept from the brief)
+  assert.match(html, /<section class="closing">[\s\S]*<h2 class="display">The best way to get something done is to start<\/h2>[\s\S]*>Start Your Free 14-Day Trial<\/a>/);
+  assert.equal(updateChrome(update(brief()), brand).closing.url, brief().cta.url);
+  assert.match(html, /<footer class="site-footer">/);
+  // none of the feature template's parts
+  assert.doesNotMatch(html, /class="signup"|class="feature|class="back"/);
+});
+
+test('productUpdateHtml: no pill, apps or accent when the brand has no productUpdate block', () => {
+  const b = update(brief());
+  delete b.pill;
+  const html = updatePage(b, { ...brand, web: { ...brand.web, productUpdate: undefined } });
+  assert.doesNotMatch(html, /class="(pu-pill|pu-apps|pu-trial)"/);
+  assert.match(html, /--update-accent:var\(--cta\)/);
+  assert.match(html, /<a class="pu-back" href="https:\/\/www\.acme\.example\/features">All features<\/a>/);
 });

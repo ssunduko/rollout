@@ -218,7 +218,10 @@ export function webChrome(brief, brand) {
 // The page's own address, when the brand says where feature pages live
 // (web.pageUrl, e.g. "https://www.acme.example/features/{slug}"): the
 // canonical link and the structured data's url.
-export const pageUrl = (brief, brand) => (brand.web?.pageUrl ? brand.web.pageUrl.replace('{slug}', brief.slug) : null);
+export const pageUrl = (brief, brand) => {
+  const pattern = (templateOf(brief) === 'product-update' && brand.web?.productUpdate?.pageUrl) || brand.web?.pageUrl;
+  return pattern ? pattern.replace('{slug}', brief.slug) : null;
+};
 
 // The page's FAQ: questions as <h3>, answers as text, so search and answer
 // engines read them on the page as well as in the structured data.
@@ -235,7 +238,6 @@ export function webpageHtml({ brief, brand, media, fontUrl }) {
   const chrome = webChrome(brief, brand);
   const heading = (t) => (brand.web?.titleCase ? titleCase(t) : t);
   const { header, signup, sectionButton, footer } = chrome;
-  const year = new Date().getFullYear();
 
   const sections = brief.sections
     .map(
@@ -277,16 +279,7 @@ ${jsonLdScript(featureJsonLd({ brief, brand, url, image: url ? new URL(media.og,
 <style>${CSS}</style>
 </head>
 <body>
-<header class="site-header"><div class="bar">
-  <a class="logo" href="${e(brand.website || '/')}" aria-label="${e(brand.name)}">${brand.logo.primary}</a>
-  ${header.contact ? `<a class="contact" href="${e(header.contact.url ?? '#')}">${e(header.contact.label)}<b>${e(header.contact.value)}</b></a>` : ''}
-  <nav>${header.nav.map((n) => `<a${n.menu ? ' class="menu"' : ''} href="${e(n.url)}">${e(n.label)}</a>`).join('')}</nav>
-  <div class="actions">
-    ${header.signIn ? link(header.signIn, 'signin') : ''}
-    ${header.buttons.map((b) => link(b, `btn ${b.style ?? 'primary'}`)).join('\n    ')}
-  </div>
-  <button class="menu-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
-</div></header>
+${siteHeaderHtml(brand, header)}
 
 <main>
 <section class="intro"><div class="wrap">
@@ -310,15 +303,102 @@ ${jsonLdScript(featureJsonLd({ brief, brand, url, image: url ? new URL(media.og,
 
 ${faqHtml(brief, brand)}
 ${integrations}
-<section class="closing"><div class="wrap"><div class="frame"><div class="band">
-  <h2 class="display">${e(brief.cta.title)}</h2>
-  ${brief.cta.subtitle ? `<p>${e(brief.cta.subtitle)}</p>` : ''}
-  <a class="btn light" href="${e(brief.cta.url)}">${e(brief.cta.button)}</a>
-  ${chrome.closingNote ? `<p class="note">${keepPhones(e(chrome.closingNote))}</p>` : ''}
-</div></div></div></section>
+${closingHtml(brief, chrome)}
 </main>
 
-<footer class="site-footer"><div class="wrap">
+${siteFooterHtml(brand, footer)}
+${MENU_SCRIPT}
+</body>
+</html>
+`;
+}
+
+// Product-update template (brief web.template "product-update"): a monthly
+// release page like the site's product-update posts. One centred column:
+// back link, month pill, headline, lead, a trial link, the video, then one
+// stacked card per section (visual on top, title, body, trial button), the
+// mobile-app block and the closing band. Labels, links and the accent colour
+// come from the brand's web.productUpdate block.
+const UPDATE_CSS = `
+.pu{max-width:760px;margin:0 auto;padding:56px 16px 0}
+.pu-back{display:inline-flex;align-items:center;gap:8px;color:var(--primary);font-family:var(--font-display);font-weight:700;font-size:18px;text-decoration:none;margin:0 0 48px}
+.pu-back::before{content:"";width:9px;height:9px;border:solid currentColor;border-width:0 0 3px 3px;transform:rotate(45deg)}
+.pu-head{text-align:center}
+.pu-pill{display:inline-block;background:color-mix(in srgb,var(--update-accent) 14%,white);color:color-mix(in srgb,var(--update-accent) 80%,black);border-radius:32px;padding:4px 12px;font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.16}
+.pu-head h1{font-size:50px;line-height:1.16;letter-spacing:-.01em;margin:8px 0 0}
+.pu-head .lead{font-size:18px;line-height:1.5;margin:8px 0 0;color:color-mix(in srgb,var(--ink) 75%,white)}
+.pu-trial{display:inline-block;margin-top:24px;color:var(--primary);font-family:var(--font-display);font-weight:700;font-size:18px;text-decoration:none}
+.pu .video{max-width:none;margin:24px 0 0;border-radius:4px}
+.pu-cards{margin-top:56px}
+.pu-card{text-align:center;padding:40px 0}
+.pu-card img{width:100%}
+.pu-card .eyebrow{display:inline-block;background:var(--update-accent);color:var(--white);border-radius:30px;padding:4px 10px;font-weight:700;font-size:16px;margin:24px 0 0}
+.pu-card h2{font-size:36px;line-height:1.2;margin:24px 0 0}
+.pu-card .eyebrow + h2{margin-top:8px}
+.pu-card p{font-size:18px;line-height:1.5;margin:24px 0;color:color-mix(in srgb,var(--ink) 75%,white)}
+.pu-card .btn{background:var(--update-accent);color:var(--white);border-radius:8px}
+.pu-apps{background:var(--surface);text-align:center;padding:100px 16px 0;margin-top:40px}
+.pu-apps .icon > :is(svg,img){height:64px;width:auto;margin:0 auto}
+.pu-apps h2{font-size:50px;line-height:1.16;margin:16px 0 0}
+.pu-apps p{font-size:24px;line-height:1.5;margin:16px auto 0;max-width:650px;color:color-mix(in srgb,var(--ink) 70%,white)}
+.pu-stores{display:flex;justify-content:center;gap:48px;max-width:600px;margin:40px auto 0}
+.pu-stores a{text-decoration:none;color:var(--ink);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.pu-stores .badge{height:40px;width:auto}
+.pu-stores .image{max-height:420px;width:auto}
+@media (max-width:767px){
+  .pu{padding-top:24px}
+  .pu-back{margin-bottom:24px}
+  .pu-head h1{font-size:36px}
+  .pu-card h2{font-size:28px}
+  .pu-apps{padding-top:72px}
+  .pu-apps h2{font-size:34px}
+  .pu-apps p{font-size:18px}
+  .pu-stores{gap:8px}
+}
+`;
+
+export const TEMPLATES = ['feature', 'product-update'];
+export const templateOf = (brief) => brief.web?.template ?? 'feature';
+
+// The product-update template's chrome: the brand's web.productUpdate block
+// over the feature chrome (back link, section button, page address).
+export function updateChrome(brief, brand) {
+  const u = brand.web?.productUpdate ?? {};
+  const base = webChrome(brief, brand);
+  const back = u.back || brief.web.back ? { ...(brand.web?.back ?? {}), ...(u.back ?? {}), ...(brief.web.back ?? {}) } : base.back;
+  return {
+    ...base,
+    back,
+    sectionButton: { ...(brand.web?.sectionButton ?? { label: brief.cta.button, url: brief.cta.url }), ...(u.sectionButton ?? {}), ...(brief.web.sectionButton ?? {}) },
+    accent: u.accent ?? null,
+    trial: u.trial ?? null,
+    apps: u.apps ?? null,
+    closing: u.closing ? { ...brief.cta, ...u.closing } : null,
+  };
+}
+
+const siteHeaderHtml = (brand, header) => `<header class="site-header"><div class="bar">
+  <a class="logo" href="${e(brand.website || '/')}" aria-label="${e(brand.name)}">${brand.logo.primary}</a>
+  ${header.contact ? `<a class="contact" href="${e(header.contact.url ?? '#')}">${e(header.contact.label)}<b>${e(header.contact.value)}</b></a>` : ''}
+  <nav>${header.nav.map((n) => `<a${n.menu ? ' class="menu"' : ''} href="${e(n.url)}">${e(n.label)}</a>`).join('')}</nav>
+  <div class="actions">
+    ${header.signIn ? link(header.signIn, 'signin') : ''}
+    ${header.buttons.map((b) => link(b, `btn ${b.style ?? 'primary'}`)).join('\n    ')}
+  </div>
+  <button class="menu-toggle" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</div></header>`;
+
+const closingHtml = (brief, chrome) => {
+  const c = chrome.closing ?? brief.cta;
+  return `<section class="closing"><div class="wrap"><div class="frame"><div class="band">
+  <h2 class="display">${e(c.title)}</h2>
+  ${c.subtitle ? `<p>${e(c.subtitle)}</p>` : ''}
+  <a class="btn light" href="${e(c.url)}">${e(c.button)}</a>
+  ${chrome.closingNote ? `<p class="note">${keepPhones(e(chrome.closingNote))}</p>` : ''}
+</div></div></div></section>`;
+};
+
+const siteFooterHtml = (brand, footer) => `<footer class="site-footer"><div class="wrap">
   <div class="top">
     <div class="cols">${footer.columns
       .map((c) => `<div class="col"><h3 class="display">${e(c.title)}</h3><ul>${c.links.map((l) => `<li>${l.badge ? `<span class="badge">${e(l.badge)}</span>` : ''}${link(l)}</li>`).join('')}</ul></div>`)
@@ -328,15 +408,85 @@ ${integrations}
       ${footer.apps.length ? `<div class="apps">${footer.apps.map((a) => `<a href="${e(a.url)}"><img src="${e(a.src)}" alt="${e(a.alt)}"></a>`).join('')}</div>` : ''}
     </div>
   </div>
-  <p class="copy">© ${year} ${e(footer.copyright)}</p>
+  <p class="copy">© ${new Date().getFullYear()} ${e(footer.copyright)}</p>
   <p class="legal">${footer.legal.map((l) => link(l)).join('<span>/</span>')}</p>
-</div></footer>
-<script>
+</div></footer>`;
+
+const MENU_SCRIPT = `<script>
 document.querySelector('.menu-toggle').addEventListener('click', function () {
   var h = document.querySelector('.site-header');
   this.setAttribute('aria-expanded', h.classList.toggle('open'));
 });
-</script>
+</script>`;
+
+export function productUpdateHtml({ brief, brand, media, fontUrl }) {
+  const title = brief.seo.title ?? `${brief.feature} | ${brand.name}`;
+  const url = pageUrl(brief, brand);
+  const chrome = updateChrome(brief, brand);
+  const heading = (t) => (brand.web?.titleCase ? titleCase(t) : t);
+  const video = brief.web.video
+    ? `<iframe src="${e(brief.web.video)}" title="${e(brief.feature)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+    : `<img src="${e(media.video.src)}" width="${VIDEO.width}" height="${VIDEO.height}" alt="${e(`${brief.feature} video (coming soon)`)}" data-placeholder="video">`;
+  const cards = brief.sections
+    .map((s) => `<article class="pu-card">
+    <img src="${e(media[s.scene].src)}" width="${media[s.scene].width}" height="${media[s.scene].height}" alt="${e(s.alt ?? s.title)}" loading="lazy">
+    ${s.eyebrow ? `<span class="eyebrow">${e(s.eyebrow)}</span>` : ''}<h2 class="display">${e(heading(s.title))}</h2>
+    <p>${e(s.body)}</p>
+    ${link(chrome.sectionButton, 'btn')}
+  </article>`)
+    .join('\n  ');
+  const apps = chrome.apps
+    ? `<section class="pu-apps">
+  ${chrome.apps.icon !== false ? `<div class="icon">${brand.logo.icon}</div>` : ''}
+  <h2 class="display">${e(chrome.apps.title)}</h2>
+  ${chrome.apps.subtitle ? `<p>${e(chrome.apps.subtitle)}</p>` : ''}
+  <div class="pu-stores">${(chrome.apps.stores ?? [])
+    .map((s) => `<a href="${e(s.url)}">${s.note ? `<span>${e(s.note)}</span>` : ''}${s.badge ? `<img class="badge" src="${e(s.badge)}" alt="${e(s.alt)}">` : ''}${s.image ? `<img class="image" src="${e(s.image)}" alt="${e(s.alt)}" loading="lazy">` : ''}</a>`)
+    .join('')}</div>
+</section>`
+    : '';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${e(title)}</title>
+<meta name="description" content="${e(brief.seo.description)}">
+<meta property="og:title" content="${e(title)}">
+<meta property="og:description" content="${e(brief.seo.description)}">
+<meta property="og:image" content="${e(media.og)}">
+<meta property="og:type" content="article">
+${url ? `<link rel="canonical" href="${e(url)}">
+<meta property="og:url" content="${e(url)}">
+` : ''}<meta name="twitter:card" content="summary_large_image">
+${jsonLdScript(featureJsonLd({ brief, brand, url, image: url ? new URL(media.og, url).href : null }))}
+<style>${brandCss(brand, { fontUrl })}</style>
+<style>${CSS}${UPDATE_CSS}:root{--update-accent:${chrome.accent ? e(chrome.accent) : 'var(--cta)'}}</style>
+</head>
+<body>
+${siteHeaderHtml(brand, chrome.header)}
+
+<main>
+<section class="pu">
+  ${chrome.back ? link(chrome.back, 'pu-back') : ''}
+  <div class="pu-head">
+    ${brief.pill ? `<span class="pu-pill">${e(brief.pill)}</span>` : ''}
+    <h1 class="display">${e(heading(plainHeadline(brief.headline)))}</h1>
+    <p class="lead">${e(brief.lead ?? brief.intro)}</p>
+    ${chrome.trial ? link(chrome.trial, 'pu-trial') : ''}
+  </div>
+  <div class="video">${video}</div>
+  <div class="pu-cards">
+  ${cards}
+  </div>
+</section>
+${apps}
+${closingHtml(brief, chrome)}
+</main>
+
+${siteFooterHtml(brand, chrome.footer)}
+${MENU_SCRIPT}
 </body>
 </html>
 `;
@@ -372,25 +522,30 @@ export async function buildWebpage({ brief, brand, renders, outDir }) {
   brand = { ...brand, web: { ...w,
     ...(w.integrations ? { integrations: { ...w.integrations, logos: (w.integrations.logos ?? []).map((l) => ({ ...l, src: brandAsset(l.src) })) } } : {}),
     ...(w.footer?.apps ? { footer: { ...w.footer, apps: w.footer.apps.map((a) => ({ ...a, src: brandAsset(a.src) })) } } : {}),
+    ...(w.productUpdate?.apps ? { productUpdate: { ...w.productUpdate, apps: { ...w.productUpdate.apps, stores: (w.productUpdate.apps.stores ?? []).map((st) => ({ ...st, ...(st.badge ? { badge: brandAsset(st.badge) } : {}), ...(st.image ? { image: brandAsset(st.image) } : {}) })) } } } : {}),
   } };
   media.og = `assets/${copyInto(assets, renders[brief.hero.scene].still, 'og-image.png')}`;
   for (const f of brandFontFiles(brand)) copyInto(path.join(assets, 'fonts'), f);
 
   const htmlFile = path.join(outDir, 'index.html');
-  fs.writeFileSync(htmlFile, webpageHtml({ brief, brand, media, fontUrl: (p) => `assets/fonts/${path.basename(p)}` }));
+  const template = templateOf(brief);
+  const render = template === 'product-update' ? productUpdateHtml : webpageHtml;
+  fs.writeFileSync(htmlFile, render({ brief, brand, media, fontUrl: (p) => `assets/fonts/${path.basename(p)}` }));
 
-  const chrome = webChrome(brief, brand);
+  const chrome = template === 'product-update' ? updateChrome(brief, brand) : webChrome(brief, brand);
   writeJson(path.join(outDir, 'page.json'), {
     $comment: 'Sidecar of index.html: the page content as data, for CMS import. Generated by pipeline/webpage.mjs.',
     slug: brief.slug,
+    template,
     title: brief.seo.title ?? `${brief.feature} | ${brand.name}`,
     description: brief.seo.description,
     headline: plainHeadline(brief.headline),
     lead: brief.lead ?? brief.intro,
+    ...(template === 'product-update' ? { pill: brief.pill ?? null, back: chrome.back, trial: chrome.trial, apps: chrome.apps } : {}),
     video: brief.web.video ? { url: brief.web.video } : { placeholder: media.video.src, width: VIDEO.width, height: VIDEO.height },
-    signup: chrome.signup,
+    ...(template === 'feature' ? { signup: chrome.signup } : {}),
     sections: brief.sections.map((s) => ({ eyebrow: s.eyebrow ?? null, title: s.title, body: s.body, media: media[s.scene], alt: s.alt, button: chrome.sectionButton })),
-    cta: { ...brief.cta, note: chrome.closingNote },
+    cta: { ...(chrome.closing ?? brief.cta), note: chrome.closingNote },
     ogImage: media.og,
     keyword: brief.seo.keyword,
     url: pageUrl(brief, brand),

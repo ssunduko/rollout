@@ -32,6 +32,11 @@
 //              may bleed off the UI's right and bottom edges, as feature
 //              pages show it
 //   hide/blur  extra selectors to hide / blur for this scene
+//   replace    [{ from, to, whole? }]: text shown in place of real data (an
+//              inbox or contact name), on top of the target's replaceText.
+//              Only what the browser draws changes; nothing is sent to the
+//              app. whole: true replaces only text that is exactly `from`
+//              (initials, short words), else every occurrence
 //   holdEnd    ms to keep recording after the last step (default 1200)
 //
 // Steps: open {url} · wait {sel} · waitGone {sel} · click {sel} · hover {sel}
@@ -123,6 +128,46 @@ function cursorOverlay(look) {
   document.addEventListener('DOMContentLoaded', install);
 }
 
+// Text shown in place of real data: every text node, as the app draws it and
+// whenever it redraws. Longer `from` first, so "Text Now" wins over "Text".
+// Only the browser's copy of the page changes; nothing is sent to the app.
+export function textReplacer(pairs) {
+  const list = [...pairs].sort((a, b) => b.from.length - a.from.length);
+  const swap = (t) => {
+    for (const p of list) {
+      if (p.whole) { if (t.trim() === p.from) return t.replace(p.from, p.to); }
+      else if (t.includes(p.from)) t = t.split(p.from).join(p.to);
+    }
+    return t;
+  };
+  const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA']);
+  const fix = (node) => {
+    if (node.nodeType === 3) {
+      if (node.parentNode && SKIP.has(node.parentNode.nodeName)) return;
+      const next = swap(node.nodeValue);
+      if (next !== node.nodeValue) node.nodeValue = next;
+      return;
+    }
+    if (node.nodeType !== 1 && node.nodeType !== 9 && node.nodeType !== 11) return;
+    if (SKIP.has(node.nodeName)) return;
+    const w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) fix(n);
+  };
+  const start = () => {
+    if (!document.documentElement || document.documentElement.__rcReplace) return;
+    document.documentElement.__rcReplace = true;
+    fix(document.documentElement);
+    new MutationObserver((ms) => {
+      for (const m of ms) {
+        if (m.type === 'characterData') fix(m.target);
+        else m.addedNodes.forEach(fix);
+      }
+    }).observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+  };
+  start();
+  document.addEventListener('DOMContentLoaded', start);
+}
+
 function cssInjector(css) {
   const add = () => {
     if (!document.documentElement || document.querySelector('style[data-rc-css]')) return;
@@ -137,7 +182,7 @@ function cssInjector(css) {
 
 // ---- session ----
 
-export async function openSession(target, { headless = env('CAPTURE_HEADLESS', 'true') !== 'false', viewport, hide = [], blur = [], scale = 1, cursor = null } = {}) {
+export async function openSession(target, { headless = env('CAPTURE_HEADLESS', 'true') !== 'false', viewport, hide = [], blur = [], replace = [], scale = 1, cursor = null } = {}) {
   const vp = viewport ?? target.viewport;
   fs.mkdirSync(target.profile, { recursive: true });
   const browser = await puppeteer.launch({
@@ -162,6 +207,8 @@ export async function openSession(target, { headless = env('CAPTURE_HEADLESS', '
     blurAll.length ? `${blurAll.join(',\n')} { filter: blur(6px) !important; }` : '',
   ].join('\n');
   if (css.trim()) await page.evaluateOnNewDocument(cssInjector, css);
+  const replaceAll = [...(target.replaceText ?? []), ...replace];
+  if (replaceAll.length) await page.evaluateOnNewDocument(textReplacer, replaceAll);
   await page.evaluateOnNewDocument(cursorOverlay, cursorLook(cursor));
   // no red spell-check underline under text the steps type: off for the whole
   // document (inherited by every field that does not set its own), and on
@@ -575,7 +622,7 @@ function jpegSize(buf) {
 export async function captureScene(scene, target, dir, { allowMutations = false, log = console.log, cursor = null } = {}) {
   checkMutations(scene, allowMutations);
   const settings = captureSettings();
-  const session = await openSession(target, { viewport: scene.viewport, hide: scene.hide, blur: scene.blur, scale: settings.scale, cursor });
+  const session = await openSession(target, { viewport: scene.viewport, hide: scene.hide, blur: scene.blur, replace: scene.replace, scale: settings.scale, cursor });
   const framesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-'));
   try {
     const { page, cdp, viewport } = session;
@@ -656,8 +703,8 @@ export async function captureScene(scene, target, dir, { allowMutations = false,
 
 // ---- probe: what is on a page, for an agent choosing selectors and clips ----
 
-export async function probe(target, { open, setup = [], out, headless }) {
-  const session = await openSession(target, { headless });
+export async function probe(target, { open, setup = [], out, headless, replace = [] }) {
+  const session = await openSession(target, { headless, replace });
   try {
     await signIn(session, target, { start: open });
     const actor = makeActor(session, target, { waits: [], onStill: async () => {} });

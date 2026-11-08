@@ -33,10 +33,21 @@ deletes is marked `"mutates": true` and runs only with `--allow-mutations`,
 after the user approved that scene. Never click tracked links.
 *Why:* capture accounts are live (2026-10-26).
 
-### Blur personal data
-Every contact name, phone number, email and similar is blurred in captures
-(target `blurSelectors`, scene `blur`). An unblurred one fails QA. Kit scenes
-use invented people only.
+### Invented names in captures
+Inbox names show as "Sales Inbox" or "Marketing Inbox", whichever fits the
+context, and contact names as an invented first and last name, on every
+screen of a capture (target `replaceText`, scene `replace`;
+`docs/capture.md`). Replacing is preferred to blurring.
+*Why:* the user asked for realistic, readable screens without blur
+(2026-11-08).
+
+### No real names in captures
+A real contact or inbox name that shows in a capture fails QA. Replace it
+(above); blur (target `blurSelectors`, scene `blur`) only what a replacement
+can't reach, such as a name inside an image. Kit scenes use invented people
+only.
+*Why:* updated 2026-11-08 at the user's request: names are replaced, not
+blurred; phone numbers of the test inboxes may show.
 
 ### Visuals come from the application
 Feature visuals are captured from the logged-in app. Kit-drawn scenes only for

@@ -38,6 +38,7 @@ Credentials and URLs come from `.env` through `"env:NAME"` references, or from
 | `blockUrls` | patterns kept from loading (chat widgets, surveys) |
 | `hideSelectors` | hidden during captures (banners unrelated to features) |
 | `blurSelectors` | blurred during captures (names, phone numbers, emails) |
+| `replaceText` | `[{ "from", "to", "whole"? }]`: real names shown as invented ones in every capture |
 | `profile` | Chrome profile folder (default `profiles/<name>/`, gitignored) |
 | `secrets` | values for `{name}` placeholders in scene URLs (internal ids) |
 
@@ -168,9 +169,21 @@ menu, typing into a field without submitting). Never click tracked links.
 
 ## Personal data
 
-Blur any contact's name, phone number, email and similar wherever they appear
-(`blurSelectors` on the target, `blur` on the scene). Check every still; an
-unblurred one fails QA.
+Replace real names rather than blurring them: `replaceText` on the target
+and `replace` on the scene list `{ "from": "<real>", "to": "<invented>" }`
+pairs, and the capture shows the invented text wherever the app draws the
+real one — in every text node, as the app redraws. Only the browser's copy of
+the page changes; nothing is sent to the app, so the account's data stays as
+it is. `"whole": true` replaces only text that is exactly `from` (avatar
+initials, short words); otherwise every occurrence is replaced, longest
+`from` first. Selectors that match on text (`::-p-text(...)`, `btn:`) see
+the replaced text. `probe --replace <pairs.json>` shows the page as the
+capture will.
+
+Inboxes are named "Sales Inbox" or "Marketing Inbox", whichever fits the
+scene; contacts get an invented first and last name (and matching initials).
+Blur (`blurSelectors`, `blur`) is for what a replacement can't reach, like
+names inside images. Check every still; a real name that shows fails QA.
 
 ## Private applications
 

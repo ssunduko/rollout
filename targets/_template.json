@@ -16,6 +16,8 @@
   "hideSelectors": [],
   "//blurSelectors": "blurred with CSS: contact names, phone numbers, emails - anything personal",
   "blurSelectors": [],
+  "//replaceText": "real names shown as invented ones in every capture: [{ \"from\": \"Real Inbox\", \"to\": \"Sales Inbox\" }] (docs/capture.md)",
+  "replaceText": [],
 
   "//profile": "Chrome profile holding the signed-in session. Default profiles/<name>/. For SSO apps sign in once by hand: node pipeline/rollout.mjs login <name>",
 

@@ -6,7 +6,7 @@
 //   node pipeline/rollout.mjs validate <slug>                       check brief.json against the layout limits
 //   node pipeline/rollout.mjs targets                               the applications captures can log into
 //   node pipeline/rollout.mjs login <target>                        sign in by hand once (SSO) in the target's profile
-//   node pipeline/rollout.mjs probe <target> [--open <url>] [--setup <steps.json>] [--out <dir>]
+//   node pipeline/rollout.mjs probe <target> [--open <url>] [--setup <steps.json>] [--replace <pairs.json>] [--out <dir>]
 //                                                                    signed-in screenshot + element list, for choosing selectors
 //   node pipeline/rollout.mjs scene <id> [--force] [--allow-mutations]   render or capture one scene, print its files
 //   node pipeline/rollout.mjs scenes <slug> [--force]               render every scene the brief uses
@@ -232,7 +232,8 @@ const commands = {
     const t = loadTarget(args[0]);
     const setupFile = option('--setup');
     const out = path.resolve(option('--out') ?? path.join(ROOT, 'output', '_probe', t.name));
-    const r = await probe(t, { open: option('--open'), setup: setupFile ? readJson(setupFile) : [], out });
+    const replaceFile = option('--replace'); // a scene's replace pairs, so probe sees what the capture shows
+    const r = await probe(t, { open: option('--open'), setup: setupFile ? readJson(setupFile) : [], replace: replaceFile ? readJson(replaceFile) : [], out });
     console.log(`  ${r.url}: ${r.count} elements`);
     console.log(`  screenshot  ${rel(r.screenshot)}`);
     console.log(`  elements    ${rel(r.json)}`);

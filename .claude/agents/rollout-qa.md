@@ -29,10 +29,13 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
    - any other company's name or logo appears — except the brand's own
      integrations logo strip and app-store badges on the web page (from the
      brand's `web` block), and partners the feature description names;
-   - a captured visual shows an unblurred contact name, phone number or email,
-     a loading spinner or skeleton, an error message, or a banner/popup over
-     the feature (fix: the scene's or target's `blur`/`hide`, or a `wait` /
-     `ifAppears` step in `library/scenes/<id>/scene.json`).
+   - a captured visual shows a real contact or inbox name or a contact's
+     email (fix: a `replace` pair in the scene, `docs/capture.md`), a loading
+     spinner or skeleton, an error message, or a banner/popup over the
+     feature (fix: the scene's or target's `hide`, or a `wait` / `ifAppears`
+     step in `library/scenes/<id>/scene.json`);
+   - a capture hides conversation history (`hide` on the message list or
+     timeline) — fix: remove that `hide`; history always stays visible.
    WARN for weaker issues: uneven row spacing, a dull still moment, a
    headline highlight on filler words.
 4. **The web page** — a deliverable in its own right, not a copy of the PDF.

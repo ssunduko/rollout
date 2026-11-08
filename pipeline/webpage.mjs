@@ -354,6 +354,7 @@ const UPDATE_CSS = `
   .pu-apps h2{font-size:34px}
   .pu-apps p{font-size:18px}
   .pu-stores{gap:8px}
+  .closing .note{text-align:center}
 }
 `;
 

@@ -164,6 +164,7 @@ test('productUpdateHtml: one column of stacked cards, the month pill, the apps b
   assert.match(html, /<span class="eyebrow">Coming soon!<\/span><h2 class="display">/);
   assert.match(html, /<section class="pu-apps">[\s\S]*<span>4\.8 • 1,204 Ratings<\/span>/);
   assert.match(html, /--update-accent:#12b76a/);
+  assert.match(html, /@media \(max-width:767px\)\{[^}]*\}[\s\S]*\.closing \.note\{text-align:center\}/); // the closing note stays centred on phones
   assert.match(html, /<link rel="canonical" href="https:\/\/www\.acme\.example\/product-updates\/smart-scheduling">/);
   // the brand's closing band, over the brief's CTA (subtitle and URL kept from the brief)
   assert.match(html, /<section class="closing">[\s\S]*<h2 class="display">The best way to get something done is to start<\/h2>[\s\S]*>Start Your Free 14-Day Trial<\/a>/);

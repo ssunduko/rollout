@@ -137,6 +137,7 @@ export function validateBrief(slug) {
   else warnings.push('lead is missing (the web page falls back to the whole intro)');
   if (b.web?.video && !/^https:\/\//.test(b.web.video)) errors.push('web.video must be an https embed URL');
   if (b.web?.poster) scene('web.poster', { scene: b.web.poster, alt: '-' });
+  if (b.web?.template && !['feature', 'product-update'].includes(b.web.template)) errors.push(`web.template is "feature" (default) or "product-update", not "${b.web.template}"`);
   if (b.pill && b.pill.length > LIMITS.pill) errors.push(`pill is ${b.pill.length} characters; at most ${LIMITS.pill}`);
   scene('hero', b.hero);
 

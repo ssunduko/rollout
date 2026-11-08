@@ -21,6 +21,8 @@
 //   blockUrls      URL patterns kept from loading (chat widgets, surveys)
 //   hideSelectors  elements hidden with CSS (banners unrelated to any feature)
 //   blurSelectors  elements blurred with CSS (names, phone numbers, emails)
+//   replaceText    [{ from, to, whole? }]: real names shown as invented ones in
+//                  every capture (the browser's copy only; see capture.mjs)
 //   profile        Chrome profile folder holding the signed-in session
 //                  (default profiles/<name>/; sign in once with `rollout.mjs login <name>`)
 //   auth           { mode: "none" | "form", username, password, selectors: {
@@ -36,7 +38,7 @@ import { ROOT, env } from './env.mjs';
 export const TARGETS_DIR = path.join(ROOT, 'targets');
 export const PROFILES_DIR = path.join(ROOT, 'profiles');
 
-const KNOWN = new Set(['name', 'description', 'app', 'startUrl', 'viewport', 'pageUrlMatch', 'blockUrls', 'hideSelectors', 'blurSelectors', 'profile', 'auth', 'secrets']);
+const KNOWN = new Set(['name', 'description', 'app', 'startUrl', 'viewport', 'pageUrlMatch', 'blockUrls', 'hideSelectors', 'blurSelectors', 'replaceText', 'profile', 'auth', 'secrets']);
 
 const isPlain = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 const deepMerge = (a, b) => {
@@ -103,6 +105,7 @@ export function loadTarget(name) {
     blockUrls: cfg.blockUrls ?? [],
     hideSelectors: cfg.hideSelectors ?? [],
     blurSelectors: cfg.blurSelectors ?? [],
+    replaceText: cfg.replaceText ?? [],
     profile: path.resolve(ROOT, cfg.profile ?? path.join('profiles', name)),
     auth: { mode: auth.mode ?? 'none', username: auth.username ?? null, password: auth.password ?? null, selectors: auth.selectors ?? {} },
     secrets: cfg.secrets ?? {},
@@ -112,7 +115,8 @@ export function loadTarget(name) {
 
 // What about a target changes how its captures look — part of a capture's
 // render hash. Never includes credentials or secrets.
-export const targetLook = (t) => ({ name: t.name, app: t.app, viewport: t.viewport, hide: t.hideSelectors, blur: t.blurSelectors, block: t.blockUrls });
+// replaceText joins only when set, so captures from before it keep their hash.
+export const targetLook = (t) => ({ name: t.name, app: t.app, viewport: t.viewport, hide: t.hideSelectors, blur: t.blurSelectors, block: t.blockUrls, ...(t.replaceText?.length ? { replace: t.replaceText } : {}) });
 
 // `{name}` in a URL is filled from the target's secrets, so internal ids stay in .env.
 export function fillSecrets(t, where) {

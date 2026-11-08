@@ -50,6 +50,8 @@ they are what physically fits the PDF.
 | `web.video` | no | https URL | Embed URL of the feature video; until set, the video slot shows a poster (`assets/video-poster.png`, 1600×900): the hero composition on the brand's hero gradient with a play button, framed like the section GIFs — no logo, pill or headline |
 | `web.poster` | no | scene id | The scene the poster shows; default `hero.scene` |
 | `web.sectionButton` | no | | `{label, url}` of every row's button; default the brand's `web.sectionButton` |
+| `web.template` | no | | `"feature"` (default): the feature-page layout. `"product-update"`: a monthly release post (see "Product-update page" below) |
+| `web.back` | no | | `{label, url}` of the phone-width back link above the hero, for a page listed somewhere other than the brand's feature pages (a monthly product update links to all product updates); default the brand's `web.back` |
 | `web.heroButton` | no | | Header button label for brands without a `web` block. Default `WEB_HERO_BUTTON` |
 | `seo.keyword` | recommended | | The words people search for the feature by; default `feature`. The SEO title and description, the headline or lead, and the FAQ name it (`docs/seo.md`) |
 | `seo.title` | recommended | 30–60 | The keyword first, the brand last. Default `<feature> \| <brand name>` |
@@ -83,6 +85,18 @@ The reference layout (the original one-pagers are in `examples/`, local only):
     with copyright and legal links.
   On phones: hamburger menu, a back link, rows stacked with the visual first.
 
+### Product-update page
+
+A monthly release post (the month's updates, one section each) sets
+`web.template: "product-update"` and `pill` to the month ("November 2026").
+It mirrors the site's product-update posts: one centred column with the back
+link (desktop too), the month pill, headline and lead, a trial link, the
+video slot, then one stacked card per section — the web cut on top, the
+eyebrow (if any) as a pill, the title, the body and the section button — and
+the brand's mobile-app block before the closing band and footer. No sign-up
+card, no alternating rows, no integrations strip. Labels, links, the accent
+colour and the address come from the brand's `web.productUpdate` block.
+
 ## The brand's web block
 
 Everything on the web page that is the site rather than the feature comes
@@ -111,6 +125,29 @@ from `web` in the brand's `brand.json` — labels and links only, never copy:
   }
 }
 ```
+
+`productUpdate` holds the product-update page's site parts, over the rest
+of the block (each optional):
+
+```json
+"productUpdate": {
+  "accent": "#0fcc6c",
+  "pageUrl": "https://…/product-updates/{slug}",
+  "back": { "label": "All product updates", "url": "https://…" },
+  "trial": { "label": "Not a customer? Try it free for 14 days", "url": "https://…" },
+  "sectionButton": { "label": "Start Your 14-Day Free Trial" },
+  "closing": { "title": "…", "subtitle": "…", "button": "…" },
+  "apps": { "title": "Text & call from your phone", "subtitle": "…",
+            "stores": [{ "note": "4.7 • 657 Ratings", "url": "https://…", "alt": "…", "badge": "…", "image": "…" }] }
+}
+```
+
+`accent` colours the month pill, eyebrow pills and section buttons (default
+the CTA colour). `closing` replaces the brief's CTA title, subtitle and
+button in the closing band (its URL stays the brief's). `apps` is the
+mobile-app block under the cards (the brand's logo icon, title, subtitle, and
+per store a ratings note and a badge or app image, a brand-folder file or a
+URL).
 
 `pageUrl` is where the site keeps feature pages, with `{slug}` for the
 feature (`https://www.acme.example/features/{slug}`): the page's canonical

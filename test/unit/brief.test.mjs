@@ -161,6 +161,11 @@ test('web.video must be https; web.poster must be a scene', () => {
   assert.match(errorsOf(feature((b) => ({ ...b, web: { poster: 'smart-scheduling--gone' } }))), /web\.poster\.scene "smart-scheduling--gone" does not exist/);
 });
 
+test('web.template is feature or product-update', () => {
+  assert.deepEqual(validateBrief(feature((b) => ({ ...b, web: { template: 'product-update' } }))).errors, []);
+  assert.match(errorsOf(feature((b) => ({ ...b, web: { template: 'newsletter' } }))), /web\.template is "feature" \(default\) or "product-update", not "newsletter"/);
+});
+
 test('links: at most 3, each a short label and an https URL', () => {
   assert.deepEqual(validateBrief(feature((b) => ({ ...b, links: [{ label: 'Help article', url: 'https://help.example/a' }] }))).errors, []);
   assert.deepEqual(loadBrief(feature((b) => b)).links, []);

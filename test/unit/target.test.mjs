@@ -51,7 +51,7 @@ test('defaults for everything but app', () => {
   const t = loadTarget(target('min', { app: 'https://min.example' }));
   assert.equal(t.startUrl, '/');
   assert.deepEqual(t.viewport, { width: 1440, height: 900 });
-  assert.deepEqual([t.hideSelectors, t.blurSelectors, t.blockUrls, t.pageUrlMatch], [[], [], [], []]);
+  assert.deepEqual([t.hideSelectors, t.blurSelectors, t.replaceText, t.blockUrls, t.pageUrlMatch], [[], [], [], [], []]);
   assert.equal(t.auth.mode, 'none');
   assert.deepEqual(t.secrets, {});
 });
@@ -65,6 +65,13 @@ test('.local.json deep-merges over the committed file', () => {
   assert.deepEqual(t.auth.selectors, { username: '#u', password: '#pw' });
   assert.equal(t.auth.username, 'me');
   assert.deepEqual(t.hideSelectors, ['.b']); // arrays are replaced, not merged
+});
+
+test('targetLook: replaceText joins the capture hash only when set', () => {
+  const t = loadTarget(target('look', { app: 'https://look.example' }));
+  assert.equal('replace' in targetLook(t), false); // captures from before it keep their hash
+  const r = loadTarget(target('look2', { app: 'https://look.example', replaceText: [{ from: 'Real Name', to: 'Maya Brooks' }] }));
+  assert.deepEqual(targetLook(r).replace, [{ from: 'Real Name', to: 'Maya Brooks' }]);
 });
 
 test('env: references resolve; missing ones are recorded by path', () => {

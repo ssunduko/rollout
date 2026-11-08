@@ -64,8 +64,14 @@ later rollouts, so make clean, well-tagged scenes.
    the result the section describes is visible in the still and in the web
    cut; nothing important is cut at the edges (the web cut may bleed off the
    right and bottom, never through a label on the left); the cursor goes
-   where the text says; no spinner or half-loaded state; **every name, phone
-   number and email is blurred** (add `blur` selectors if not).
+   where the text says; no spinner or half-loaded state; **no real name
+   shows**: every inbox reads "Sales Inbox" or "Marketing Inbox" (whichever
+   fits the scene) and every contact an invented first and last name, with
+   matching initials, through the scene's `replace` pairs (`docs/capture.md`,
+   "Personal data"; `probe --replace` shows the page as the capture will).
+   Contact emails are replaced the same way. Blur only what a replacement
+   can't reach (initials drawn as images, names inside pictures), and never
+   hide conversation history to keep a name out of frame.
 7. **Tag** it (`title`, `description`, `tags` including `capture`).
 
 ## Hero and coming-soon
@@ -135,8 +141,8 @@ same launch. The pipeline lays them out; you write
 5. **Build and look.** `node pipeline/rollout.mjs social <slug>` writes
    `output/<slug>/assets/social/`. Read every PNG (an `ffmpeg … hstack`
    contact sheet is fine). Redo until: no headline is cut or overlapped by
-   the hero; slide panels show no blank band; every personal name, number
-   and email is blurred. If the hero composition does not suit the wide
+   the hero; slide panels show no blank band; no real contact or inbox name
+   shows (invented names only). If the hero composition does not suit the wide
    formats, fix the hero scene itself — it serves the PDF too.
 
 Finish with `node pipeline/rollout.mjs scenes <slug>` and

@@ -54,6 +54,16 @@ test('webChrome: the brief\'s section button overrides the brand\'s', () => {
   assert.deepEqual(webChrome(b, brand).sectionButton, { label: 'Go', url: 'https://www.acme.example/signup' });
 });
 
+test('webChrome: the brief\'s back link overrides the brand\'s', () => {
+  assert.deepEqual(webChrome(brief(), brand).back, { label: 'All features', url: 'https://www.acme.example/features' });
+  const b = brief();
+  b.web.back = { label: 'All product updates', url: 'https://www.acme.example/product-updates' };
+  assert.deepEqual(webChrome(b, brand).back, b.web.back);
+  b.web.back = { label: 'All updates' };
+  assert.deepEqual(webChrome(b, brand).back, { label: 'All updates', url: 'https://www.acme.example/features' });
+  assert.match(page(b), /<a class="back" href="https:\/\/www\.acme\.example\/features">All updates<\/a>/);
+});
+
 test('webpageHtml: the example page', () => {
   const html = page();
   assert.match(html, /<title>Smart Scheduling: Book Meetings Over Text \| Acme Cloud<\/title>/);

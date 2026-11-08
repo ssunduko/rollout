@@ -194,7 +194,7 @@ export function webChrome(brief, brand) {
       signIn: w.header?.signIn ?? null,
       buttons: w.header?.buttons ?? [{ label: brief.web.heroButton, url: brief.cta.url, style: 'cta' }],
     },
-    back: w.back ?? null,
+    back: brief.web.back ? { ...(w.back ?? {}), ...brief.web.back } : (w.back ?? null),
     signup: {
       title: w.signup?.title ?? brief.cta.title,
       subtitle: w.signup?.subtitle ?? '',

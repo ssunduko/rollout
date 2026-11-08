@@ -50,6 +50,7 @@ they are what physically fits the PDF.
 | `web.video` | no | https URL | Embed URL of the feature video; until set, the video slot shows a poster (`assets/video-poster.png`, 1600×900): the hero composition on the brand's hero gradient with a play button, framed like the section GIFs — no logo, pill or headline |
 | `web.poster` | no | scene id | The scene the poster shows; default `hero.scene` |
 | `web.sectionButton` | no | | `{label, url}` of every row's button; default the brand's `web.sectionButton` |
+| `web.back` | no | | `{label, url}` of the phone-width back link above the hero, for a page listed somewhere other than the brand's feature pages (a monthly product update links to all product updates); default the brand's `web.back` |
 | `web.heroButton` | no | | Header button label for brands without a `web` block. Default `WEB_HERO_BUTTON` |
 | `seo.keyword` | recommended | | The words people search for the feature by; default `feature`. The SEO title and description, the headline or lead, and the FAQ name it (`docs/seo.md`) |
 | `seo.title` | recommended | 30–60 | The keyword first, the brand last. Default `<feature> \| <brand name>` |

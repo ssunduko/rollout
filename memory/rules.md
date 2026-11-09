@@ -34,20 +34,44 @@ after the user approved that scene. Never click tracked links.
 *Why:* capture accounts are live (2026-10-26).
 
 ### Invented names in captures
-Inbox names show as "Sales Inbox" or "Marketing Inbox", whichever fits the
-context, and contact names as an invented first and last name, on every
-screen of a capture (target `replaceText`, scene `replace`;
-`docs/capture.md`). Replacing is preferred to blurring.
-*Why:* the user asked for realistic, readable screens without blur
-(2026-11-08).
+Every name and identifier a capture or kit scene shows is invented, on every
+screen (target `replaceText`, scene `replace`; `docs/capture.md`, "Personal
+data"):
+- **Inboxes**: one inbox shows as "Sales Inbox" and one as "Marketing
+  Inbox", whichever fits; no other inbox takes either name. Every other inbox
+  gets an invented name that fits a business ("Front Desk", "Support Line",
+  "Downtown Office").
+- **Everything else** — first and last names (with matching initials),
+  emails, tags, phone numbers, broadcast and campaign names, agent and user
+  names, trigger, workflow, pipeline and segment names, companies, and any
+  other label drawn from the account — gets an invented value picked fresh for
+  the scene and as true to its context as possible: a tag reads like a sales
+  tag ("Hot Lead", "Demo Booked"), a broadcast like a real send ("Spring
+  Open House Reminder"), a phone number keeps its country's format.
+- One invented name stands for one real one (two real inboxes never both
+  show as "Sales Inbox"); `capture` refuses a scene that breaks this.
+Replacing is preferred to blurring.
+*Why:* the user asked for realistic, readable screens without blur, and for
+names that are random yet fit the business (2026-11-08).
 
 ### No real names in captures
-A real contact or inbox name that shows in a capture fails QA. Replace it
-(above); blur (target `blurSelectors`, scene `blur`) only what a replacement
-can't reach, such as a name inside an image. Kit scenes use invented people
+A real name or identifier (above) that shows in a capture fails QA. Replace
+it; blur (target `blurSelectors`, scene `blur`) only what a replacement
+can't reach, such as a name inside an image. Kit scenes use invented values
 only.
 *Why:* updated 2026-11-08 at the user's request: names are replaced, not
-blurred; phone numbers of the test inboxes may show.
+blurred, and phone numbers are invented too.
+
+### QA findings become lessons
+Every QA FAIL or WARN that was fixed is written up, before the rollout is
+called done, as a general lesson in `memory/lessons.md` under the agent that
+owns the fix, and every authoring agent reads its section before it starts.
+A lesson the pipeline can measure is proposed to the user as a check in
+`pipeline/` (with its test), so it is enforced rather than remembered.
+Lessons are written for any brand: no company, product, person or account
+name in them.
+*Why:* the user asked that what QA learns feeds back into the pipeline and
+the agents' instructions, so the same defect is not made twice (2026-11-08).
 
 ### Visuals come from the application
 Feature visuals are captured from the logged-in app. Kit-drawn scenes only for
@@ -96,8 +120,9 @@ mimic the existing feature pages (2026-10-26).
 
 ### Nothing brand-specific in the repo
 Only the fictional example is committed: `brand/example/`, the `demo-app`
-target and the `smart-scheduling` feature. Real brands, their targets,
-features (input, brief, scenes), renders, `examples/` reference material and
+target, the `smart-scheduling` feature and `memory/features/example/`. Real
+brands, their targets, features (input, brief, scenes), their memory
+(`memory/features/<brand>/`), renders, `examples/` reference material and
 `scratch/` stay on this machine; `.gitignore` allowlists the example and
 ignores everything else by default.
 *Why:* the user asked that nothing specific to a real company be committed

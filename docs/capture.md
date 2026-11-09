@@ -48,7 +48,7 @@ Which target a scene uses: the scene's `target`, else
 SSO apps: sign in once by hand — `node pipeline/rollout.mjs login <target>`
 opens Chrome on the target's profile; sign in, close the window. Captures reuse
 that session (headless). Each target keeps its own profile; never point a
-target at another project's signed-in profile (`docs/rules.md`).
+target at another project's signed-in profile (`memory/rules.md`).
 
 `node pipeline/rollout.mjs targets` lists targets, their auth mode, whether a
 profile exists and which variables are unset.
@@ -180,10 +180,26 @@ initials, short words); otherwise every occurrence is replaced, longest
 the replaced text. `probe --replace <pairs.json>` shows the page as the
 capture will.
 
-Inboxes are named "Sales Inbox" or "Marketing Inbox", whichever fits the
-scene; contacts get an invented first and last name (and matching initials).
-Blur (`blurSelectors`, `blur`) is for what a replacement can't reach, like
-names inside images. Check every still; a real name that shows fails QA.
+What is invented (`memory/rules.md`, "Invented names in captures"):
+
+- **Inboxes**: one shows as "Sales Inbox", one as "Marketing Inbox",
+  whichever fits; every other inbox gets its own business name ("Front
+  Desk", "Support Line", "Downtown Office").
+- **Everything else from the account**: first and last names (and matching
+  initials, `"whole": true`), emails, tags, phone numbers, broadcast and
+  campaign names, agent and user names, trigger, workflow, pipeline and
+  segment names, company names. Pick fresh values for each scene, true to
+  the context: tags that read like sales tags ("Hot Lead", "Demo Booked"),
+  broadcasts like real sends ("Spring Open House Reminder"), phone numbers in
+  the same national format as the real ones.
+- **One invented name per real one.** `capture` refuses a scene whose
+  target and scene pairs show two different real names as the same invented
+  text (`checkReplace`).
+
+Labels the product itself draws (menu items, built-in statuses, the
+feature's own UI) stay as they are. Blur (`blurSelectors`, `blur`) is for
+what a replacement can't reach, like names inside images. Check every still;
+a real name or identifier that shows fails QA.
 
 ## Private applications
 

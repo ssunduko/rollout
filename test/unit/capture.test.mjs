@@ -1,7 +1,7 @@
 import '../setup.mjs';
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureSettings, checkMutations, cursorLook } from '../../pipeline/capture.mjs';
+import { captureSettings, checkMutations, checkReplace, cursorLook } from '../../pipeline/capture.mjs';
 
 afterEach(() => { for (const k of ['CAPTURE_SCALE', 'GIF_FPS', 'GIF_WIDTH', 'CAPTURE_MAX_WAIT_MS']) delete process.env[k]; });
 
@@ -54,4 +54,23 @@ test('cursorLook: a plain dark arrow by default; the brand cursor from its block
   assert.match(brand.shadow, /rgba\(0,102,255,\.4\)/);
   assert.deepEqual(brand.hot, [10, 8]); // the tip, scaled with the size
   assert.match(cursorLook({}).svg, /width="40"/); // defaults
+});
+
+test('checkReplace: each real name has its own invented one', () => {
+  const scene = { id: 'x--names', replace: [
+    { from: 'Front Desk', to: 'Sales Inbox' }, { from: 'Promo Line', to: 'Marketing Inbox' },
+    { from: 'Jo Real', to: 'Maya Brooks' }, { from: 'JO REAL', to: 'Maya Brooks' }, // same name, other case
+  ] };
+  assert.doesNotThrow(() => checkReplace(scene));
+  assert.doesNotThrow(() => checkReplace({ id: 'x--none' }));
+});
+
+test('checkReplace refuses two real names shown as the same invented one', () => {
+  const scene = { id: 'x--clash', replace: [{ from: 'Promo Line', to: 'Sales Inbox' }] };
+  const pairs = [{ from: 'Front Desk', to: 'Sales Inbox' }, ...scene.replace]; // target's replaceText first
+  assert.throws(() => checkReplace(scene, pairs), (err) => {
+    assert.match(err.message, /scene x--clash/);
+    assert.match(err.message, /"Sales Inbox" \(from front desk, promo line\)/);
+    return true;
+  });
 });

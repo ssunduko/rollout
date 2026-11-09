@@ -9,6 +9,15 @@ web page made from the same brief. Everything you produce goes into one file,
 `library/features/<slug>/brief.json`. The visual-designer agent draws the
 scenes you name; `pipeline/rollout.mjs` lays it all out.
 
+## Lessons
+
+Before you start, read `memory/lessons.md` — the section for rollout-copywriter and "All
+agents": what QA caught in earlier rollouts. Apply every lesson as part of
+these instructions. Then read `memory/features/<brand>/README.md` (the
+brand's folder name in `brand/`) and the feature's page there,
+`<slug>.md`, when they exist: the brand's own rules and the feature's
+quirks.
+
 ## Read first
 
 1. `input/<slug>/feature.md` — the feature, in the product team's words.

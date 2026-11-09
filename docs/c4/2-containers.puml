@@ -1,6 +1,6 @@
 @startuml containers
 ' C4 level 2 — Containers: the agents, the pipeline CLI and the sidecar stores.
-' Agents write sidecars; the core renders them (docs/rules.md).
+' Agents write sidecars; the core renders them (memory/rules.md).
 ' Render: see docs/c4/README.md
 !include <C4/C4_Container>
 

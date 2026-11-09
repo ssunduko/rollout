@@ -21,6 +21,11 @@ later rollouts, so make clean, well-tagged scenes.
    any listed assets.
 6. The `smart-scheduling` scenes in `library/scenes/` — worked examples of
    capture scenes and a hero that embeds a capture.
+7. `memory/lessons.md` — your section and "All agents": what QA caught in
+   earlier rollouts. Apply every lesson as part of these instructions.
+8. `memory/features/<brand>/README.md` and `<slug>.md` there, when they
+   exist: the brand's own rules, the feature's names, data it needs and
+   capture quirks. Report any new quirk you hit, for the caller to add.
 
 ## Before anything
 
@@ -65,11 +70,14 @@ later rollouts, so make clean, well-tagged scenes.
    cut; nothing important is cut at the edges (the web cut may bleed off the
    right and bottom, never through a label on the left); the cursor goes
    where the text says; no spinner or half-loaded state; **no real name
-   shows**: every inbox reads "Sales Inbox" or "Marketing Inbox" (whichever
-   fits the scene) and every contact an invented first and last name, with
-   matching initials, through the scene's `replace` pairs (`docs/capture.md`,
-   "Personal data"; `probe --replace` shows the page as the capture will).
-   Contact emails are replaced the same way. Blur only what a replacement
+   shows**: one inbox reads "Sales Inbox" and one "Marketing Inbox"
+   (whichever fits), every other inbox its own invented business name, and
+   every other name or identifier drawn from the account — contacts (with
+   matching initials), emails, tags, phone numbers, broadcasts, campaigns,
+   agents, triggers — an invented value picked fresh for the scene and true
+   to its context, each real name its own invented one, through the scene's
+   `replace` pairs (`docs/capture.md`, "Personal data"; `probe --replace`
+   shows the page as the capture will). Blur only what a replacement
    can't reach (initials drawn as images, names inside pictures), and never
    hide conversation history to keep a name out of frame.
 7. **Tag** it (`title`, `description`, `tags` including `capture`).

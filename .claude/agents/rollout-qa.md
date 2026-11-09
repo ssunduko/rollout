@@ -18,8 +18,11 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
    `output/<slug>/qa/qa.json` and the screenshots. Any measured `fail` is a FAIL.
    It loads the web page from a local HTTP server, so `web` findings (failed
    requests, script errors, missing title) are what a visitor would hit.
-2. Read the brief and `node pipeline/rollout.mjs brand <slug>` (the feature's brand rules — its `feature.json` `brand`, else `BRAND_DIR`).
-3. Look at each `output/<slug>/qa/pdf-page-N.png`. Compare with the house
+2. Read `memory/lessons.md` and `memory/features/<brand>/README.md`: every
+   lesson and brand rule there is a check of yours too — a defect it
+   describes is a FAIL even if this list does not name it.
+3. Read the brief and `node pipeline/rollout.mjs brand <slug>` (the feature's brand rules — its `feature.json` `brand`, else `BRAND_DIR`).
+4. Look at each `output/<slug>/qa/pdf-page-N.png`. Compare with the house
    layout in `docs/brief.md` ("What good looks like"). FAIL when:
    - a visual does not show what its section's title/body says, or shows a
      half-finished state (empty field, loading, hidden result);
@@ -29,8 +32,13 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
    - any other company's name or logo appears — except the brand's own
      integrations logo strip and app-store badges on the web page (from the
      brand's `web` block), and partners the feature description names;
-   - a captured visual shows a real contact or inbox name or a contact's
-     email (fix: a `replace` pair in the scene, `docs/capture.md`), a loading
+   - a captured visual shows a real name or identifier from the account — a
+     contact, inbox, email, tag, phone number, broadcast, campaign, agent or
+     trigger name (fix: a `replace` pair in the scene, `docs/capture.md`,
+     "Personal data"); more than one inbox shown as "Sales Inbox" or as
+     "Marketing Inbox", or two real names shown as the same invented one;
+     an invented name that does not fit the business (a joke tag, a
+     placeholder like "Test Inbox" or "John Doe") is a WARN; a loading
      spinner or skeleton, an error message, or a banner/popup over the
      feature (fix: the scene's or target's `hide`, or a `wait` / `ifAppears`
      step in `library/scenes/<id>/scene.json`);
@@ -38,7 +46,7 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
      timeline) — fix: remove that `hide`; history always stays visible.
    WARN for weaker issues: uneven row spacing, a dull still moment, a
    headline highlight on filler words.
-4. **The web page** — a deliverable in its own right, not a copy of the PDF.
+5. **The web page** — a deliverable in its own right, not a copy of the PDF.
    It must match the site's feature-page layout described in `docs/brief.md`
    ("Web page"). Look at `web-desktop-fold.png`, `web-desktop.png`,
    `web-mobile-fold.png` and `web-mobile.png`. Apply the PDF checks above,
@@ -74,7 +82,7 @@ You are read-only. Never edit, never run `build`, `scene` or `scenes`.
    meaningful alt text, the CTA links go to the brief's `cta.url`.
    (Screenshots show each GIF's first frame; the measured `animation` check
    proves they move.)
-5. If a GIF is in doubt, make a contact sheet (see the visual-designer agent)
+6. If a GIF is in doubt, make a contact sheet (see the visual-designer agent)
    from `output/<slug>/web/assets/<id>.gif` and look at it.
 
 ## Report
@@ -93,8 +101,14 @@ FAILS
 WARNINGS
 - ...
 
+LESSONS
+- [<agent that owns the fix>] <the general lesson, for any brand: no company, product, person or account name>. Measurable: <the check `pipeline/` could run, or "no">.
+
 Not checked: <anything you could not check and why, or "nothing">
 ```
+
+Write one LESSONS line per cause behind a FAIL or WARN, and skip any that
+`memory/lessons.md` already holds.
 
 Never soften a FAIL because the fix is expensive. End with: "Fixes above are
 proposals — ask the user before applying."

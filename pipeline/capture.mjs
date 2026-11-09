@@ -476,6 +476,25 @@ function makeActor(session, target, log) {
   return { run, cursor };
 }
 
+// One invented name stands for one real one: two different real names shown
+// as the same invented text (two inboxes both "Sales Inbox") would make the
+// screen say something the account does not.
+export function checkReplace(scene, pairs = scene.replace ?? []) {
+  const byTo = new Map();
+  for (const p of pairs) {
+    const seen = byTo.get(p.to) ?? new Set();
+    seen.add(p.from.toLowerCase());
+    byTo.set(p.to, seen);
+  }
+  const clashes = [...byTo].filter(([, froms]) => froms.size > 1).map(([to, froms]) => `"${to}" (from ${[...froms].join(', ')})`);
+  if (clashes.length) {
+    throw new Error(
+      `scene ${scene.id} shows more than one real name as the same invented one: ${clashes.join('; ')}. ` +
+        'Give each real name its own invented one (docs/capture.md, "Personal data").',
+    );
+  }
+}
+
 export function checkMutations(scene, allow) {
   const walk = (steps = []) => steps.flatMap((s) => [s, ...walk(s.then)]);
   const risky = walk([...(scene.setup ?? []), ...(scene.steps ?? [])]).filter((s) => s.mutates);
@@ -621,6 +640,7 @@ function jpegSize(buf) {
 // Capture one scene into dir: still.png, anim.gif, web.gif. Returns { size, gif, webGif }.
 export async function captureScene(scene, target, dir, { allowMutations = false, log = console.log, cursor = null } = {}) {
   checkMutations(scene, allowMutations);
+  checkReplace(scene, [...(target.replaceText ?? []), ...(scene.replace ?? [])]);
   const settings = captureSettings();
   const session = await openSession(target, { viewport: scene.viewport, hide: scene.hide, blur: scene.blur, replace: scene.replace, scale: settings.scale, cursor });
   const framesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-'));

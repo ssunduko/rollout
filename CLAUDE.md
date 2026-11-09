@@ -14,7 +14,7 @@ page on the website, and the
 
 ## Ground rules
 
-@docs/rules.md
+@memory/rules.md
 
 ## Where things go
 
@@ -45,6 +45,15 @@ page on the website, and the
   Targets in `targets/` (secrets in `.env` or `*.local.json`, never
   committed); signed-in profiles in `profiles/` (gitignored). The example
   app: `npm run demo-app`.
+- What the project has learned lives in `memory/` (`memory/README.md`):
+  the rules above, `memory/lessons.md` (what QA has caught, one section per
+  agent, read before an agent starts and added to after each fixed QA
+  finding), and `memory/features/<brand>/` (the brand's own rules and facts
+  in `README.md`, one page per feature: where it is, data it needs, names,
+  quirks, status). Read the brand's `README.md` and the feature's page
+  before a rollout, and update them after. Only `memory/features/example/`
+  is committed. `docs/` says how the pipeline works; `memory/` what was
+  decided and learned.
 - Tests: `npm test` (`test/README.md`); they run on every pull request. A
   pipeline change comes with its tests.
 - Every `.env` key the code reads is listed in `.env.example`; add new ones

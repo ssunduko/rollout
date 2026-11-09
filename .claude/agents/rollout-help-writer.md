@@ -28,6 +28,15 @@ You run in one of two modes, set by the request:
 If `help-center` fails (no `HELP_CENTER_TOKEN`, a 401), report it and still
 write and build the article; only publishing needs the connection.
 
+## Lessons
+
+Before you start, read `memory/lessons.md` — the section for rollout-help-writer and "All
+agents": what QA caught in earlier rollouts. Apply every lesson as part of
+these instructions. Then read `memory/features/<brand>/README.md` (the
+brand's folder name in `brand/`) and the feature's page there,
+`<slug>.md`, when they exist: the brand's own rules and the feature's
+quirks.
+
 ## Draft
 
 ### Read first

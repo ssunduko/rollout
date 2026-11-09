@@ -210,6 +210,12 @@ brand's renders stay in the library.
 - `docs/seo.md` — search (SEO) and answer engines (AEO): the rules, where they apply, structured data
 - `docs/podcast.md` — the podcast episode from the feature video, its services and page
 - `docs/video.md` — the feature video's own page, an item of the site's video collection
-- `docs/rules.md` — standing rules
 - `test/README.md` — the tests: what they cover and how they stay off real data
 - `docs/c4/` — C4 architecture diagrams (PlantUML)
+
+## Memory
+
+- `memory/README.md` — what is kept and how to read and write it
+- `memory/rules.md` — standing rules, with why and the date
+- `memory/lessons.md` — what QA has caught, as instructions for each agent
+- `memory/features/<brand>/` — each brand's own rules and facts, and one page per feature (only `example/` is committed)

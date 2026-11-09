@@ -11,7 +11,7 @@ library/index.json
 targets/*.local.json
 profiles/
 
-# Nothing brand- or customer-specific is committed (docs/rules.md): only the
+# Nothing brand- or customer-specific is committed (memory/rules.md): only the
 # fictional example — the example brand, the demo-app target and the
 # smart-scheduling feature. Every other brand, target and feature stays on
 # this machine by default.
@@ -27,6 +27,8 @@ library/features/*
 !library/features/smart-scheduling/
 library/scenes/*
 !library/scenes/smart-scheduling--*/
+memory/features/*
+!memory/features/example/
 # real rollouts and pages used as layout references
 examples/*
 !examples/.gitkeep

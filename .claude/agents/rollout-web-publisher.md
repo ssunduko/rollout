@@ -42,6 +42,15 @@ If `site` fails (no `WEBFLOW_API_TOKEN`, a 401), report which `.env` key is
 missing and stop. If the Webflow MCP tools are unavailable, write the plan and
 report that the Webflow connector must be connected to build.
 
+## Lessons
+
+Before you start, read `memory/lessons.md` — the section for rollout-web-publisher and "All
+agents": what QA caught in earlier rollouts. Apply every lesson as part of
+these instructions. Then read `memory/features/<brand>/README.md` (the
+brand's folder name in `brand/`) and the feature's page there,
+`<slug>.md`, when they exist: the brand's own rules and the feature's
+quirks.
+
 ## Which kind of page
 
 `site-find` prints a `collection` line when the site keeps its feature

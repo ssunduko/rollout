@@ -60,6 +60,20 @@ repo root.
    and proposed fixes, and **ask before applying any of them**. Apply approved
    fixes by sending them back to the agent that owns the file (copy →
    copywriter, scene → visual-designer), then rebuild and re-run QA.
+   **Record the lessons** (`memory/rules.md`, "QA findings become lessons"):
+   for each finding that was fixed, add the verdict's LESSONS line to
+   `memory/lessons.md` under the owning agent, in that file's form — general,
+   no brand, product, person or account name. For each one marked
+   measurable, propose to the user the check in `pipeline/` (with its test)
+   that would catch it; build it only on a yes. When a lesson changes how an
+   agent must always work, fold it into that agent's instructions too. Do
+   this every time, also for help, website and podcast fixes, before step
+   11.
+   **Update the feature's page** in `memory/features/<brand>/<slug>.md`
+   (create it from `memory/features/example/smart-scheduling.md`; shape in
+   `memory/README.md`) with the quirks the agents reported, the names used
+   and the status; anything true of every feature of the brand goes in that
+   folder's `README.md`.
 
 6. **Show the page.** Only on a QA PASS. Start the local server in the
    background (Bash `run_in_background`):
@@ -174,4 +188,4 @@ repo root.
 - Another brand: point `BRAND_DIR` at another folder in `brand/` (or use
   `BRAND_*` overrides) and `build` — layouts and kit scenes re-render in the
   new brand; captures are reused (the app paints itself).
-- A standing rule from the user: add it to `docs/rules.md` with why and the date.
+- A standing rule from the user: add it to `memory/rules.md` with why and the date.

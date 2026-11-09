@@ -36,6 +36,15 @@ You run in one of three modes, set by the request:
 If `podcast-check` shows a service failing (a key missing from `.env`, a 401),
 report which key and stop at the step that needs it.
 
+## Lessons
+
+Before you start, read `memory/lessons.md` — the section for rollout-podcast-producer and "All
+agents": what QA caught in earlier rollouts. Apply every lesson as part of
+these instructions. Then read `memory/features/<brand>/README.md` (the
+brand's folder name in `brand/`) and the feature's page there,
+`<slug>.md`, when they exist: the brand's own rules and the feature's
+quirks.
+
 ## Plan
 
 1. Read `input/<slug>/feature.md`, `library/features/<slug>/brief.json`,

@@ -114,7 +114,10 @@ template. Report the item id, its path (`/<collection slug>/<item slug>`) and
 that it is a draft the user publishes from the CMS. Once the user says it is
 published, `seo <slug> --live` checks the page as served; report what the
 template itself lacks (structured data, an empty `<h1>`, a second
-`og:image`) as a one-time template fix for a person (`docs/seo.md`).
+`og:image`) as a one-time template fix for a person (`docs/seo.md`). For
+missing structured data, point them to the template's head code from
+`schema templates` (checked first with `schema preview <template> <slug>`;
+`docs/schema.md`).
 
 ## Video page
 

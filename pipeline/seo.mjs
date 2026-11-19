@@ -15,6 +15,8 @@
 // Every check returns messages a person or an agent can act on; they are
 // warnings unless the data is malformed, so SEO never blocks a build.
 
+import { validateJsonLd } from './schema.mjs';
+
 export const SEO_LIMITS = {
   title: [30, 60],
   description: [120, 160],
@@ -141,6 +143,9 @@ const organization = (brand) => ({ '@type': 'Organization', name: brand.name, ..
 // The feature page: the page, the product feature it describes, its FAQ and,
 // when there is one, its video.
 export function featureJsonLd({ brief, brand, url = null, image = null }) {
+  // the product's offer, rating and platforms: a rich result needs an offer
+  // or a rating (the brand's web.schema.product, docs/schema.md)
+  const product = brand.web?.schema?.product ?? {};
   const graph = [
     {
       '@type': 'WebPage',
@@ -155,7 +160,10 @@ export function featureJsonLd({ brief, brand, url = null, image = null }) {
       '@type': 'SoftwareApplication',
       '@id': '#feature',
       name: `${brand.name} ${brief.feature}`.trim(),
-      applicationCategory: 'BusinessApplication',
+      applicationCategory: product.applicationCategory ?? 'BusinessApplication',
+      ...(product.operatingSystem ? { operatingSystem: product.operatingSystem } : {}),
+      ...(product.offers ? { offers: { '@type': 'Offer', ...product.offers } } : {}),
+      ...(product.aggregateRating ? { aggregateRating: { '@type': 'AggregateRating', ...product.aggregateRating } } : {}),
       description: brief.lead ?? brief.intro,
       featureList: (brief.sections ?? []).map((s) => s.title),
       publisher: organization(brand),
@@ -206,11 +214,13 @@ export function auditHtml(html, { keyword = null } = {}) {
   const ogImages = [...new Set(meta('property', 'og:image'))];
   const jsonLd = [];
   const badJsonLd = [];
+  const schemaFindings = [];
   for (const m of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
       const d = JSON.parse(m[1]);
       const types = (x) => (Array.isArray(x) ? x.flatMap(types) : x?.['@graph'] ? types(x['@graph']) : [x?.['@type']].flat().filter(Boolean));
       jsonLd.push(...types(d));
+      schemaFindings.push(...validateJsonLd(d));
     } catch (err) {
       badJsonLd.push(err.message);
     }
@@ -230,6 +240,8 @@ export function auditHtml(html, { keyword = null } = {}) {
   if (ogImages.length > 1) add('warn', `${ogImages.length} different og:image tags — link previews pick one at random; keep the page's own`);
   if (!ogImages.length) add('warn', 'no og:image — link previews show no picture');
   badJsonLd.forEach((m) => add('fail', `structured data (JSON-LD) does not parse: ${m}`));
+  // each type's required and recommended properties (schema.mjs)
+  schemaFindings.forEach((f) => add(f.level, `structured data: ${f.type}: ${f.message}`));
   if (!jsonLd.length) add('warn', 'no structured data (JSON-LD) — answer engines cannot tell what the page is about');
   noAlt.forEach((src) => add('warn', `image without alt text: ${src}`));
   if (!questions.length && !jsonLd.includes('FAQPage')) add('warn', 'no questions answered on the page (an FAQ) — answer engines quote direct answers');

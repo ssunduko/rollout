@@ -311,6 +311,219 @@
           }
         ]
       }
+    },
+    "schema": {
+      "$comment": "Structured data for the website's pages (docs/schema.md): who publishes them, the product, and per CMS template which field feeds which property. Field slugs are the site's own.",
+      "language": "en",
+      "authorPath": "/author",
+      "organization": {
+        "logo": "https://www.acme.example/logo.svg"
+      },
+      "product": {
+        "name": "Acme Cloud",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "offers": {
+          "price": "29",
+          "priceCurrency": "USD"
+        }
+      },
+      "templates": {
+        "blog": {
+          "type": "article",
+          "collectionId": "",
+          "path": "/blog/{slug}",
+          "section": {
+            "name": "Blog",
+            "path": "/blog"
+          },
+          "fields": {
+            "headline": "title",
+            "description": "meta-description",
+            "image": "main-image",
+            "datePublished": "date",
+            "authorName": "author:name",
+            "authorUrl": "author:slug",
+            "section": "category:name"
+          }
+        },
+        "videos": {
+          "type": "video",
+          "collectionId": "",
+          "path": "/videos/{slug}",
+          "section": {
+            "name": "Videos",
+            "path": "/videos"
+          },
+          "fields": {
+            "name": "name",
+            "description": "meta-description",
+            "thumbnailUrl": "cover-image",
+            "uploadDate": "date",
+            "embedUrl": "video-url"
+          }
+        },
+        "features": {
+          "type": "feature",
+          "collectionId": "",
+          "path": "/features/{slug}",
+          "section": {
+            "name": "Features",
+            "path": "/features"
+          },
+          "fields": {
+            "name": "name",
+            "description": "meta-description",
+            "image": "main-image",
+            "video": "video-link"
+          }
+        },
+        "podcasts": {
+          "type": "podcast",
+          "collectionId": "",
+          "path": "/podcasts/{slug}",
+          "section": {
+            "name": "Podcast",
+            "path": "/podcasts"
+          },
+          "series": {
+            "name": "The Acme Cloud Podcast",
+            "url": "https://www.acme.example/podcasts"
+          },
+          "fields": {
+            "name": "name",
+            "description": "meta-description",
+            "image": "main-image",
+            "audioUrl": "mp3-link",
+            "episodeNumber": "episode-number"
+          }
+        },
+        "webinars": {
+          "type": "event",
+          "collectionId": "",
+          "path": "/webinars/{slug}",
+          "section": {
+            "name": "Webinars",
+            "path": "/webinars"
+          },
+          "free": true,
+          "fields": {
+            "name": "title",
+            "description": "meta-description",
+            "image": "cover-image",
+            "startDate": "date",
+            "registrationUrl": "registration-link",
+            "recordingUrl": "video-link"
+          }
+        },
+        "stories": {
+          "type": "story",
+          "collectionId": "",
+          "path": "/stories/{slug}",
+          "section": {
+            "name": "Customer stories",
+            "path": "/stories"
+          },
+          "fields": {
+            "headline": "name",
+            "description": "subtitle",
+            "image": "main-image",
+            "customer": "company-name",
+            "industry": "industry",
+            "location": "headquarters"
+          }
+        },
+        "authors": {
+          "type": "profile",
+          "collectionId": "",
+          "path": "/author/{slug}",
+          "section": {
+            "name": "Blog",
+            "path": "/blog"
+          },
+          "fields": {
+            "name": "name",
+            "description": "bio",
+            "image": "picture"
+          }
+        },
+        "playbooks": {
+          "type": "article",
+          "schemaType": "Article",
+          "collectionId": "",
+          "path": "/playbooks/{slug}",
+          "section": {
+            "name": "Playbooks",
+            "path": "/playbooks"
+          },
+          "fields": {
+            "headline": "headline",
+            "description": "meta-description",
+            "image": "main-image",
+            "datePublished": "publish-date",
+            "authorName": "author-name"
+          }
+        },
+        "compare": {
+          "type": "comparison",
+          "collectionId": "",
+          "path": "/compare/{slug}",
+          "section": {
+            "name": "Compare",
+            "path": "/compare"
+          },
+          "fields": {
+            "name": "title",
+            "description": "meta-description",
+            "image": "image"
+          }
+        },
+        "partners": {
+          "type": "partner",
+          "collectionId": "",
+          "path": "/partners/{slug}",
+          "section": {
+            "name": "Partners",
+            "path": "/partners"
+          },
+          "fields": {
+            "name": "name",
+            "description": "description",
+            "image": "logo",
+            "website": "website",
+            "location": "location"
+          }
+        }
+      },
+      "pages": {
+        "/": {
+          "name": "Acme Cloud — scheduling for teams",
+          "description": "Book meetings without the back-and-forth."
+        },
+        "/pricing": {
+          "name": "Pricing",
+          "description": "Plans for every team size.",
+          "breadcrumb": {
+            "name": "Pricing"
+          }
+        },
+        "/about": {
+          "name": "About Acme Cloud",
+          "schemaType": "AboutPage",
+          "description": "Who we are."
+        },
+        "/contact": {
+          "name": "Contact",
+          "schemaType": "ContactPage"
+        },
+        "/privacy": {
+          "name": "Privacy Policy",
+          "description": "How Acme Cloud handles personal data.",
+          "breadcrumb": {
+            "name": "Privacy Policy"
+          }
+        }
+      }
     }
   },
   "socialPack": {
@@ -320,8 +533,14 @@
   "help": {
     "$comment": "The help article's fixed parts (pipeline/help.mjs, docs/help.md): a trial link above the intro, the FAQ heading, and the closing section.",
     "provider": "intercom",
-    "cta": { "label": "Start your free 14-day trial", "url": "https://www.acme.example/signup" },
+    "cta": {
+      "label": "Start your free 14-day trial",
+      "url": "https://www.acme.example/signup"
+    },
     "faqTitle": "Frequently Asked Questions",
-    "closing": { "title": "Need Help?", "body": "Chat with us from the help widget or email [hello@acme.example](mailto:hello@acme.example)." }
+    "closing": {
+      "title": "Need Help?",
+      "body": "Chat with us from the help widget or email [hello@acme.example](mailto:hello@acme.example)."
+    }
   }
 }

@@ -95,7 +95,8 @@ export function connect({ token, siteId, baseUrl = DEFAULT_URL }) {
       const c = await call('GET', `/collections/${encodeURIComponent(id)}`);
       return {
         id: c.id, name: c.displayName, slug: c.slug,
-        fields: (c.fields ?? []).map((f) => ({ slug: f.slug, name: f.displayName, type: f.type, required: Boolean(f.isRequired) })),
+        // a reference field names the collection it points to
+        fields: (c.fields ?? []).map((f) => ({ slug: f.slug, name: f.displayName, type: f.type, required: Boolean(f.isRequired), ...(f.validations?.collectionId ? { reference: f.validations.collectionId } : {}) })),
       };
     },
     async items(collectionId) {

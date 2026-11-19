@@ -47,6 +47,10 @@
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
 //   node pipeline/rollout.mjs brand [<slug>]                        the resolved brand (the feature's, else BRAND_DIR)
+//   node pipeline/rollout.mjs icons search <words>                  Lucide icons for kit scenes (<i data-lucide>) and general-purpose images
+//   node pipeline/rollout.mjs icons make <name>... [--look line|tile|solid|circle] [--fg <colour>] [--bg <colour>]
+//                                       [--size <px>] [--brand <dir>] [--out <dir>] [--svg-only]
+//                                                                    icons as images in the brand's colours -> output/images/<brand>/<look>/
 //
 // Agents write sidecars (brief.json, social.json, help.json, site.json,
 // podcast.json, video.json, scene.json + scene.html); this renders them. It never writes
@@ -55,7 +59,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { ROOT, INPUT_DIR, LIBRARY_DIR, featurePaths, assertSlug, readJson, writeJson, env, envNumber } from './env.mjs';
+import { ROOT, INPUT_DIR, LIBRARY_DIR, OUTPUT_DIR, featurePaths, assertSlug, readJson, writeJson, env, envNumber } from './env.mjs';
 import { loadBrand, brandForFeature } from './brand.mjs';
 import { loadFeature, loadBrief, validateBrief } from './brief.mjs';
 import { renderScenes } from './scenes.mjs';
@@ -82,10 +86,12 @@ import { loadTarget, listTargets } from './target.mjs';
 import { probe, manualLogin } from './capture.mjs';
 import { targetNameFor } from './scenes.mjs';
 import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
+import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
+import { withBrowser } from './chrome.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = new Set(rest.filter((a) => a.startsWith('--')));
-const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state', '--url']);
+const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state', '--url', '--look', '--fg', '--bg', '--size', '--brand']);
 const args = rest.filter((a, i) => !a.startsWith('--') && !VALUED.has(rest[i - 1]));
 const renderOpts = () => ({ force: flags.has('--force'), allowMutations: flags.has('--allow-mutations') });
 const option = (name) => { const i = rest.indexOf(name); return i >= 0 ? rest[i + 1] : undefined; };
@@ -808,6 +814,29 @@ const commands = {
     for (const [slug, f] of Object.entries(features)) console.log(`  ${slug}  ${f.feature}  — ${f.scenes.length} scenes`);
     console.log(`scenes (${Object.keys(scenes).length})`);
     for (const [id, s] of Object.entries(scenes)) console.log(`  ${id}  [${s.tags.join(', ')}]  ${s.animated ? 'animated' : 'still'}  renders: ${Object.keys(s.renders).join(', ') || 'none'}`);
+  },
+
+  async icons() {
+    const [sub, ...more] = args;
+    if (sub === 'search') {
+      const hits = searchIcons(more.join(' '), 25);
+      if (!hits.length) return console.log('  no matching icons');
+      for (const h of hits) console.log(`  ${h.name}  [${h.tags.slice(0, 6).join(', ')}]`);
+      return;
+    }
+    if (sub === 'make') {
+      if (!more.length) throw new Error('icons make: name at least one icon (icons search <words> finds them)');
+      const brand = option('--brand') ? loadBrand(path.resolve(ROOT, option('--brand'))) : loadBrand();
+      const look = option('--look') ?? 'tile';
+      if (!LOOKS[look]) throw new Error(`no look "${look}" — ${Object.keys(LOOKS).join(', ')}`);
+      const size = option('--size') ? Number(option('--size')) : 512;
+      const out = option('--out') ? path.resolve(ROOT, option('--out')) : path.join(OUTPUT_DIR, 'images', brand.id, look);
+      const made = await writeImages(more, brand, { look, fg: option('--fg'), bg: option('--bg'), size, out, png: !flags.has('--svg-only'), withBrowser });
+      console.log(`  ${made.length} ${look} image${made.length === 1 ? '' : 's'} in ${brand.name}'s colours, ${size}px (Lucide ${lucideVersion()}) -> ${rel(out)}/`);
+      for (const m of made) console.log(`    ${m.name}  ${[m.svg, m.png].filter(Boolean).map((f) => path.basename(f)).join(' ')}`);
+      return;
+    }
+    throw new Error('icons: search <words> | make <name>... (see rollout.mjs usage)');
   },
 
   brand() {

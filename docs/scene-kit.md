@@ -159,6 +159,14 @@ info · link · phone · mail · globe · settings · bell · chart · star · b
 message · lock · filter · more · smile · image · inbox · hash · trash · edit ·
 play · robot · shield · refresh · upload
 
+Any [Lucide](https://lucide.dev) icon: `<i data-lucide="name"></i>` (or
+`<span>`), sized and coloured exactly like `data-icon`. About 1,850 names;
+find them with `node pipeline/rollout.mjs icons search <words>`. The
+renderer draws them into the scene, so an unknown name fails the render with
+the closest names to try. Use one family per scene: kit icons or Lucide
+icons, not both side by side. The same icons as standalone images in the
+brand's colours: `docs/images.md`.
+
 ## Do / don't
 
 - Do use the feature's real labels, fields and statuses from `feature.md`.

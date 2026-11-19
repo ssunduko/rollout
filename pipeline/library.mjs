@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { LIBRARY_DIR, KIT_DIR, readJson, writeJson } from './env.mjs';
+import { usesLucide, lucideVersion } from './icons.mjs';
 
 export const SCENES_DIR = path.join(LIBRARY_DIR, 'scenes');
 export const RENDERS_DIR = path.join(LIBRARY_DIR, 'renders');
@@ -72,6 +73,8 @@ export function renderHash(scene, brand, settings) {
     const file = path.join(scene.dir, ref);
     h.update(ref).update(fs.existsSync(file) ? fs.readFileSync(file) : 'missing');
   }
+  // a scene drawing Lucide icons re-renders when the icon set is updated
+  if (usesLucide(scene.markup)) h.update(`lucide@${lucideVersion()}`);
   h.update(brand.hash).update(hashKit()).update(JSON.stringify(settings));
   return h.digest('hex').slice(0, 16);
 }

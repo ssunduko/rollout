@@ -120,6 +120,7 @@ example brand (`brand/example/`), captured from the example app
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
 | `brand` | The resolved brand after `.env` overrides |
+| `icons search <words>` · `icons make <name>... [--look tile|solid|circle|line] [--fg <colour>] [--bg <colour>] [--size <px>] [--brand <dir>] [--out <dir>] [--svg-only]` | Lucide icons: find them; make them as SVG + PNG images in the brand's colours, into `output/images/<brand>/<look>/` (`docs/images.md`) |
 
 All are `node pipeline/rollout.mjs <command>`.
 
@@ -146,6 +147,8 @@ runs them on every pull request. See `test/README.md`.
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
 | `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, podcast episode and transcripts, build and QA records | `rollout.mjs` |
+| `output/images/<brand>/` | general-purpose icon images in the brand's colours | `rollout.mjs icons make` |
+| `pipeline/lucide/` | the Lucide icon set (path data, tags) and its ISC licence | — |
 | `pipeline/` | the deterministic core | — |
 | `.claude/` | agents and the `feature-rollout` skill | — |
 | `examples/` | local reference material (real one-pagers, site pages): gitignored | — |
@@ -204,6 +207,7 @@ brand's renders stay in the library.
 - `docs/brief.md` — the copy format and limits, the reference layout
 - `docs/capture.md` — targets, probing, capture scenes, live-data and blur rules
 - `docs/scene-kit.md` — kit scenes (hero composition, coming soon)
+- `docs/images.md` — general-purpose images: Lucide icons in the brand's colours
 - `docs/social.md` — the social pack
 - `docs/help.md` — the help-center article, its images and publishing
 - `docs/website.md` — the feature page on the website (CMS item or components)

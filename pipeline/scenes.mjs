@@ -35,6 +35,7 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { KIT_DIR, INPUT_DIR, env, envNumber, readJson, writeJson } from './env.mjs';
 import { brandCss } from './brand.mjs';
+import { expandLucide, LUCIDE_CSS } from './icons.mjs';
 import puppeteer from 'puppeteer-core';
 import { resolveChrome, settle } from './chrome.mjs';
 import { loadScene, localRefs, renderHash, renderDir, rebuildIndex } from './library.mjs';
@@ -90,6 +91,11 @@ export function scenePage(scene, brand, stills = {}, { web = false } = {}) {
     if (!stills[id]) throw new Error(`scene ${scene.id}: embeds scene:${id}, which has no still`);
     return `data-scene="${id}" src="${dataUri(stills[id])}"`;
   });
+
+  // <i data-lucide="name"> -> the Lucide icon, drawn like the kit's own icons
+  const lucide = expandLucide(markup);
+  markup = lucide.markup;
+  if (lucide.used.length) css = `${LUCIDE_CSS}${css}`;
 
   const { width, height } = web ? webSize(scene) : scene.size ?? { width: 640, height: 480 };
   return `<!doctype html><html${web ? ' class="web"' : ''}><head><meta charset="utf-8">

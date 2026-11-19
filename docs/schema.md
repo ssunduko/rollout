@@ -123,7 +123,13 @@ reads each page and checks every JSON-LD block: that it parses, each type's
 required properties (a rich result is impossible without them: **fail**) and
 recommended ones (**warn**), ISO 8601 dates, absolute URLs, a headline under
 110 characters and not ending with the site's name, FAQ questions with
-answers, breadcrumb positions and links. A failing page fails the command.
+answers, breadcrumb positions and links. It also follows references between
+blocks: an object holding only an `@id` (`"publisher": {"@id": "…/#organization"}`)
+must name a node that some block on the page defines with that `@id` —
+usually the site-wide `Organization` — resolved against the page's address,
+so `#organization` and `https://site/blog/x#organization` are the same. A
+reference nothing defines leaves the property empty for search engines, and
+fails. A failing page fails the command.
 `seo <slug> --live` runs the same checks on a feature's pages
 (`docs/seo.md`). After a change goes live, confirm with Google's Rich Results
 Test.

@@ -92,7 +92,7 @@ import { probe, manualLogin } from './capture.mjs';
 import { targetNameFor } from './scenes.mjs';
 import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
 import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
-import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS } from './schema.mjs';
+import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -916,13 +916,19 @@ ${html}
         if (!res.ok) { fails++; continue; }
         const blocks = [...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
         if (!blocks.length) console.log('  warn     no structured data (JSON-LD)');
+        const docs = [];
         for (const b of blocks) {
           let data;
           try { data = JSON.parse(b); } catch (err) { fails++; console.log(`  fail     JSON-LD does not parse: ${err.message}`); continue; }
+          docs.push(data);
           const findings = validateJsonLd(data);
           console.log(`  json-ld  ${nodesOf(data).map((n) => [n['@type']].flat().join('/')).join(', ')}${findings.length ? '' : '  ok'}`);
           for (const f of findings) { if (f.level === 'fail') fails++; console.log(`    ${f.level.padEnd(6)} ${f.type}: ${f.message}`); }
         }
+        // references across the page's blocks, resolved against its address
+        const refs = unresolvedReferences(docs, res.url || url);
+        for (const f of refs) { fails++; console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`); }
+        if (docs.length && !refs.length) console.log('  refs     ok');
       }
       if (fails) { console.log(`${fails} failing`); process.exitCode = 1; }
       return;

@@ -41,6 +41,9 @@ page on the website, and the
   structured data), checked by `seo <slug>`: `docs/seo.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
+- General-purpose images (Lucide icons in the brand's colours, for blogs,
+  help, slides): `icons make` into `output/images/<brand>/`; in kit scenes
+  `<i data-lucide>`: `docs/images.md`.
 - Visuals are captured from the logged-in application: `docs/capture.md`.
   Targets in `targets/` (secrets in `.env` or `*.local.json`, never
   committed); signed-in profiles in `profiles/` (gitignored). The example

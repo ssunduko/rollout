@@ -13,6 +13,10 @@ later rollouts, so make clean, well-tagged scenes.
 1. `docs/capture.md` — targets, probing, the capture scene format, steps,
    clip/aspect, live-data and personal-data rules. Follow it exactly.
 2. `docs/scene-kit.md` — only for the hero composition and coming-soon scenes.
+   Icons there: the kit's `data-icon` set, or any Lucide icon with
+   `<i data-lucide="name">` (`icons search <words>` finds names). Standalone
+   icon images in the brand's colours (blog, help, slides): `icons make`,
+   `docs/images.md`.
 3. `library/features/<slug>/brief.json` — the scenes to make: `hero.scene` and
    each `sections[i].scene`, with the `alt` (what it must show) and the
    section text it sits beside.

@@ -38,7 +38,9 @@ page on the website, and the
   request, from `library/features/<slug>/video.json`: `docs/video.md`.
   Every page put on the website is
   written for search and answer engines (keyword, SEO text, FAQ, alt text,
-  structured data), checked by `seo <slug>`: `docs/seo.md`.
+  structured data), checked by `seo <slug>`: `docs/seo.md`. Structured
+  data for every page type (CMS templates, static pages) comes from the
+  brand's `web.schema` block, checked by `schema check`: `docs/schema.md`.
 - Brand: the folder under `brand/` that `BRAND_DIR` names in `.env`
   (`brand/example/` is the generic example). No brand value in code.
 - General-purpose images (Lucide icons in the brand's colours, for blogs,

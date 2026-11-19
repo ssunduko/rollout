@@ -22,7 +22,7 @@ publishing agents carry them to the site, and the pipeline checks them.
 | Address | The slug carries the keyword, six words at most | Readable, stable addresses |
 | Canonical | The page says its own address (`<link rel="canonical">`) | One address per page, no duplicates |
 | Link preview | One `og:image`: the page's own | Several make previews pick one at random |
-| Structured data | JSON-LD: `WebPage` + `SoftwareApplication` (the feature) + `FAQPage` (+ `VideoObject` with a video) on the feature page; `PodcastEpisode` (with its transcript) on the episode page | Tells engines what the page is about, its questions and answers, and what the episode says |
+| Structured data | JSON-LD: `WebPage` + `SoftwareApplication` (the feature, with the brand's offer or rating from `web.schema.product`) + `FAQPage` (+ `VideoObject` with a video) on the feature page; `PodcastEpisode` (with its transcript) on the episode page | Tells engines what the page is about, its questions and answers, and what the episode says |
 
 Malformed data (an FAQ entry without an answer, JSON-LD that does not parse)
 is an error; everything else is a warning — SEO never blocks a build.
@@ -59,5 +59,10 @@ node pipeline/rollout.mjs seo <slug> --live
 
 prints, for the brief, the website plan, the episode page and each published
 page, what to fix, and saves it all in `output/<slug>/seo/seo.json`. A page
-that does not answer (HTTP error) or whose JSON-LD does not parse fails the
+that does not answer (HTTP error), whose JSON-LD does not parse, or whose
+JSON-LD misses a property its type requires for a rich result fails the
 command.
+
+Structured data for every other kind of page on the website — blog posts,
+videos, webinars, customer stories, author pages, static pages — and the
+check of any published page: `docs/schema.md`.

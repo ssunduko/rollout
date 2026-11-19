@@ -51,6 +51,11 @@
 //   node pipeline/rollout.mjs icons make <name>... [--look line|tile|solid|circle] [--fg <colour>] [--bg <colour>]
 //                                       [--size <px>] [--brand <dir>] [--out <dir>] [--svg-only]
 //                                                                    icons as images in the brand's colours -> output/images/<brand>/<look>/
+//   node pipeline/rollout.mjs schema templates [--brand <dir>] [--check]   each CMS template's structured-data head code (web.schema.templates)
+//                                                                    -> output/schema/<brand>/templates/; --check reads the collections' fields
+//   node pipeline/rollout.mjs schema preview <template> <slug> [--brand <dir>]   a template's code filled with one live item, and checked
+//   node pipeline/rollout.mjs schema page <path> [--brand <dir>] [--faq-live]   a static page's JSON-LD (web.schema.pages) -> output/schema/<brand>/pages/
+//   node pipeline/rollout.mjs schema check <url>...                 the structured data a published page carries, against each type's rules
 //
 // Agents write sidecars (brief.json, social.json, help.json, site.json,
 // podcast.json, video.json, scene.json + scene.html); this renders them. It never writes
@@ -87,6 +92,7 @@ import { probe, manualLogin } from './capture.mjs';
 import { targetNameFor } from './scenes.mjs';
 import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
 import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
+import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -814,6 +820,114 @@ const commands = {
     for (const [slug, f] of Object.entries(features)) console.log(`  ${slug}  ${f.feature}  — ${f.scenes.length} scenes`);
     console.log(`scenes (${Object.keys(scenes).length})`);
     for (const [id, s] of Object.entries(scenes)) console.log(`  ${id}  [${s.tags.join(', ')}]  ${s.animated ? 'animated' : 'still'}  renders: ${Object.keys(s.renders).join(', ') || 'none'}`);
+  },
+
+  async schema() {
+    const [sub, ...more] = args;
+    const brand = option('--brand') ? loadBrand(path.resolve(ROOT, option('--brand'))) : loadBrand();
+    const conf = brand.web?.schema ?? {};
+    const dir = path.join(OUTPUT_DIR, 'schema', brand.id);
+    if (sub === 'templates') {
+      const templates = Object.entries(conf.templates ?? {});
+      if (!templates.length) throw new Error(`${rel(brand.dir)}/brand.json has no web.schema.templates (docs/schema.md)`);
+      const ws = flags.has('--check') ? await website(brand) : null;
+      let problems = 0;
+      for (const [name, t] of templates) {
+        const { code: html, bindings, missing } = templateCode(t.type, t.fields, schemaContext(brand, { template: t }));
+        const file = path.join(dir, 'templates', `${name}.html`);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, `<!-- ${name}: ${PAGE_TYPES[t.type].label}. Paste into the ${name} template's Page settings > Custom code > Inside <head> tag (docs/schema.md). -->
+${html}
+`);
+        console.log(`${name}  ${t.type}  ${t.path ?? ''}  -> ${rel(file)}`);
+        console.log(`  fields   ${bindings.map((b) => `${b.field} (${b.type})`).join(', ')}`);
+        missing.forEach((p) => { problems++; console.log(`  warn     no field feeds ${p}, which ${t.type} needs`); });
+        if (ws && t.collectionId) {
+          const col = await ws.collection(t.collectionId);
+          const have = new Set(['name', 'slug', ...Object.keys(ITEM_FIELDS), ...(col.fields ?? []).map((f) => f.slug)]);
+          for (const b of bindings) {
+            const own = b.field.split(':')[0];
+            if (!have.has(own)) { problems++; console.log(`  error    the collection has no field "${own}"`); }
+          }
+        } else if (ws) console.log('  warn     no collectionId: fields not checked');
+      }
+      return console.log(problems ? `${problems} to fix` : 'all templates OK');
+    }
+    if (sub === 'preview') {
+      // a template's code filled with one live item, as its page would carry it
+      const [name, slug] = more;
+      const t = conf.templates?.[name];
+      if (!t) throw new Error(`no web.schema.templates["${name}"] — templates: ${Object.keys(conf.templates ?? {}).join(', ')}`);
+      if (!t.collectionId) throw new Error(`${name}: no collectionId to read the item from`);
+      const ws = await website(brand);
+      const col = await ws.collection(t.collectionId);
+      const it = (await ws.items(t.collectionId)).find((i) => i.slug === slug);
+      if (!it) throw new Error(`${name}: no item with slug "${slug}"`);
+      const { code: html, bindings } = templateCode(t.type, t.fields, schemaContext(brand, { template: t }));
+      const values = {};
+      const refs = {};
+      for (const { field } of bindings) {
+        const [own, sub2] = field.split(':');
+        const v = own === 'slug' ? it.slug : own === 'name' ? it.name : ITEM_FIELDS[own] ? it[ITEM_FIELDS[own]] : it.fields[own];
+        if (!sub2) { values[field] = v; continue; }
+        const refId = [v].flat()[0];
+        const refCol = col.fields.find((f) => f.slug === own)?.reference;
+        if (!refId || !refCol) continue;
+        refs[refId] ??= await ws.item(refCol, refId);
+        const r = refs[refId];
+        values[field] = sub2 === 'slug' ? r.slug : sub2 === 'name' ? r.name : r.fields[sub2];
+      }
+      const { data, risky, unbound } = fillTemplate(html, values);
+      console.log(JSON.stringify(data, null, 2));
+      unbound.forEach((f) => console.log(`  warn     ${f} is empty on this item: its property is left out`));
+      risky.forEach((r) => console.log(`  warn     ${r.field} holds a quote, backslash or line break ("${r.value}"): Webflow inserts it as is, which breaks the JSON`));
+      const findings = validateJsonLd(data);
+      findings.forEach((f) => console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`));
+      if (findings.some((f) => f.level === 'fail')) process.exitCode = 1;
+      return;
+    }
+    if (sub === 'page') {
+      // "/pricing" or "pricing" (Git Bash on Windows rewrites a leading slash)
+      const p = `/${String(more[0] ?? '').replace(/^\/+/, '')}`;
+      const page = conf.pages?.[p];
+      if (!page) throw new Error(`no web.schema.pages["${p}"] in ${rel(brand.dir)}/brand.json — pages: ${Object.keys(conf.pages ?? {}).join(', ') || 'none'}`);
+      const ctx = schemaContext(brand, { page });
+      let faq = page.faq ?? null;
+      if (flags.has('--faq-live')) {
+        const res = await fetch(new URL(p, `${ctx.base}/`), { headers: { 'user-agent': 'rollout-seo-audit' } });
+        if (!res.ok) throw new Error(`${p}: HTTP ${res.status}`);
+        faq = faqFromHtml(await res.text());
+        console.log(`  faq      ${faq.length} questions read from the live page`);
+      }
+      const data = pageJsonLd('page', { path: p, name: page.name, description: page.description, image: page.image, dateModified: page.dateModified }, ctx, { faq });
+      const file = path.join(dir, 'pages', `${p.split('/').filter(Boolean).join('_') || 'home'}.json`);
+      writeJson(file, data);
+      const findings = validateJsonLd(data);
+      findings.forEach((f) => console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`));
+      return console.log(`${p}  ${nodesOf(data).map((n) => n['@type']).join(', ')}  -> ${rel(file)}`);
+    }
+    if (sub === 'check') {
+      if (!more.length) throw new Error('schema check: give one or more page URLs');
+      let fails = 0;
+      for (const url of more) {
+        const res = await fetch(url, { headers: { 'user-agent': 'rollout-seo-audit' }, redirect: 'follow' });
+        const html = await res.text();
+        console.log(`page  ${url}  [HTTP ${res.status}]`);
+        if (!res.ok) { fails++; continue; }
+        const blocks = [...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
+        if (!blocks.length) console.log('  warn     no structured data (JSON-LD)');
+        for (const b of blocks) {
+          let data;
+          try { data = JSON.parse(b); } catch (err) { fails++; console.log(`  fail     JSON-LD does not parse: ${err.message}`); continue; }
+          const findings = validateJsonLd(data);
+          console.log(`  json-ld  ${nodesOf(data).map((n) => [n['@type']].flat().join('/')).join(', ')}${findings.length ? '' : '  ok'}`);
+          for (const f of findings) { if (f.level === 'fail') fails++; console.log(`    ${f.level.padEnd(6)} ${f.type}: ${f.message}`); }
+        }
+      }
+      if (fails) { console.log(`${fails} failing`); process.exitCode = 1; }
+      return;
+    }
+    throw new Error('schema: templates | preview <template> <slug> | page <path> | check <url>... (see rollout.mjs usage)');
   },
 
   async icons() {

@@ -6,7 +6,10 @@ import {
   jsonLdScript, featureJsonLd, episodeJsonLd, auditHtml,
 } from '../../pipeline/seo.mjs';
 
-const brand = { name: 'Acme Cloud', website: 'https://www.acme.example' };
+const brand = {
+  name: 'Acme Cloud', website: 'https://www.acme.example',
+  web: { schema: { product: { operatingSystem: 'Web, iOS, Android', offers: { price: '29', priceCurrency: 'USD' } } } },
+};
 const good = {
   title: 'Smart Scheduling: Book Meetings Over Text | Acme Cloud',
   description: 'Smart Scheduling books meetings inside the text conversation: suggest open times, sync team calendars and send reminders automatically.',
@@ -156,7 +159,7 @@ const page = ({ head = '', body = '' } = {}) => `<!doctype html><html><head>
 <link rel="canonical" href="https://www.acme.example/features/smart-scheduling">
 <meta property="og:image" content="https://cdn.example/og.png">
 ${head}</head><body>${body}</body></html>`;
-const LD = jsonLdScript(featureJsonLd({ brief: { feature: 'Smart Scheduling', intro: 'i', sections: [], faq }, brand }));
+const LD = jsonLdScript(featureJsonLd({ brief: { feature: 'Smart Scheduling', intro: 'i', sections: [], faq, seo: { title: good.title, description: good.description } }, brand, url: 'https://www.acme.example/features/smart-scheduling' }));
 
 test('auditHtml: a well-made page has no findings', () => {
   const a = auditHtml(page({ head: LD, body: '<h1>Smart Scheduling books meetings in the thread</h1><h3>What is it?</h3><img src="a.png" alt="A reply with three open times">' }), { keyword: 'Smart Scheduling' });
@@ -190,4 +193,13 @@ test('auditHtml: what the a badly made feature page gets wrong', () => {
   assert.ok(has(/no questions answered on the page/));
   assert.ok(a.findings.some((f) => f.level === 'fail' && /JSON-LD\) does not parse/.test(f.message)));
   assert.ok(has(/no structured data/));
+});
+
+test('featureJsonLd: the product\'s offer, rating and platforms from the brand, so the feature can be a rich result', () => {
+  const app = featureJsonLd({ brief: { feature: 'X', intro: 'i', sections: [] }, brand })['@graph'][1];
+  assert.deepEqual(app.offers, { '@type': 'Offer', price: '29', priceCurrency: 'USD' });
+  assert.equal(app.operatingSystem, 'Web, iOS, Android');
+  const rated = featureJsonLd({ brief: { feature: 'X', intro: 'i', sections: [] }, brand: { name: 'A', web: { schema: { product: { aggregateRating: { ratingValue: '4.7', reviewCount: '9' } } } } } })['@graph'][1];
+  assert.deepEqual(rated.aggregateRating, { '@type': 'AggregateRating', ratingValue: '4.7', reviewCount: '9' });
+  assert.equal(rated.offers, undefined);
 });

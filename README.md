@@ -120,6 +120,7 @@ example brand (`brand/example/`), captured from the example app
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
 | `brand` | The resolved brand after `.env` overrides |
+| `schema templates [--check]` · `schema preview <template> <slug>` · `schema page <path> [--faq-live]` · `schema check <url>...` | Structured data (JSON-LD) for every page type: each CMS template's head code, filled with one live item to check it, a static page's JSON-LD, into `output/schema/<brand>/`; check published pages against each type's rules (`docs/schema.md`) |
 | `icons search <words>` · `icons make <name>... [--look tile|solid|circle|line] [--fg <colour>] [--bg <colour>] [--size <px>] [--brand <dir>] [--out <dir>] [--svg-only]` | Lucide icons: find them; make them as SVG + PNG images in the brand's colours, into `output/images/<brand>/<look>/` (`docs/images.md`) |
 
 All are `node pipeline/rollout.mjs <command>`.
@@ -147,6 +148,7 @@ runs them on every pull request. See `test/README.md`.
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
 | `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, podcast episode and transcripts, build and QA records | `rollout.mjs` |
+| `output/schema/<brand>/` | structured data: CMS template head code, static pages' JSON-LD | `rollout.mjs schema` |
 | `output/images/<brand>/` | general-purpose icon images in the brand's colours | `rollout.mjs icons make` |
 | `pipeline/lucide/` | the Lucide icon set (path data, tags) and its ISC licence | — |
 | `pipeline/` | the deterministic core | — |
@@ -212,6 +214,7 @@ brand's renders stay in the library.
 - `docs/help.md` — the help-center article, its images and publishing
 - `docs/website.md` — the feature page on the website (CMS item or components)
 - `docs/seo.md` — search (SEO) and answer engines (AEO): the rules, where they apply, structured data
+- `docs/schema.md` — structured data for every page type: CMS template code, static pages, checking published pages
 - `docs/podcast.md` — the podcast episode from the feature video, its services and page
 - `docs/video.md` — the feature video's own page, an item of the site's video collection
 - `test/README.md` — the tests: what they cover and how they stay off real data

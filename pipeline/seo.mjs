@@ -15,7 +15,7 @@
 // Every check returns messages a person or an agent can act on; they are
 // warnings unless the data is malformed, so SEO never blocks a build.
 
-import { validateJsonLd } from './schema.mjs';
+import { validateJsonLd, unresolvedReferences } from './schema.mjs';
 
 export const SEO_LIMITS = {
   title: [30, 60],
@@ -215,11 +215,13 @@ export function auditHtml(html, { keyword = null } = {}) {
   const jsonLd = [];
   const badJsonLd = [];
   const schemaFindings = [];
+  const docs = [];
   for (const m of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
       const d = JSON.parse(m[1]);
       const types = (x) => (Array.isArray(x) ? x.flatMap(types) : x?.['@graph'] ? types(x['@graph']) : [x?.['@type']].flat().filter(Boolean));
       jsonLd.push(...types(d));
+      docs.push(d);
       schemaFindings.push(...validateJsonLd(d));
     } catch (err) {
       badJsonLd.push(err.message);
@@ -240,7 +242,9 @@ export function auditHtml(html, { keyword = null } = {}) {
   if (ogImages.length > 1) add('warn', `${ogImages.length} different og:image tags — link previews pick one at random; keep the page's own`);
   if (!ogImages.length) add('warn', 'no og:image — link previews show no picture');
   badJsonLd.forEach((m) => add('fail', `structured data (JSON-LD) does not parse: ${m}`));
-  // each type's required and recommended properties (schema.mjs)
+  // each type's required and recommended properties, and references between
+  // the page's blocks, resolved against its canonical address (schema.mjs)
+  schemaFindings.push(...unresolvedReferences(docs, canonical ? attr(canonical, 'href') : null));
   schemaFindings.forEach((f) => add(f.level, `structured data: ${f.type}: ${f.message}`));
   if (!jsonLd.length) add('warn', 'no structured data (JSON-LD) — answer engines cannot tell what the page is about');
   noAlt.forEach((src) => add('warn', `image without alt text: ${src}`));

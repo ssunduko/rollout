@@ -18,6 +18,8 @@ const PAGES = {
   '/good': '<html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Acme","url":"https://www.acme.example"}</script></head></html>',
   '/bad': '<html><head><script type="application/ld+json">{"@type":"VideoObject","name":"V"}</script><script type="application/ld+json">{nope</script></head></html>',
   '/none': '<html><head></head></html>',
+  '/dangling': '<html><head><script type="application/ld+json">{"@type":"WebPage","name":"P","url":"https://www.acme.example/p","description":"d","publisher":{"@id":"#organization"}}</script></head></html>',
+  '/linked': '<html><head><script type="application/ld+json">{"@type":"WebPage","name":"P","url":"https://www.acme.example/p","description":"d","publisher":{"@id":"/#organization"}}</script><script type="application/ld+json">{"@type":"Organization","@id":"/#organization","name":"Acme","url":"https://www.acme.example"}</script></head></html>',
 };
 
 before(async () => {
@@ -73,6 +75,15 @@ test('schema check: each published block against its type; a failing page fails 
   assert.match(bad.out, /warn {5}no structured data \(JSON-LD\)/);
   assert.match(bad.out, /\[HTTP 404\]/);
   assert.match(bad.out, /\d+ failing/);
+});
+
+test('schema check: a reference nothing on the page defines fails; one defined in another block passes', async () => {
+  const dangling = await cliAsync(['schema', 'check', `${base}/dangling`]);
+  assert.notEqual(dangling.code, 0);
+  assert.match(dangling.out, /fail {5}WebPage: publisher refers to "#organization", which nothing on the page defines/);
+  const linked = await cliAsync(['schema', 'check', `${base}/linked`]);
+  assert.equal(linked.code, 0, linked.out);
+  assert.match(linked.out, /refs {5}ok/);
 });
 
 test('schema with no or an unknown subcommand says what it takes', async () => {

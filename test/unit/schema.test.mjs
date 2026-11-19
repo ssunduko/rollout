@@ -205,3 +205,35 @@ test('auditHtml reports each JSON-LD type\'s missing properties', () => {
   assert.ok(msgs.includes('fail structured data: Event: missing startDate (required)'));
   assert.ok(msgs.includes('warn structured data: Event: no organizer (recommended)'));
 });
+
+test('unresolvedReferences: an @id-only object must name a node defined on the page, in any block', async () => {
+  const { unresolvedReferences } = await import('../../pipeline/schema.mjs');
+  const page = 'https://www.acme.example/blog/x';
+  const post = { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'BlogPosting', publisher: { '@id': 'https://www.acme.example/#organization' }, author: [{ '@id': '#ann' }], mainEntityOfPage: { '@type': 'WebPage', '@id': page } },
+    { '@type': 'Person', '@id': '#ann', name: 'Ann' },
+  ] };
+  const site = { '@type': 'Organization', name: 'Acme' };
+  const found = unresolvedReferences([post, site], page);
+  assert.deepEqual(found, [{
+    level: 'fail', type: 'BlogPosting',
+    message: 'publisher refers to "https://www.acme.example/#organization", which nothing on the page defines (give that node an @id, or write the publisher out)',
+  }]);
+  // defined in another block: resolved; relative ids resolve against the page
+  assert.deepEqual(unresolvedReferences([post, { ...site, '@id': 'https://www.acme.example/#organization' }], page), []);
+  assert.equal(unresolvedReferences([{ '@type': 'X', a: { '@id': '#n' } }, { '@type': 'Y', '@id': 'https://www.acme.example/blog/x#n', name: 'n' }], page).length, 0);
+  // an @id with a @type or other properties is a definition, not a reference
+  assert.deepEqual(unresolvedReferences([{ '@type': 'X', mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://elsewhere' } }], page), []);
+  // the same dangling reference reported once
+  assert.equal(unresolvedReferences([{ '@type': 'X', p: [{ '@id': '#a' }, { '@id': '#a' }] }], page).length, 1);
+  assert.deepEqual(unresolvedReferences([], page), []);
+});
+
+test('auditHtml fails a reference no block defines, resolved against the canonical address', () => {
+  const head = (org) => `<link rel="canonical" href="https://www.acme.example/blog/x"><title>T</title>
+<script type="application/ld+json">{"@type":"BlogPosting","headline":"H","image":"https://i","datePublished":"2026-01-01","author":{"name":"A"},"publisher":{"@id":"#org"},"mainEntityOfPage":{"@id":"https://www.acme.example/blog/x","@type":"WebPage"}}</script>
+<script type="application/ld+json">{"@type":"Organization","name":"Acme","url":"https://www.acme.example"${org}}</script>`;
+  const msgs = (h) => auditHtml(`<html><head>${h}</head><body><h1>T</h1></body></html>`).findings.map((f) => `${f.level} ${f.message}`);
+  assert.ok(msgs(head('')).includes('fail structured data: BlogPosting: publisher refers to "#org", which nothing on the page defines (give that node an @id, or write the publisher out)'));
+  assert.ok(!msgs(head(',"@id":"https://www.acme.example/blog/x#org"')).some((m) => /refers to/.test(m)));
+});

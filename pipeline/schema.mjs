@@ -504,3 +504,40 @@ export function fillTemplate(code, values) {
   });
   return { data: clean(JSON.parse(filled)), risky, unbound };
 }
+
+// ---- references between blocks ----
+
+// A reference is an object holding only an @id (e.g. "publisher": {"@id":
+// "https://…/#organization"}): it names a node defined elsewhere on the page,
+// in the same block or another. An @id is resolved against the page's address,
+// so "#organization" on https://site/blog/x is https://site/blog/x#organization.
+const resolveId = (id, pageUrl) => {
+  try { return pageUrl ? new URL(id, pageUrl).href : id; } catch { return id; }
+};
+const isReference = (v) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 1 && typeof v['@id'] === 'string';
+
+// Every reference on the page that no node defines: [{ level: 'fail', type,
+// message }]. docs are the page's parsed JSON-LD blocks; a node defines its
+// @id when it says more than the @id (a @type or any other property).
+export function unresolvedReferences(docs, pageUrl = null) {
+  const defined = new Set();
+  const refs = [];
+  const walk = (v, owner, key) => {
+    if (Array.isArray(v)) return v.forEach((x) => walk(x, owner, key));
+    if (!v || typeof v !== 'object') return;
+    if (isReference(v)) return refs.push({ id: v['@id'], owner, key });
+    if (typeof v['@id'] === 'string') defined.add(resolveId(v['@id'], pageUrl));
+    const type = [v['@type']].flat().filter(Boolean).join('/') || owner;
+    for (const [k, x] of Object.entries(v)) if (k !== '@id' && k !== '@context') walk(x, type, k);
+  };
+  for (const d of [docs].flat()) walk(d, '?', null);
+  const out = [];
+  const seen = new Set();
+  for (const r of refs) {
+    const id = resolveId(r.id, pageUrl);
+    if (defined.has(id) || seen.has(`${r.owner} ${r.key} ${id}`)) continue;
+    seen.add(`${r.owner} ${r.key} ${id}`);
+    out.push({ level: 'fail', type: r.owner, message: `${r.key} refers to "${r.id}", which nothing on the page defines (give that node an @id, or write the ${r.key} out)` });
+  }
+  return out;
+}

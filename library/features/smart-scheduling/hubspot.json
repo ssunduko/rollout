@@ -1,0 +1,38 @@
+{
+  "$comment": "The launch email and social posts for Smart Scheduling (docs/hubspot.md), written by the rollout-hubspot-marketer agent. Images are files of the social pack (output/smart-scheduling/assets/social/).",
+  "campaign": "smart-scheduling-launch",
+  "email": {
+    "name": "Smart Scheduling — launch announcement",
+    "subject": "Book meetings without leaving the text thread",
+    "previewText": "Offer open times, sync calendars and send reminders automatically.",
+    "headline": "Book meetings right inside the conversation",
+    "intro": "Smart Scheduling puts your team's open times into the text thread. Your contact taps a time, the meeting lands on the right calendar, and the confirmation and reminders go out on their own.",
+    "image": "email-1100x600.png",
+    "imageAlt": "A text conversation offering three open meeting times beside a team calendar",
+    "sections": [
+      { "title": "Offer open times in one tap", "body": "Suggest times from your team's real availability without switching to a calendar." },
+      { "title": "Reminders on autopilot", "body": "Confirmations and reminders go out by text, so fewer meetings are missed." },
+      { "title": "Rules for every inbox", "body": "Set meeting length, buffers and working hours per inbox, once." }
+    ],
+    "cta": { "label": "See how it works", "url": "https://www.acme.example/features/smart-scheduling" }
+  },
+  "social": [
+    {
+      "network": "LINKEDIN",
+      "content": "Scheduling a meeting over text shouldn't take five messages.\n\nSmart Scheduling offers your team's open times right in the thread, books the slot on the right calendar, and sends the reminders for you.",
+      "image": "slide-1-cover-1080x1350.png",
+      "link": "https://www.acme.example/features/smart-scheduling"
+    },
+    {
+      "network": "TWITTER",
+      "content": "Book meetings without leaving the text thread. Smart Scheduling offers open times, syncs calendars and sends reminders automatically.",
+      "image": "feature-1280x720.png",
+      "link": "https://www.acme.example/features/smart-scheduling"
+    },
+    {
+      "network": "INSTAGRAM",
+      "content": "Meetings, booked in the conversation 📅 Tap a time, get the invite, get reminded. Smart Scheduling is live — link in bio. #scheduling #smallbusiness",
+      "image": "slide-1-cover-1080x1350.png"
+    }
+  ]
+}

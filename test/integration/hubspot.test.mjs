@@ -42,18 +42,21 @@ test('hubspot-assets refuses without --yes; hubspot-check needs a token', () => 
   assert.match(a.out, /run it with --yes once the user approved/);
   const c = cli(['hubspot-check']);
   assert.notEqual(c.code, 0);
-  assert.match(c.out, /HUBSPOT_TOKEN is not set/);
+  assert.match(c.out, /HUBSPOT_PRIVATE_APP_TOKEN is not set/);
 });
 
-test('hubspot-record keeps the created email and posts, and the build shows them', () => {
-  const r = cli(['hubspot-record', SLUG, '--email', '987', '--post', 'linkedin=abc', '--post', 'TWITTER=def']);
-  assert.equal(r.code, 0, r.out);
-  assert.match(r.out, /recorded {2}email 987, LINKEDIN abc, TWITTER def/);
+test('hubspot-record keeps the created email and each post, and the build shows them', () => {
+  const e = cli(['hubspot-record', SLUG, '--email', '987']);
+  assert.equal(e.code, 0, e.out);
+  assert.match(e.out, /recorded {2}email 987/);
+  const p = cli(['hubspot-record', SLUG, '--network', 'linkedin', '--guid', 'abc', '--channel', 'ch1', '--url', 'https://app.hubspot.com/x']);
+  assert.equal(p.code, 0, p.out);
+  assert.match(p.out, /recorded {2}email 987, LINKEDIN abc/);
   const rec = JSON.parse(fs.readFileSync(record, 'utf8'));
-  assert.equal(rec.email.id, '987');
-  assert.equal(rec.posts.TWITTER.id, 'def');
+  assert.equal(rec.posts.LINKEDIN.channel, 'ch1');
   const posts = JSON.parse(fs.readFileSync(out('posts.json'), 'utf8'));
-  assert.equal(posts.find((p) => p.network === 'LINKEDIN').created.id, 'abc');
-  assert.match(cli(['hubspot-record', SLUG]).out, /give --email <id> and\/or --post <NETWORK>=<id>/);
-  assert.match(cli(['hubspot-record', SLUG, '--post', 'LINKEDIN']).out, /--post <NETWORK>=<id>/);
+  assert.equal(posts.find((x) => x.network === 'LINKEDIN').created.id, 'abc');
+  assert.match(cli(['hubspot-record', SLUG]).out, /give --email <id>/);
+  assert.match(cli(['hubspot-record', SLUG, '--network', 'LINKEDIN']).out, /a post needs --guid/);
+  assert.match(cli(['hubspot-record', SLUG, '--email', '1', '--network', 'X', '--guid', 'g']).out, /separate calls/);
 });

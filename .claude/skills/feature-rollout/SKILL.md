@@ -161,13 +161,17 @@ repo root.
    `library/features/<slug>/hubspot.json` (`docs/hubspot.md`) from the brief
    and the social pack and builds `output/<slug>/hubspot/`. Show the user
    its report: the email's subject, preview text and body, each post with
-   its image, and `output/<slug>/hubspot/preview.html`. **Ask before
-   creating**: for the email, the from name and reply-to address, the
-   subscription type, a template or blank, and the lists; for the posts,
-   which connected channels. On a yes: "Create the HubSpot launch for
-   <slug>; approved: email <…>; posts on <channels>." Everything is created
-   as a draft; scheduling and sending are the user's, in HubSpot. If
-   `hubspot-check` fails, say which `.env` key is missing (`HUBSPOT_TOKEN`).
+   its image and channel, any posts the team already made about the launch,
+   and `output/<slug>/hubspot/preview.html`. **Ask before previewing**: for
+   the email, the from name and reply-to address, the subscription type, a
+   template or blank, and the lists; for the posts, which channels (and,
+   where a network has several, which one). On a yes: "Preview the HubSpot
+   launch for <slug>; approved: email <…>; posts on <channels>." It uploads
+   the images and returns HubSpot's previews. **Show them and ask again**;
+   only on a yes: "Create the HubSpot launch for <slug>; previews
+   approved." Everything is created as a draft; scheduling and sending are
+   the user's, in HubSpot. If
+   `hubspot-check` fails, say which `.env` key is missing (`HUBSPOT_PRIVATE_APP_TOKEN`, or the private app lacks the `files` scope).
 
 12. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`

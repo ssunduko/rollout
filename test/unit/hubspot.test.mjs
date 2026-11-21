@@ -6,7 +6,7 @@ import path from 'node:path';
 import { mockFetch } from '../helpers.mjs';
 import {
   NETWORKS, EMAIL_LIMITS, tagLink, postLength, postText, validateHubspot, emailLayout, buildHubspot,
-  uploadHubspotAssets, recordCreated, readRecord, recordFile, hubspotFile, hubspotDir, loadHubspot, hubspotAccount,
+  uploadHubspotAssets, recordCreated, readRecord, recordFile, hubspotFile, hubspotDir, loadHubspot, tokenInfo, uploadForm,
 } from '../../pipeline/hubspot.mjs';
 import { socialDir } from '../../pipeline/social.mjs';
 import { loadBrand } from '../../pipeline/brand.mjs';
@@ -28,9 +28,9 @@ beforeEach(() => {
   pack();
   writeJson(hubspotFile(SLUG), original);
   fs.rmSync(recordFile(SLUG), { force: true });
-  process.env.HUBSPOT_TOKEN = 'hs-token';
+  process.env.HUBSPOT_PRIVATE_APP_TOKEN = 'hs-token';
 });
-afterEach(() => { delete process.env.HUBSPOT_TOKEN; delete process.env.HUBSPOT_FILES_FOLDER; });
+afterEach(() => { delete process.env.HUBSPOT_PRIVATE_APP_TOKEN; delete process.env.HUBSPOT_FILES_FOLDER; });
 
 test('tagLink adds utm_ parameters, keeps a link that has its own, leaves non-URLs alone', () => {
   assert.equal(tagLink(PAGE, { medium: 'email', campaign: 'launch', content: 'button' }), `${PAGE}?utm_source=hubspot&utm_medium=email&utm_campaign=launch&utm_content=button`);
@@ -182,36 +182,54 @@ test('uploadHubspotAssets: each image once, public in the slug\'s folder, record
   }
 });
 
-test('uploadHubspotAssets needs the token, and reports HubSpot\'s error', async () => {
-  delete process.env.HUBSPOT_TOKEN;
-  await assert.rejects(uploadHubspotAssets({ slug: SLUG, log: () => {} }), /HUBSPOT_TOKEN is not set/);
-  process.env.HUBSPOT_TOKEN = 't';
-  const m = mockFetch([{ url: 'https://api.hubapi.com/files/v3/files', reply: { status: 403, json: { message: 'missing scope files' } } }]);
+test('uploadHubspotAssets without a token sends no Authorization (a cloud session proxy adds it) and explains 401 and 403', async () => {
+  delete process.env.HUBSPOT_PRIVATE_APP_TOKEN;
+  let status = 401;
+  const m = mockFetch([{ url: 'https://api.hubapi.com/files/v3/files', reply: () => ({ status, json: { message: 'nope' } }) }]);
   try {
-    await assert.rejects(uploadHubspotAssets({ slug: SLUG, log: () => {} }), /hubspot POST \/files\/v3\/files -> 403 missing scope files/);
+    await assert.rejects(uploadHubspotAssets({ slug: SLUG, log: () => {} }), /HTTP 401: nope \(set HUBSPOT_PRIVATE_APP_TOKEN, or the api\.hubapi\.com network secret in a cloud session\)/);
+    assert.equal(m.calls[0].headers.get('authorization'), null);
+    process.env.HUBSPOT_PRIVATE_APP_TOKEN = 't';
+    status = 403;
+    await assert.rejects(uploadHubspotAssets({ slug: SLUG, log: () => {} }), /HTTP 403: nope \(the private app needs the "files" scope\)/);
   } finally {
     m.restore();
   }
 });
 
-test('hubspotAccount reads the account the token reaches', async () => {
-  const m = mockFetch([{ url: 'https://api.hubapi.com/account-info/v3/details', reply: { json: { portalId: 42, uiDomain: 'app.hubspot.com', timeZone: 'US/Eastern' } } }]);
+test('uploadForm: the file, its name, the folder, public and not indexed; only images, only absolute folders', () => {
+  const full = path.join(socialDir(SLUG), 'email-1100x600.png');
+  const form = uploadForm(full, { folderPath: '/rollout/x', fileName: 'a.png' });
+  assert.equal(form.get('fileName'), 'a.png');
+  assert.equal(form.get('file').type, 'image/png');
+  assert.equal(uploadForm(full, { folderPath: '/r', fileName: 'a.webp' }).get('file').type, 'image/webp');
+  assert.throws(() => uploadForm(full, { folderPath: '/r', fileName: 'a.gif' }), /a.gif: only .png .jpg .jpeg .webp can be uploaded/);
+  assert.throws(() => uploadForm(full, { folderPath: 'relative', fileName: 'a.png' }), /must be an absolute HubSpot folder path/);
+});
+
+test('tokenInfo: the lookup HubSpot offers of what the private app may do; the token is never sent as a header', async () => {
+  const m = mockFetch([{ method: 'POST', url: 'https://api.hubapi.com/oauth/v2/private-apps/get/access-token-info', reply: { json: { hubId: 42, appId: 7, scopes: ['files', 'oauth'] } } }]);
   try {
-    assert.deepEqual(await hubspotAccount(), { portalId: 42, uiDomain: 'app.hubspot.com', timeZone: 'US/Eastern' });
+    assert.deepEqual(await tokenInfo(), { hubId: 42, appId: 7, scopes: ['files', 'oauth'] });
+    assert.equal(JSON.parse(m.calls[0].body).tokenKey, 'hs-token');
+    assert.equal(m.calls[0].headers.get('authorization'), null);
   } finally {
     m.restore();
   }
+  delete process.env.HUBSPOT_PRIVATE_APP_TOKEN;
+  await assert.rejects(tokenInfo(), /HUBSPOT_PRIVATE_APP_TOKEN is not set/);
 });
 
-test('recordCreated keeps the email and each post\'s id beside the uploaded files; the build shows them', async () => {
-  recordCreated(SLUG, { email: 555 });
-  const r = recordCreated(SLUG, { posts: { LINKEDIN: 'guid-1' } });
+test('recordCreated keeps the email and each post (guid, channel, link) beside the uploaded files; the build shows them', () => {
+  recordCreated(SLUG, { email: { id: 555, url: 'https://app.hubspot.com/email/1/edit/555' } });
+  const r = recordCreated(SLUG, { post: { network: 'LINKEDIN', guid: 'guid-1', channel: 'ch-9', url: 'https://app.hubspot.com/social/1/x' } });
   assert.equal(r.email.id, '555');
-  assert.equal(r.posts.LINKEDIN.id, 'guid-1');
+  assert.equal(r.email.url, 'https://app.hubspot.com/email/1/edit/555');
+  assert.deepEqual({ ...r.posts.LINKEDIN, createdAt: undefined }, { id: 'guid-1', channel: 'ch-9', url: 'https://app.hubspot.com/social/1/x', createdAt: undefined });
   assert.match(r.posts.LINKEDIN.createdAt, /^\d{4}-\d{2}-\d{2}T/);
-  assert.throws(() => recordCreated(SLUG, { posts: { MYSPACE: 'x' } }), /no network MYSPACE/);
+  assert.throws(() => recordCreated(SLUG, { post: { network: 'MYSPACE', guid: 'x' } }), /no network MYSPACE/);
   const { email, posts } = buildHubspot({ slug: SLUG, brand, log: () => {} });
   assert.equal(email.created.id, '555');
-  assert.equal(posts[0].created.id, 'guid-1');
+  assert.equal(posts[0].created.channel, 'ch-9');
   assert.equal(posts[1].created, null);
 });

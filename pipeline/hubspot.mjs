@@ -19,7 +19,7 @@
 // Nothing here talks to HubSpot except hubspot-assets: images must be public
 // for the email and in HubSpot's File Manager for social posts, so
 // `rollout.mjs hubspot-assets <slug> --yes` uploads them over the Files API
-// (HUBSPOT_TOKEN) and records each file's id and URL by content hash in
+// (HUBSPOT_PRIVATE_APP_TOKEN) and records each file's id and URL by content hash in
 // hubspot.published.json. Creating the email and the posts — always as drafts —
 // is the agent's, through HubSpot's own tools, on the user's approval;
 // hubspot-record writes their ids beside the files.
@@ -271,33 +271,61 @@ section{max-width:640px;margin:0 auto 32px}.meta{color:var(--muted);font-size:14
 .ps{color:var(--muted);font-size:14px}</style></head><body>${email}${social}</body></html>`;
 }
 
-// ---- HubSpot: files and the account ----
+// ---- HubSpot: files and the token ----
 
+// Auth: a private app access token with the files scope in
+// HUBSPOT_PRIVATE_APP_TOKEN (.env, git-ignored). In a cloud session, set it as a
+// network secret for api.hubapi.com instead: the proxy adds the Authorization
+// header, so the variable stays unset there and none is sent from here.
 const API = () => (env('HUBSPOT_API_URL') ?? 'https://api.hubapi.com').replace(/\/$/, '');
+const token = () => env('HUBSPOT_PRIVATE_APP_TOKEN') ?? null;
+const TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 
-async function call(method, route, { body, form } = {}) {
-  const token = env('HUBSPOT_TOKEN');
-  if (!token) throw new Error('HUBSPOT_TOKEN is not set in .env (a private app token with the files scope; docs/hubspot.md)');
+async function call(method, route, { body, form, auth = true } = {}) {
+  const t = token();
   const res = await fetch(`${API()}${route}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    headers: { ...(auth && t ? { Authorization: `Bearer ${t}` } : {}), Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: form ?? (body ? JSON.stringify(body) : undefined),
   });
   const text = await res.text();
-  const json = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(`hubspot ${method} ${route} -> ${res.status} ${json.message ?? text.slice(0, 200)}`);
+  let json;
+  try { json = text ? JSON.parse(text) : {}; } catch { json = {}; }
+  if (!res.ok) {
+    const hint = res.status === 401 ? ' (set HUBSPOT_PRIVATE_APP_TOKEN, or the api.hubapi.com network secret in a cloud session)'
+      : res.status === 403 ? ' (the private app needs the "files" scope)' : '';
+    throw new Error(`hubspot ${method} ${route} -> HTTP ${res.status}: ${json.message ?? text.slice(0, 200)}${hint}`);
+  }
   return json;
 }
 
-// The account the token reaches: { portalId, uiDomain, timeZone }.
-export async function hubspotAccount() {
-  const a = await call('GET', '/account-info/v3/details');
-  return { portalId: a.portalId, uiDomain: a.uiDomain ?? null, timeZone: a.timeZone ?? null };
+// What the private app token may do: { hubId, appId, scopes }. HubSpot's own
+// lookup — the token goes only to HubSpot and is never printed.
+export async function tokenInfo() {
+  const t = token();
+  if (!t) throw new Error('HUBSPOT_PRIVATE_APP_TOKEN is not set in .env (a private app token with the files scope; docs/hubspot.md). In a cloud session the api.hubapi.com network secret stands in for it, and uploads still work.');
+  const r = await call('POST', '/oauth/v2/private-apps/get/access-token-info', { body: { tokenKey: t }, auth: false });
+  if (!Array.isArray(r.scopes)) throw new Error('HubSpot did not recognise the token');
+  return { hubId: r.hubId ?? null, appId: r.appId ?? null, scopes: r.scopes };
 }
 
-// Upload the images the email and the posts name to the File Manager (public,
-// not indexed), each once: a file already uploaded (same content) is kept.
-// Records { hash: { id, url, file } } in hubspot.published.json.
+// The multipart form for one upload: public (not indexed), as social networks
+// and email clients fetch the file by URL.
+export function uploadForm(full, { folderPath, fileName }) {
+  const type = TYPES[path.extname(fileName).toLowerCase()];
+  if (!type) throw new Error(`${fileName}: only ${Object.keys(TYPES).join(' ')} can be uploaded`);
+  if (!/^\/[\w\-/]+$/.test(folderPath)) throw new Error(`folderPath "${folderPath}" must be an absolute HubSpot folder path like /rollout/my-feature`);
+  const form = new FormData();
+  form.append('file', new Blob([fs.readFileSync(full)], { type }), fileName);
+  form.append('fileName', fileName);
+  form.append('folderPath', folderPath);
+  form.append('options', JSON.stringify({ access: 'PUBLIC_NOT_INDEXABLE', overwrite: false, duplicateValidationStrategy: 'NONE' }));
+  return form;
+}
+
+// Upload the images the email and the posts name to the File Manager, each
+// once: a file already uploaded (same content) is kept. Records
+// { hash: { id, url, file } } in hubspot.published.json.
 export async function uploadHubspotAssets({ slug, log = console.log }) {
   const data = loadHubspot(slug);
   const { errors } = validateHubspot(slug, data);
@@ -305,16 +333,14 @@ export async function uploadHubspotAssets({ slug, log = console.log }) {
   const files = [...new Set([data.email?.image, ...(data.social ?? []).map((p) => p.image)].filter(Boolean))];
   const record = readRecord(slug);
   record.assets ??= {};
-  const folder = (env('HUBSPOT_FILES_FOLDER') ?? '/rollout/{slug}').replace('{slug}', slug);
+  const folderPath = (env('HUBSPOT_FILES_FOLDER') ?? '/rollout/{slug}').replace('{slug}', slug);
   for (const file of files) {
     const full = imagePath(slug, file);
     const hash = hashOf(full);
     if (record.assets[hash]) { log(`  keep    ${file}  (file ${record.assets[hash].id})`); continue; }
-    const form = new FormData();
-    form.append('file', new Blob([fs.readFileSync(full)], { type: 'image/png' }), `${path.basename(file, path.extname(file))}.${hash}${path.extname(file)}`);
-    form.append('folderPath', folder);
-    form.append('options', JSON.stringify({ access: 'PUBLIC_NOT_INDEXABLE', overwrite: false, duplicateValidationStrategy: 'NONE' }));
-    const r = await call('POST', '/files/v3/files', { form });
+    const fileName = `${path.basename(file, path.extname(file))}.${hash}${path.extname(file)}`;
+    const r = await call('POST', '/files/v3/files', { form: uploadForm(full, { folderPath, fileName }) });
+    if (!r.id || !r.url) throw new Error(`HubSpot upload of ${file} returned no file id/url`);
     record.assets[hash] = { id: String(r.id), url: r.url, file };
     log(`  upload  ${file}  -> file ${r.id}`);
     writeJson(recordFile(slug), record);
@@ -323,14 +349,15 @@ export async function uploadHubspotAssets({ slug, log = console.log }) {
   return record.assets;
 }
 
-// After the agent creates them in HubSpot: the email's id and each post's id.
-export function recordCreated(slug, { email = null, posts = {} } = {}) {
+// After the agent creates them in HubSpot (drafts): the email's id, and a
+// post's guid with the channel it is on and its HubSpot link.
+export function recordCreated(slug, { email = null, post = null } = {}) {
   const record = readRecord(slug);
   const at = new Date().toISOString();
-  if (email) record.email = { id: String(email), createdAt: at };
-  for (const [network, guid] of Object.entries(posts)) {
-    if (!NETWORKS[network]) throw new Error(`no network ${network} — ${Object.keys(NETWORKS).join(', ')}`);
-    record.posts = { ...(record.posts ?? {}), [network]: { id: String(guid), createdAt: at } };
+  if (email) record.email = { id: String(email.id), ...(email.url ? { url: email.url } : {}), createdAt: at };
+  if (post) {
+    if (!NETWORKS[post.network]) throw new Error(`no network ${post.network} — ${Object.keys(NETWORKS).join(', ')}`);
+    record.posts = { ...(record.posts ?? {}), [post.network]: { id: String(post.guid), ...(post.channel ? { channel: String(post.channel) } : {}), ...(post.url ? { url: post.url } : {}), createdAt: at } };
   }
   writeJson(recordFile(slug), record);
   return record;

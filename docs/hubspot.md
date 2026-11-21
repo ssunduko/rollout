@@ -78,7 +78,7 @@ It lists, as `todo`, each image not in HubSpot yet.
 ## Create (on approval)
 
 ```bash
-node pipeline/rollout.mjs hubspot-check
+node pipeline/rollout.mjs hubspot-check     # the token's account and scopes; fails without "files"
 node pipeline/rollout.mjs hubspot-assets <slug> --yes
 ```
 
@@ -89,15 +89,26 @@ Manager (public, not indexed, in `HUBSPOT_FILES_FOLDER`, default
 never uploaded twice — and builds again with their URLs (the email needs
 public URLs) and file ids (social posts need File Manager files).
 
-The agent then creates, through HubSpot's tools:
+Three gates, each the user's:
 
-- the email: a batch marketing email with the approved from name, reply-to
-  address, subscription type, template (or blank) and lists, its content
-  from `email.layout.json` — a draft;
-- each post: a draft on the approved channel, with its text and image.
-
-and records them: `hubspot-record <slug> --email <id> --post
-LINKEDIN=<id> ...`. Later builds show what was created beside each item.
+1. **Plan** (no writes): the agent picks the company channel on each
+   network (`get_social_channels`; several on one network: the user
+   chooses), and looks for posts the team already made about the same
+   launch — `read_social_posts` searched by topic (the feature's name) and
+   by a few words of the copy, over the weeks around today, because teams
+   rewrite copy. Anything found is listed; creating alongside it is the
+   user's call.
+2. **Preview** (on approval): `hubspot-assets`, then HubSpot's own preview
+   of each post — the same call with `confirmed: false` writes nothing —
+   and of the email's settings. The agent stops and shows them.
+3. **Create** (on approval of those previews): the identical calls with
+   `confirmed: true`. The email: a batch marketing email with the approved
+   from name, reply-to, subscription type, template (or blank) and lists,
+   its content from `email.layout.json`. Each post: a draft with its text
+   and image. Then each is recorded:
+   `hubspot-record <slug> --email <id> [--url <link>]` and
+   `hubspot-record <slug> --network LINKEDIN --guid <id> --channel <id> --url <link>`.
+   Later builds show what was created beside each item.
 
 Nothing is scheduled, published or sent by the pipeline or the agent.
 
@@ -105,10 +116,23 @@ Nothing is scheduled, published or sent by the pipeline or the agent.
 
 | `.env` | |
 |---|---|
-| `HUBSPOT_TOKEN` | a HubSpot private app's access token with the `files` scope (for `hubspot-assets`). Secret |
+| `HUBSPOT_PRIVATE_APP_TOKEN` | a HubSpot private app's access token with the `files` scope (for `hubspot-assets`); the same private app other projects use works here. Secret. In a cloud session, leave it unset and add the token as a network secret for `api.hubapi.com`: the proxy adds the header |
 | `HUBSPOT_API_URL` | default `https://api.hubapi.com` |
 | `HUBSPOT_FILES_FOLDER` | the File Manager folder for uploads; `{slug}` is replaced. Default `/rollout/{slug}` |
 
 Creating the email and the posts goes through the HubSpot connector the
-session has (its marketing email and social tools); the social posts need the
-brand's accounts connected in HubSpot.
+session has (its marketing email and social tools).
+
+## When something is refused
+
+- **401 on upload**: `HUBSPOT_PRIVATE_APP_TOKEN` is missing or wrong (or, in
+  a cloud session, the `api.hubapi.com` network secret). **403**: the
+  private app lacks the `files` scope — `hubspot-check` lists its scopes.
+- **The connector needs the Social and Marketing email permissions.**
+  Reconnect HubSpot with them ticked; a lock means a HubSpot admin has to
+  allow them for the app.
+- **So does your HubSpot user.** A connector can never do more than the
+  user it signs in as. If `get_social_channels` lists every channel with
+  `READ` only, give your user draft access to Social and add it as a
+  publisher on each social account (Settings → Marketing → Social →
+  Accounts).

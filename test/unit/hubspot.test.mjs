@@ -6,7 +6,7 @@ import path from 'node:path';
 import { mockFetch } from '../helpers.mjs';
 import {
   NETWORKS, EMAIL_LIMITS, tagLink, postLength, postText, validateHubspot, emailLayout, buildHubspot,
-  uploadHubspotAssets, recordCreated, readRecord, recordFile, hubspotFile, hubspotDir, loadHubspot, tokenInfo, uploadForm,
+  uploadHubspotAssets, recordCreated, readRecord, recordFile, hubspotFile, hubspotDir, loadHubspot, tokenInfo, uploadForm, canUpload,
 } from '../../pipeline/hubspot.mjs';
 import { socialDir } from '../../pipeline/social.mjs';
 import { loadBrand } from '../../pipeline/brand.mjs';
@@ -232,4 +232,11 @@ test('recordCreated keeps the email and each post (guid, channel, link) beside t
   assert.equal(email.created.id, '555');
   assert.equal(posts[0].created.channel, 'ch-9');
   assert.equal(posts[1].created, null);
+});
+
+test('canUpload: the files scope or its granular files.write', () => {
+  assert.equal(canUpload(['files']), true);
+  assert.equal(canUpload(['social', 'files.read', 'files.write']), true);
+  assert.equal(canUpload(['files.read']), false);
+  assert.equal(canUpload([]), false);
 });

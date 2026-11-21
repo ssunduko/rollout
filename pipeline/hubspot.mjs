@@ -309,6 +309,9 @@ export async function tokenInfo() {
   return { hubId: r.hubId ?? null, appId: r.appId ?? null, scopes: r.scopes };
 }
 
+// Whether the token may upload: the files scope, or its granular form files.write.
+export const canUpload = (scopes) => scopes.includes('files') || scopes.includes('files.write');
+
 // The multipart form for one upload: public (not indexed), as social networks
 // and email clients fetch the file by URL.
 export function uploadForm(full, { folderPath, fileName }) {

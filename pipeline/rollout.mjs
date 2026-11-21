@@ -99,7 +99,7 @@ import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
 import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
 import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
-import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
+import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, canUpload, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = new Set(rest.filter((a) => a.startsWith('--')));
@@ -842,8 +842,8 @@ const commands = {
     const t = await tokenInfo();
     console.log(`  account  hub ${t.hubId ?? '?'}  app ${t.appId ?? '?'}`);
     console.log(`  scopes   ${t.scopes.join(', ') || 'none'}`);
-    if (!t.scopes.includes('files')) {
-      console.log('  error    the private app lacks the "files" scope: hubspot-assets cannot upload (add it to the app in HubSpot)');
+    if (!canUpload(t.scopes)) {
+      console.log('  error    the private app lacks the "files" (or "files.write") scope: hubspot-assets cannot upload (add it to the app in HubSpot)');
       process.exitCode = 1;
     } else console.log('  files    the token can upload (hubspot-assets)');
   },

@@ -116,7 +116,7 @@ Nothing is scheduled, published or sent by the pipeline or the agent.
 
 | `.env` | |
 |---|---|
-| `HUBSPOT_PRIVATE_APP_TOKEN` | a HubSpot private app's access token with the `files` scope (for `hubspot-assets`); the same private app other projects use works here. Secret. In a cloud session, leave it unset and add the token as a network secret for `api.hubapi.com`: the proxy adds the header |
+| `HUBSPOT_PRIVATE_APP_TOKEN` | a HubSpot private app's access token with the `files` scope, or its granular `files.write` (for `hubspot-assets`); the same private app other projects use works here. Secret. In a cloud session, leave it unset and add the token as a network secret for `api.hubapi.com`: the proxy adds the header |
 | `HUBSPOT_API_URL` | default `https://api.hubapi.com` |
 | `HUBSPOT_FILES_FOLDER` | the File Manager folder for uploads; `{slug}` is replaced. Default `/rollout/{slug}` |
 

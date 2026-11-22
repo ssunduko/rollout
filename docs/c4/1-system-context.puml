@@ -8,9 +8,9 @@ title Rollout — System Context
 Person(author, "Product marketer", "Describes a feature in plain English, approves data-changing captures, QA fixes and every publish, receives the outputs.")
 Person(reader, "Customer / prospect", "Reads the one-pager, the feature page and the help article.")
 
-System(rollout, "Rollout", "Turns a feature description into a branded one-pager PDF, a matching web feature page, a social pack, a help-center article, a podcast episode from the feature video the HubSpot launch email and social posts, and the product changelog entry. Agents author JSON sidecars; a brand-agnostic Node pipeline renders and publishes them.")
+System(rollout, "Rollout", "Turns a feature description into a branded one-pager PDF, a matching web feature page, a social pack, a help-center article, a podcast episode from the feature video the HubSpot launch email and social posts, the product changelog entry, and the in-app news item. Agents author JSON sidecars; a brand-agnostic Node pipeline renders and publishes them.")
 
-System_Ext(claude, "Claude Code", "Runs the feature-rollout skill and the copywriter, visual-designer, QA, help-writer, web-publisher, podcast-producer, hubspot-marketer and changelog-writer agents.")
+System_Ext(claude, "Claude Code", "Runs the feature-rollout skill and the copywriter, visual-designer, QA, help-writer, web-publisher, podcast-producer, hubspot-marketer, changelog-writer and news-writer agents.")
 System_Ext(app, "Product application", "The logged-in SaaS app the feature lives in. Visuals are captured from it (look, don't touch).")
 System_Ext(helpcenter, "Help center (Intercom)", "Hosts the help article. Created or updated as a draft, published only on request.")
 System_Ext(imagestore, "Image store (S3)", "Public help/ prefix hosting the help article's framed images for the help center to copy.")
@@ -20,6 +20,7 @@ System_Ext(studio, "Podcast studio (ElevenLabs)", "Transcribes the video; voices
 System_Ext(directory, "Podcast directory (Spotify)", "Hosts the show (Spotify for Creators; episodes uploaded by hand) and is where listeners find it; read through its Web API, which also saves the episode to the person's library once they sign in (spotify-login). No API publishes an episode.")
 System_Ext(hubspot, "Marketing platform (HubSpot)", "Sends the launch email and posts to the brand's social accounts. The email and posts are created as drafts on request; scheduling and sending are the user's. Recipient lists are the user's.")
 System_Ext(changelog, "Product changelog (Canny)", "Hosts the public what's-new entries. Entries are created or updated as drafts on request; publishing, and emailing subscribers, are separate approvals.")
+System_Ext(news, "In-app news (Intercom)", "Shows news items in the messenger's newsfeeds. Items are created or updated as drafts on request; setting live, and the notification badge, are separate approvals. In-app posts have no API.")
 System_Ext(tools, "Chrome + ffmpeg", "Headless Chrome (puppeteer-core) renders and captures; ffmpeg encodes GIFs.")
 
 Rel(author, claude, "Asks to roll out, publish; approves", "chat")
@@ -45,6 +46,9 @@ Rel(author, hubspot, "Picks the lists; schedules and sends")
 Rel(hubspot, reader, "Delivers the launch email and posts", "email, social")
 Rel(rollout, changelog, "Finds, creates or updates the entry; publishes on approval", "Canny REST API")
 Rel(author, changelog, "Reviews drafts; publishes or deletes them")
+Rel(rollout, news, "Finds, creates or updates the item; sets it live on approval", "Intercom REST API")
+Rel(author, news, "Reviews drafts; sets them live or deletes them; pastes the body into a post")
+Rel(news, reader, "Shows the item in the messenger", "in-app")
 Rel(changelog, reader, "Shows the entry; emails subscribers when approved", "HTTPS, email")
 Rel(author, reader, "Shares the one-pager PDF and social pack", "email, sales, social")
 

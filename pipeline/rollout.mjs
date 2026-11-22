@@ -53,6 +53,11 @@
 //   node pipeline/rollout.mjs changelog-find <slug> [<words>]       entries that may already announce the feature, read into output/<slug>/changelog-live/
 //   node pipeline/rollout.mjs changelog-publish <slug> --yes [--live] [--notify]
 //                                                                    create or update the entry: a draft; --live to publish; --notify to email subscribers
+//   node pipeline/rollout.mjs news <slug>                           the in-app news item (library/features/<slug>/news.json) -> output/<slug>/news/
+//   node pipeline/rollout.mjs news-check                            check the news connection; the newsfeeds, senders and labels in use
+//   node pipeline/rollout.mjs news-find <slug> [<words>]            news items that may already announce the feature, read into output/<slug>/news-live/
+//   node pipeline/rollout.mjs news-publish <slug> --yes [--live] [--notify]
+//                                                                    create or update the item: a draft; --live to set it live; --notify for the badge
 //   node pipeline/rollout.mjs qa <slug>                           measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
@@ -68,7 +73,7 @@
 //   node pipeline/rollout.mjs schema check <url>...                 the structured data a published page carries, against each type's rules
 //
 // Agents write sidecars (brief.json, social.json, help.json, site.json,
-// podcast.json, video.json, hubspot.json, changelog.json, scene.json +
+// podcast.json, video.json, hubspot.json, changelog.json, news.json, scene.json +
 // scene.html); this renders them. It never writes
 // copy or invents visuals, and sends nothing anywhere without --yes.
 
@@ -106,6 +111,7 @@ import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
 import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
 import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, canUpload, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
+import { loadNews, buildNews, newsService, matchItems, publishNews, readNewsRecord, newsLiveDir, newsRecordFile } from './news.mjs';
 import { loadChangelog, buildChangelog, changelogService, matchEntries, publishChangelog, readChangelogRecord, changelogLiveDir, changelogRecordFile } from './changelog.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -927,6 +933,64 @@ const commands = {
     const r = await publishChangelog({ slug, brand: brandForFeature(slug), live: flags.has('--live'), notify: flags.has('--notify') });
     console.log(`  ${r.action}d entry ${r.entryId}  [${r.status}]  ${r.url ?? ''}`);
     console.log(`  record  ${rel(changelogRecordFile(slug))}`);
+  },
+
+  news() {
+    const slug = assertSlug(args[0]);
+    if (!loadNews(slug)) throw new Error(`no library/features/${slug}/news.json — ask the news writer to write it (docs/news.md)`);
+    const { dir, item, blockers } = buildNews({ slug, brand: brandForFeature(slug) });
+    console.log(`  item     "${item.title}"${item.labels.length ? `  labels ${item.labels.join(', ')}` : ''}  newsfeeds ${item.newsfeedIds.join(', ') || 'none'}`);
+    if (item.live) console.log(`  live     ${item.live.state}`);
+    blockers.forEach((b) => console.log(`  todo     ${b}`));
+    console.log(`  body     ${rel(path.join(dir, 'item.html'))}  (also pastes into an in-app post)`);
+    console.log(`  preview  ${rel(path.join(dir, 'preview.html'))}`);
+  },
+
+  async 'news-check'() {
+    const svc = await newsService(loadBrand());
+    const feeds = await svc.newsfeeds();
+    const senders = await svc.senders();
+    const items = await svc.all({ max: 200 });
+    const by = (s) => items.filter((x) => x.state === s).length;
+    console.log(`news: ${svc.name}  (connected; ${items.length} items: ${by('live')} live, ${by('draft')} draft)`);
+    console.log(`newsfeeds: put ids in news.json newsfeedIds, or NEWS_NEWSFEED_IDS${env('NEWS_NEWSFEED_IDS') ? ` (now ${env('NEWS_NEWSFEED_IDS')})` : ''}`);
+    feeds.forEach((f) => console.log(`  ${f.id}  ${f.name || '(no name)'}`));
+    const sender = env('NEWS_SENDER_ID') ?? env('HELP_AUTHOR_ID');
+    console.log(`senders: put one id in .env as NEWS_SENDER_ID${sender ? ` (now ${sender})` : ''}`);
+    senders.forEach((a) => console.log(`  ${a.id}  ${a.name}${a.id === sender ? '  (sender)' : ''}`));
+    const labels = [...new Set(items.flatMap((x) => x.labels))];
+    console.log(`labels in use: ${labels.join(', ') || 'none'}`);
+  },
+
+  async 'news-find'() {
+    const slug = assertSlug(args[0]);
+    const brand = brandForFeature(slug);
+    const svc = await newsService(brand);
+    const record = readNewsRecord(slug);
+    const phrases = args.length > 1 ? [args.slice(1).join(' ')] : [loadNews(slug)?.feature ?? loadBrief(slug, brand).feature];
+    const items = await svc.all();
+    const found = new Map(matchItems(items, phrases).map((x) => [x.id, x]));
+    if (record?.itemId) {
+      const mine = items.find((x) => x.id === record.itemId);
+      if (mine) found.set(mine.id, mine);
+      else console.log(`  note     item ${record.itemId} from ${rel(newsRecordFile(slug))} is no longer in the news service`);
+    }
+    if (!found.size) return console.log(`  no news items match ${phrases.map((p) => `"${p}"`).join(', ')} (of ${items.length})`);
+    for (const x of found.values()) {
+      writeJson(path.join(newsLiveDir(slug), `${x.id}.json`), x);
+      console.log(`  ${x.id}  [${x.state}]  ${x.title || '(no title)'}${x.id === record?.itemId ? "  ← this feature's (news.published.json)" : ''}`);
+      console.log(`      updatedAt ${x.updatedAt}  newsfeeds ${x.newsfeedIds.join(', ') || 'none'}${x.labels.length ? `  labels ${x.labels.join(', ')}` : ''}`);
+    }
+    console.log(`  saved    ${rel(newsLiveDir(slug))}/<id>.json  (record updatedAt in news.json publish.updatedAt to update one)`);
+  },
+
+  async 'news-publish'() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('news-publish sends the item to the news service: run it only after the user approved, with --yes');
+    if (!loadNews(slug)) throw new Error(`no library/features/${slug}/news.json — ask the news writer to write it (docs/news.md)`);
+    const r = await publishNews({ slug, brand: brandForFeature(slug), live: flags.has('--live'), notify: flags.has('--notify') });
+    console.log(`  ${r.action}d news item ${r.itemId}  [${r.state}]  newsfeeds ${r.newsfeedIds.join(', ') || 'none'}`);
+    console.log(`  record  ${rel(newsRecordFile(slug))}`);
   },
 
   async schema() {

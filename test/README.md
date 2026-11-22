@@ -38,6 +38,7 @@ and Windows, integration tests on Linux with Chrome and ffmpeg.
 | `integration/podcast.test.mjs` | `podcast-script` and `podcast --yes`: voiced in parts, joined by ffmpeg, the transcript, a rerun spending nothing, a changed script only with `--force` |
 | `integration/hubspot.test.mjs` | the HubSpot commands: the build, uploads refused without `--yes`, the token check, recording the drafts |
 | `integration/changelog.test.mjs` | the changelog commands: the build, sending refused without `--yes`, the connection naming the missing key |
+| `integration/news.test.mjs` | the news commands: the build and its blockers, sending refused without `--yes`, the connection naming the missing key |
 | `integration/webmedia.test.mjs` | the frame overlay over help images and web GIFs, drawn by Chrome and read back with ffmpeg: clear inside, opaque only at the edges |
 | `fixtures/` | sidecars the example does not have (social, site, podcast); fictional (Acme) only |
 

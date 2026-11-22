@@ -13,8 +13,8 @@ in `.env`.
 Agents edit only `library/features/*/brief.json`, `library/features/*/social.json`,
 `library/features/*/help.json`, `library/features/*/site.json`,
 `library/features/*/podcast.json`, `library/features/*/video.json`,
-`library/features/*/hubspot.json`, `library/features/*/changelog.json` and
-`library/scenes/*`. They
+`library/features/*/hubspot.json`, `library/features/*/changelog.json`,
+`library/features/*/news.json` and `library/scenes/*`. They
 never edit `pipeline/` or hand-edit anything in `output/`.
 *Why:* every build must be reproducible from the sidecars alone (2026-10-26).
 
@@ -98,10 +98,12 @@ One folder per brand under `brand/`, chosen with `BRAND_DIR`.
 
 ### Publish only on request
 Uploading outputs anywhere external (CMS, drive, ticket, help center,
-HubSpot, changelog) only when the user says so for that rollout. HubSpot
+HubSpot, changelog, in-app news) only when the user says so for that rollout. HubSpot
 emails and social posts are created as drafts; scheduling and sending are
 the user's. A changelog entry is sent as a draft; publishing it, and
-emailing the changelog's subscribers, each need their own yes.
+emailing the changelog's subscribers, each need their own yes. An in-app
+news item is sent as a draft; setting it live, and its notification badge,
+each need their own yes.
 
 ### Help articles: update, don't duplicate
 Before creating a help article, look for the one that already covers the

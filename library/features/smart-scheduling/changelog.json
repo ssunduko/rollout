@@ -1,0 +1,28 @@
+{
+  "$comment": "The changelog entry for Smart Scheduling (docs/changelog.md), written by the rollout-changelog-writer agent from input/smart-scheduling/feature.md and the brief.",
+  "feature": "Smart Scheduling",
+  "title": "Smart Scheduling: book meetings inside the conversation",
+  "types": ["new"],
+  "summary": "You can now book meetings without leaving the text thread. Offer open times from your team's calendars in one click, and the meeting is created, confirmed and reminded automatically.",
+  "image": {
+    "url": "https://www.acme.example/images/smart-scheduling-hero.png",
+    "alt": "A text conversation where the customer picks one of three suggested meeting times"
+  },
+  "sections": [
+    {
+      "title": "Offer open times in the thread",
+      "body": "Click Suggest times in the composer to add three open slots to your reply. Customers answer with a number or a tap."
+    },
+    {
+      "title": "What's included",
+      "bullets": [
+        "Google and Microsoft calendars, with working hours, buffers and round-robin",
+        "Confirmations, plus reminders 24 hours and 1 hour before",
+        "Meeting types and booking questions for each inbox"
+      ]
+    }
+  ],
+  "cta": { "label": "See how Smart Scheduling works", "url": "https://www.acme.example/features/smart-scheduling" },
+  "labelIds": [],
+  "publish": { "status": "draft", "notify": false }
+}

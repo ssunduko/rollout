@@ -48,7 +48,12 @@
 //   node pipeline/rollout.mjs hubspot-assets <slug> --yes           upload the email's and posts' images to HubSpot's File Manager (only on the user's approval)
 //   node pipeline/rollout.mjs hubspot-record <slug> --email <id> [--url <link>] | --network <NETWORK> --guid <id> [--channel <id>] [--url <link>]
 //                                                                    after the agent created them in HubSpot (drafts): record their ids
-//   node pipeline/rollout.mjs qa <slug>                            measure outputs, write screenshots + qa.json
+//   node pipeline/rollout.mjs changelog <slug>                      the changelog entry (library/features/<slug>/changelog.json) -> output/<slug>/changelog/
+//   node pipeline/rollout.mjs changelog-check                       check the changelog connection; its entries by status and the labels they use
+//   node pipeline/rollout.mjs changelog-find <slug> [<words>]       entries that may already announce the feature, read into output/<slug>/changelog-live/
+//   node pipeline/rollout.mjs changelog-publish <slug> --yes [--live] [--notify]
+//                                                                    create or update the entry: a draft; --live to publish; --notify to email subscribers
+//   node pipeline/rollout.mjs qa <slug>                           measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
 //   node pipeline/rollout.mjs brand [<slug>]                        the resolved brand (the feature's, else BRAND_DIR)
@@ -63,7 +68,8 @@
 //   node pipeline/rollout.mjs schema check <url>...                 the structured data a published page carries, against each type's rules
 //
 // Agents write sidecars (brief.json, social.json, help.json, site.json,
-// podcast.json, video.json, scene.json + scene.html); this renders them. It never writes
+// podcast.json, video.json, hubspot.json, changelog.json, scene.json +
+// scene.html); this renders them. It never writes
 // copy or invents visuals, and sends nothing anywhere without --yes.
 
 import fs from 'node:fs';
@@ -100,6 +106,7 @@ import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
 import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
 import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, canUpload, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
+import { loadChangelog, buildChangelog, changelogService, matchEntries, publishChangelog, readChangelogRecord, changelogLiveDir, changelogRecordFile } from './changelog.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = new Set(rest.filter((a) => a.startsWith('--')));
@@ -867,6 +874,59 @@ const commands = {
     const r = recordCreated(slug, { email, post });
     console.log(`  recorded  ${[r.email && `email ${r.email.id}`, ...Object.entries(r.posts ?? {}).map(([n, p]) => `${n} ${p.id}`)].filter(Boolean).join(', ')}`);
     if (loadHubspot(slug) && !validateHubspot(slug).errors.length) buildHubspot({ slug, brand: brandForFeature(slug), log: () => {} });
+  },
+
+  changelog() {
+    const slug = assertSlug(args[0]);
+    if (!loadChangelog(slug)) throw new Error(`no library/features/${slug}/changelog.json — ask the changelog writer to write it (docs/changelog.md)`);
+    const { dir, entry, blockers } = buildChangelog({ slug, brand: brandForFeature(slug) });
+    console.log(`  entry    "${entry.title}"  [${entry.types.join(', ')}]${entry.labelIds.length ? `  labels ${entry.labelIds.join(', ')}` : ''}`);
+    if (entry.live) console.log(`  live     ${entry.live.status}  ${entry.live.url ?? ''}`);
+    blockers.forEach((b) => console.log(`  todo     ${b}`));
+    console.log(`  preview  ${rel(path.join(dir, 'preview.html'))}`);
+  },
+
+  async 'changelog-check'() {
+    const svc = await changelogService(loadBrand());
+    const entries = await svc.all({ max: 500 });
+    const by = (s) => entries.filter((x) => x.status === s).length;
+    console.log(`changelog: ${svc.name}  (connected; ${entries.length}${entries.length === 500 ? '+' : ''} entries: ${by('published')} published, ${by('draft')} draft, ${by('scheduled')} scheduled)`);
+    const labels = new Map();
+    for (const x of entries) for (const l of x.labels) labels.set(l.id, l.name);
+    console.log('labels: put ids in changelog.json labelIds');
+    if (!labels.size) console.log('  none used yet');
+    for (const [id, name] of labels) console.log(`  ${id}  ${name}`);
+  },
+
+  async 'changelog-find'() {
+    const slug = assertSlug(args[0]);
+    const brand = brandForFeature(slug);
+    const svc = await changelogService(brand);
+    const record = readChangelogRecord(slug);
+    const phrases = args.length > 1 ? [args.slice(1).join(' ')] : [loadChangelog(slug)?.feature ?? loadBrief(slug, brand).feature];
+    const entries = await svc.all();
+    const found = new Map(matchEntries(entries, phrases).map((x) => [x.id, x]));
+    if (record?.entryId) {
+      const mine = entries.find((x) => x.id === record.entryId);
+      if (mine) found.set(mine.id, mine);
+      else console.log(`  note     entry ${record.entryId} from ${rel(changelogRecordFile(slug))} is no longer in the changelog`);
+    }
+    if (!found.size) return console.log(`  no entries match ${phrases.map((p) => `"${p}"`).join(', ')} (of ${entries.length})`);
+    for (const x of found.values()) {
+      writeJson(path.join(changelogLiveDir(slug), `${x.id}.json`), x);
+      console.log(`  ${x.id}  [${x.status}]  ${x.title}  (${x.types.join(', ') || 'no type'})${x.id === record?.entryId ? '  ← this feature\'s (changelog.published.json)' : ''}`);
+      console.log(`      lastSaved ${x.lastSaved}  ${x.url ?? ''}${x.labels.length ? `  labels ${x.labels.map((l) => `${l.name} (${l.id})`).join(', ')}` : ''}`);
+    }
+    console.log(`  saved    ${rel(changelogLiveDir(slug))}/<id>.json  (record lastSaved in changelog.json publish.lastSaved to update one)`);
+  },
+
+  async 'changelog-publish'() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('changelog-publish sends the entry to the changelog: run it only after the user approved, with --yes');
+    if (!loadChangelog(slug)) throw new Error(`no library/features/${slug}/changelog.json — ask the changelog writer to write it (docs/changelog.md)`);
+    const r = await publishChangelog({ slug, brand: brandForFeature(slug), live: flags.has('--live'), notify: flags.has('--notify') });
+    console.log(`  ${r.action}d entry ${r.entryId}  [${r.status}]  ${r.url ?? ''}`);
+    console.log(`  record  ${rel(changelogRecordFile(slug))}`);
   },
 
   async schema() {

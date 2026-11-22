@@ -1,6 +1,6 @@
 @startuml dynamic-rollout
 ' C4 dynamic diagram — one rollout, from description to served page, then
-' the help article, the website pages, the podcast and the HubSpot launch,
+' the help article, the website pages, the podcast, the HubSpot launch and the changelog entry,
 ' each only on request.
 ' Approval gates (mutating captures, QA fixes, every publish) go through the person.
 ' Render: see docs/c4/README.md
@@ -29,6 +29,8 @@ System_Ext(elevenlabs, "ElevenLabs")
 System_Ext(spotify, "Spotify")
 Container(hsmarketer, "rollout-hubspot-marketer", "agent")
 System_Ext(hubspot, "HubSpot", "API (private app token) + connector (MCP)")
+Container(clwriter, "rollout-changelog-writer", "agent")
+System_Ext(canny, "Canny")
 
 Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
 Rel(skill, copywriter, "Write the brief")
@@ -93,6 +95,14 @@ Rel(hsmarketer, hubspot, "hubspot-check, hubspot-assets --yes (token); previews,
 Rel(author, skill, "Approves the previews")
 Rel(hsmarketer, hubspot, "Connector: creates the email and posts as drafts; hubspot-record")
 Rel(author, hubspot, "Schedules and sends")
+
+Rel(author, skill, "Asks for the changelog entry")
+Rel(skill, clwriter, "Plan the entry")
+Rel(clwriter, canny, "changelog-check / changelog-find: labels, entries that may announce the feature")
+Rel(clwriter, library, "changelog.json; changelog {slug} builds the entry and preview")
+Rel(author, skill, "Approves: create or update, draft or published, notify or not")
+Rel(clwriter, canny, "changelog-publish --yes [--live] [--notify]; changelog.published.json")
+Rel(author, canny, "Reviews the draft (Changelog → Drafts); publishes or deletes it there, or approves --live")
 
 SHOW_LEGEND()
 @enduml

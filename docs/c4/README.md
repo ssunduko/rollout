@@ -6,10 +6,10 @@ version, with the sidecar tables, is [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 | File | Level | Shows |
 |---|---|---|
-| `1-system-context.puml` | 1 · System context | Rollout, the person driving it, Claude Code, the product application, the help center (Intercom), the image store (S3), the website builder (Webflow), the podcast's video source (Google Drive), studio (ElevenLabs) and directory (Spotify, which hosts the show), the marketing platform (HubSpot), Chrome/ffmpeg |
-| `2-containers.puml` | 2 · Containers | the skill and seven agents, the pipeline CLI, scene kit, example app, the sidecar stores (`input/`, `brand/`, `.env`/`targets/`/`profiles/`, `library/`, `output/`), and Intercom, S3, the Webflow Data API and MCP server, Google Drive, ElevenLabs, Spotify, and HubSpot's API and connector |
-| `3-components-pipeline.puml` | 3 · Components | the modules of `pipeline/`, including the help-center, image-store, website, podcast and HubSpot modules, and how they depend on each other and on Chrome, ffmpeg, the app and the external services |
-| `4-dynamic-rollout.puml` | Dynamic | one "roll out {slug}" run, then the help article, the website page, the podcast episode, the video page and the HubSpot launch on request, step by step, with the approval gates |
+| `1-system-context.puml` | 1 · System context | Rollout, the person driving it, Claude Code, the product application, the help center (Intercom), the image store (S3), the website builder (Webflow), the podcast's video source (Google Drive), studio (ElevenLabs) and directory (Spotify, which hosts the show), the marketing platform (HubSpot), the product changelog (Canny), Chrome/ffmpeg |
+| `2-containers.puml` | 2 · Containers | the skill and eight agents, the pipeline CLI, scene kit, example app, the sidecar stores (`input/`, `brand/`, `.env`/`targets/`/`profiles/`, `library/`, `output/`), and Intercom, S3, the Webflow Data API and MCP server, Google Drive, ElevenLabs, Spotify, HubSpot's API and connector, and Canny |
+| `3-components-pipeline.puml` | 3 · Components | the modules of `pipeline/`, including the help-center, image-store, website, podcast, HubSpot and changelog modules, and how they depend on each other and on Chrome, ffmpeg, the app and the external services |
+| `4-dynamic-rollout.puml` | Dynamic | one "roll out {slug}" run, then the help article, the website page, the podcast episode, the video page, the HubSpot launch and the changelog entry on request, step by step, with the approval gates |
 
 Placeholders are written `{slug}`, `{id}`, `{hash}` (angle brackets are
 markup in PlantUML labels).

@@ -76,9 +76,13 @@ quirks.
      them in Page mode.
      Write them for search and answer engines (`docs/seo.md`; the keyword is
      the brief's `seo.keyword`, else the feature's name):
-     - the SEO title: 30–60 characters, naming the keyword;
-     - the SEO description: 120–160 characters, naming the keyword and what the listener learns;
-     - the title and subtitle name the feature;
+     - the SEO title and description within the site's limits (`podcast-transcribe`
+       warns outside them: the brand's `web.seo.limits`, else 30–60 and 120–160
+       characters), naming the keyword — the description says what the listener
+       learns;
+     - the title and subtitle name the feature; the subtitle is the page's
+       opening, so it answers first: what the feature is and does, naming it,
+       in its first sentence;
      - the image's alt text says what it shows, never a file name.
 
      `podcast-transcribe` refuses errors; fix the SEO warnings it prints too.

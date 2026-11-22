@@ -19,6 +19,7 @@ const PAGES = {
   '/bad': '<html><head><script type="application/ld+json">{"@type":"VideoObject","name":"V"}</script><script type="application/ld+json">{nope</script></head></html>',
   '/none': '<html><head></head></html>',
   '/dangling': '<html><head><script type="application/ld+json">{"@type":"WebPage","name":"P","url":"https://www.acme.example/p","description":"d","publisher":{"@id":"#organization"}}</script></head></html>',
+  '/twice': '<html><head><script type="application/ld+json">{"@type":"BreadcrumbList","@id":"#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.acme.example/"}]}</script><script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.acme.example/"}]}</script></head></html>',
   '/linked': '<html><head><script type="application/ld+json">{"@type":"WebPage","name":"P","url":"https://www.acme.example/p","description":"d","publisher":{"@id":"/#organization"}}</script><script type="application/ld+json">{"@type":"Organization","@id":"/#organization","name":"Acme","url":"https://www.acme.example"}</script></head></html>',
 };
 
@@ -158,4 +159,44 @@ test('schema preview: one live item in its template — references resolved, ris
   } finally {
     srv.close();
   }
+});
+
+// the example brand with one template and one page owned by another tool
+function ownedBrand() {
+  const dir = path.join(SANDBOX, 'brand-owned');
+  fs.cpSync(path.join(import.meta.dirname, '..', '..', 'brand', 'example'), dir, { recursive: true });
+  const file = path.join(dir, 'brand.json');
+  const b = JSON.parse(fs.readFileSync(file, 'utf8'));
+  b.web.schema.templates.blog.owner = 'site-schema-tool';
+  b.web.schema.pages['/pricing'].owner = 'site-schema-tool';
+  fs.writeFileSync(file, JSON.stringify(b));
+  return dir;
+}
+
+test('owner: a template or page another tool owns gets no code, and its old file is removed', async () => {
+  assert.equal((await cliAsync(['schema', 'templates'])).code, 0);
+  assert.equal((await cliAsync(['schema', 'page', 'pricing'])).code, 0);
+  assert.ok(fs.existsSync(out('templates', 'blog.html')));
+  const brand = ownedBrand();
+  const r = await cliAsync(['schema', 'templates', '--brand', brand]);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /^blog {2}owned by site-schema-tool: not generated \(removed the old .*blog\.html\)/m);
+  assert.match(r.out, /^videos {2}video /m);
+  assert.ok(!fs.existsSync(out('templates', 'blog.html')));
+  assert.ok(fs.existsSync(out('templates', 'videos.html')));
+  const again = await cliAsync(['schema', 'templates', '--brand', brand]);
+  assert.match(again.out, /^blog {2}owned by site-schema-tool: not generated$/m);
+  const preview = await cliAsync(['schema', 'preview', 'blog', 'any', '--brand', brand]);
+  assert.notEqual(preview.code, 0);
+  assert.match(preview.out, /blog is owned by site-schema-tool: Rollout generates no code for it/);
+  const page = await cliAsync(['schema', 'page', 'pricing', '--brand', brand]);
+  assert.notEqual(page.code, 0);
+  assert.match(page.out, /\/pricing is owned by site-schema-tool/);
+  assert.ok(!fs.existsSync(out('pages', 'pricing.json')));
+});
+
+test('schema check: the same kind of node twice on a page is a warning naming the owner setting', async () => {
+  const r = await cliAsync(['schema', 'check', `${base}/twice`]);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /warn {5}BreadcrumbList: 2 BreadcrumbList nodes on one page — two tools may both write its structured data/);
 });

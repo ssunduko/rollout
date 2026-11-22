@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SEO_LIMITS, keywordIn, checkMeta, checkAlt, checkSlug, checkFaq, checkCmsFields,
-  jsonLdScript, featureJsonLd, episodeJsonLd, auditHtml,
+  jsonLdScript, featureJsonLd, episodeJsonLd, auditHtml, seoLimits, checkAnswerFirst, checkLinks,
 } from '../../pipeline/seo.mjs';
 
 const brand = {
@@ -158,11 +158,14 @@ const page = ({ head = '', body = '' } = {}) => `<!doctype html><html><head>
 <meta name="description" content="${good.description}">
 <link rel="canonical" href="https://www.acme.example/features/smart-scheduling">
 <meta property="og:image" content="https://cdn.example/og.png">
-${head}</head><body>${body}</body></html>`;
+<meta property="og:title" content="${good.title}">
+<meta property="og:description" content="${good.description}">
+<meta name="twitter:card" content="summary_large_image">
+${head}</head><body><main>${body}</main></body></html>`;
 const LD = jsonLdScript(featureJsonLd({ brief: { feature: 'Smart Scheduling', intro: 'i', sections: [], faq, seo: { title: good.title, description: good.description } }, brand, url: 'https://www.acme.example/features/smart-scheduling' }));
 
 test('auditHtml: a well-made page has no findings', () => {
-  const a = auditHtml(page({ head: LD, body: '<h1>Smart Scheduling books meetings in the thread</h1><h3>What is it?</h3><img src="a.png" alt="A reply with three open times">' }), { keyword: 'Smart Scheduling' });
+  const a = auditHtml(page({ head: LD, body: '<h1>Smart Scheduling books meetings in the thread</h1><h2>What is it?</h2><img src="a.png" alt="A reply with three open times">' }), { keyword: 'Smart Scheduling' });
   assert.deepEqual(a.findings, []);
   assert.equal(a.title, good.title);
   assert.equal(a.description, good.description);
@@ -203,3 +206,76 @@ test('featureJsonLd: the product\'s offer, rating and platforms from the brand, 
   assert.deepEqual(rated.aggregateRating, { '@type': 'AggregateRating', ratingValue: '4.7', reviewCount: '9' });
   assert.equal(rated.offers, undefined);
 });
+
+test("seoLimits: the brand's own title and description limits over the defaults", () => {
+  assert.deepEqual(seoLimits({}), SEO_LIMITS);
+  const l = seoLimits({ web: { seo: { limits: { title: [50, 60], description: [150, 160], unknown: [1, 2] } } } });
+  assert.deepEqual(l.title, [50, 60]);
+  assert.deepEqual(l.description, [150, 160]);
+  assert.deepEqual(l.alt, SEO_LIMITS.alt);
+  assert.ok(!('unknown' in l));
+  const w = checkMeta({ title: 'Smart Scheduling: Book Meetings | Acme', description: 'Smart Scheduling books meetings in the thread, with reminders that go out on their own so fewer are missed.', keyword: 'Smart Scheduling', limits: l });
+  assert.ok(w.some((m) => /SEO title is only 38 characters \(aim for 50–60\)/.test(m)), w.join('\n'));
+  assert.ok(w.some((m) => /meta description is only 107 characters \(aim for 150–160\)/.test(m)), w.join('\n'));
+});
+
+test('checkAnswerFirst: the subject named within the first 100 words; a short first paragraph', () => {
+  assert.deepEqual(checkAnswerFirst('<p>Smart Scheduling books meetings inside the text thread.</p><p>More.</p>', 'Smart Scheduling'), []);
+  assert.deepEqual(checkAnswerFirst('Smart Scheduling books meetings in one tap.', 'Smart Scheduling'), []);
+  const late = `<p>${'Word '.repeat(110)}Smart Scheduling.</p>`;
+  const w = checkAnswerFirst(late, 'Smart Scheduling', 'site.fields.video-summary');
+  assert.ok(w.some((m) => /site\.fields\.video-summary: the first 100 words do not name "Smart Scheduling"/.test(m)));
+  assert.ok(w.some((m) => /the first paragraph is 112 words/.test(m)));
+  assert.match(checkAnswerFirst('', 'X')[0], /no text/);
+});
+
+test("checkLinks: one link to the site's own pages, in the text or a link field; no 'click here'", () => {
+  const site = 'https://www.acme.example';
+  assert.deepEqual(checkLinks('<p>See <a href="/features/smart-scheduling">Smart Scheduling</a>.</p>', { site }), []);
+  assert.deepEqual(checkLinks('<p>No links.</p>', { site, links: ['https://www.acme.example/videos/other'] }), []);
+  assert.match(checkLinks('<p>Go <a href="https://elsewhere.example/x">elsewhere</a>.</p>', { site })[0], /no link to the site's own pages/);
+  const weak = checkLinks('<p><a href="/features/x">Click here</a></p>', { site });
+  assert.equal(weak.length, 1);
+  assert.match(weak[0], /the link "Click here" \(\/features\/x\) says nothing about its page/);
+});
+
+test("checkCmsFields with aeo: a video item's summary and related links; an episode's subtitle", () => {
+  const site = 'https://www.acme.example';
+  const video = {
+    name: 'Smart Scheduling walkthrough', slug: 'smart-scheduling-walkthrough',
+    'meta-title': 'Smart Scheduling Walkthrough: Book Meetings by Text | Acme',
+    'meta-description': 'Smart Scheduling in action: offer open times in the text thread, sync team calendars and send reminders automatically, so more meetings happen on time.',
+    'video-summary': '<p>Smart Scheduling books meetings inside the text thread.</p>',
+    'video-transcription': '<p>Hello and welcome.</p>',
+    'related-videos-link-1': 'https://www.acme.example/videos/other',
+  };
+  const opts = { keyword: 'Smart Scheduling', where: 'site.fields', limits: seoLimits({ web: { seo: { limits: { title: [50, 60], description: [150, 160] } } } }), aeo: true, site };
+  assert.deepEqual(checkCmsFields(video, opts), []);
+  const noLink = checkCmsFields({ ...video, 'related-videos-link-1': '' }, opts);
+  assert.ok(noLink.some((m) => /no link to the site's own pages/.test(m)), noLink.join('\n'));
+  const late = checkCmsFields({ ...video, 'video-summary': '<p>Welcome to our channel, where we cover lots of things.</p>' }, opts);
+  assert.ok(late.some((m) => /site\.fields\.video-summary: the first 100 words do not name "Smart Scheduling"/.test(m)));
+  // an episode: its subtitle is the opening; no rich text or link field, so no link check
+  const episode = { name: 'Episode 7: Smart Scheduling', slug: 'episode-7-smart-scheduling', subtitle: 'Smart Scheduling books meetings in the thread.' };
+  assert.deepEqual(checkCmsFields(episode, { ...opts, limits: undefined }).filter((m) => /answer|link/.test(m)), []);
+  assert.match(checkCmsFields({ name: 'E', slug: 'e' }, { ...opts, limits: undefined }).join('\n'), /no summary or description text/);
+  // without aeo (the feature item), none of these checks run
+  assert.ok(!checkCmsFields({ name: 'E', slug: 'e' }, { keyword: 'X' }).some((m) => /summary or description/.test(m)));
+});
+
+test("auditHtml: heading levels in order, <main>, Open Graph and Twitter tags, and the page's own type", () => {
+  const html = `<html><head><title>${good.title}</title><meta name="description" content="${good.description}">
+<link rel="canonical" href="https://www.acme.example/videos/x"><meta property="og:image" content="https://cdn.example/og.png">
+<script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.acme.example/"}]}</script>
+</head><body><h1>Smart Scheduling</h1><h2>Part</h2><h5>Accordion</h5><h3>What is it?</h3></body></html>`;
+  const a = auditHtml(html, { keyword: 'Smart Scheduling', expect: ['VideoObject'] });
+  const has = (re) => a.findings.some((f) => re.test(f.message));
+  assert.ok(has(/the headings skip a level \(<h2> then <h5>\)/));
+  assert.ok(has(/no <main> element/));
+  assert.ok(has(/no og:title/));
+  assert.ok(has(/no og:description/));
+  assert.ok(has(/no twitter:card/));
+  assert.ok(has(/no VideoObject in the structured data — this page should describe its video; add it in the block of whoever owns the template/));
+  assert.ok(!has(/PodcastEpisode/));
+});
+

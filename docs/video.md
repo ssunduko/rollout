@@ -76,7 +76,7 @@ the transcript is shared with the podcast (`output/<slug>/podcast/video-transcri
 - `publish.itemId` is an item of the collection, and the recorded one once there is a record;
 - a new page's sort order is above the newest video's (the site counts up by 10);
 - images exist or are https links;
-- the search and answer-engine checks of `docs/seo.md` (title, description, keyword, slug, alt text).
+- the search and answer-engine checks of `docs/seo.md` (title and description within the brand's `web.seo.limits`, keyword, slug, alt text), and, as a content page, an answer-first summary (the feature named within its first 100 words) and a link to the site's own pages (in the summary or the related videos) with anchor text that names its page. Once published, `seo <slug> --live` checks the page, including that it carries a `VideoObject`.
 
 ## The record
 

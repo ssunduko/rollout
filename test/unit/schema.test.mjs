@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   PAGE_TYPES, clean, schemaContext, pageJsonLd, faqFromHtml, templateCode, wfBinding, fillTemplate,
-  validateJsonLd, nodesOf, ITEM_FIELDS,
+  validateJsonLd, nodesOf, ITEM_FIELDS, ownerOf, ownedByRollout, duplicateNodes,
 } from '../../pipeline/schema.mjs';
 import { auditHtml } from '../../pipeline/seo.mjs';
 import { loadBrand } from '../../pipeline/brand.mjs';
@@ -236,4 +236,26 @@ test('auditHtml fails a reference no block defines, resolved against the canonic
   const msgs = (h) => auditHtml(`<html><head>${h}</head><body><h1>T</h1></body></html>`).findings.map((f) => `${f.level} ${f.message}`);
   assert.ok(msgs(head('')).includes('fail structured data: BlogPosting: publisher refers to "#org", which nothing on the page defines (give that node an @id, or write the publisher out)'));
   assert.ok(!msgs(head(',"@id":"https://www.acme.example/blog/x#org"')).some((m) => /refers to/.test(m)));
+});
+
+test('owner: Rollout unless web.schema names another tool', () => {
+  assert.equal(ownerOf({}), 'rollout');
+  assert.equal(ownerOf(undefined), 'rollout');
+  assert.ok(ownedByRollout({ owner: 'Rollout' }));
+  assert.ok(ownedByRollout({ owner: ' ' }));
+  assert.equal(ownerOf({ owner: 'converter' }), 'converter');
+  assert.ok(!ownedByRollout({ owner: 'converter' }));
+});
+
+test('duplicateNodes: a kind that belongs once per page, said twice across blocks', () => {
+  const crumb = (id) => ({ '@type': 'BreadcrumbList', ...(id ? { '@id': id } : {}), itemListElement: [] });
+  const one = { '@graph': [{ '@type': 'BlogPosting', headline: 'H' }, crumb('#breadcrumb')] };
+  const two = { '@graph': [{ '@type': ['BlogPosting'], headline: 'H' }, crumb()] };
+  const site = { '@type': 'Organization', name: 'Acme' };
+  const r = duplicateNodes([one, two, site, { ...site }], 'https://www.acme.example/blog/x');
+  assert.deepEqual(r.map((f) => [f.level, f.type]), [['warn', 'BlogPosting'], ['warn', 'BreadcrumbList']]);
+  assert.match(r[0].message, /2 BlogPosting nodes on one page — two tools may both write/);
+  // the same @id said twice is one node, however it is written
+  assert.deepEqual(duplicateNodes([crumb('#breadcrumb'), crumb('https://www.acme.example/blog/x#breadcrumb')], 'https://www.acme.example/blog/x'), []);
+  assert.deepEqual(duplicateNodes([one, site]), []);
 });

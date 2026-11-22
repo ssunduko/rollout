@@ -24,7 +24,8 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { env, envNumber, escapeHtml as e, featurePaths, readJson, writeJson, SLUG_RE } from './env.mjs';
 import { featureKeyword } from './brief.mjs';
-import { checkCmsFields } from './seo.mjs';
+import { checkCmsFields, seoLimits } from './seo.mjs';
+import { brandForFeature } from './brand.mjs';
 import { readCollectionInventory, writeReferences, uploadFieldAssets, itemRecord } from './cmsitem.mjs';
 
 const ADAPTERS = {
@@ -141,7 +142,10 @@ export function validatePodcast(slug) {
     if (!String(f.name ?? '').trim()) errors.push('site.fields.name (the episode page\'s title) is required');
     if (!SLUG_RE.test(f.slug ?? '')) errors.push(`site.fields.slug "${f.slug ?? ''}" must be lower-case words joined by hyphens`);
     // what search and answer engines read of the episode page (pipeline/seo.mjs)
-    warnings.push(...checkCmsFields(f, { keyword: featureKeyword(slug), where: 'site.fields' }));
+    // with the site's own limits (web.seo.limits) and, as a content page, an
+    // answer-first description linked to the site's pages
+    const brand = brandForFeature(slug);
+    warnings.push(...checkCmsFields(f, { keyword: featureKeyword(slug), where: 'site.fields', limits: seoLimits(brand), aeo: true, site: brand.website }));
     const inv = readSiteInventory(slug);
     if (inv) {
       const known = new Set(inv.fields.map((x) => x.slug));

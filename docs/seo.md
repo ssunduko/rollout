@@ -12,17 +12,20 @@ publishing agents carry them to the site, and the pipeline checks them.
 
 | What | Rule | Why |
 |---|---|---|
+| Limits | The defaults below, or the brand's own in `web.seo.limits` (`{ "title": [50, 60], "description": [150, 160] }`, for a site whose SEO rules ask for those), used for the video and episode pages | One set of rules for the whole site, whoever builds the page |
 | Keyword | `seo.keyword` in the brief: the words people search for the feature by; default the feature's name | One subject per page, named the way customers name it |
 | SEO title | 30–60 characters, the keyword first, the brand last (`Smart Scheduling: Book Meetings Over Text \| Acme`) | Search results cut titles after about 60 characters |
 | Meta description | 120–160 characters, names the keyword, says what the feature does for the reader; not the title again | Results show about 160 characters |
-| Heading | One `<h1>` per page, the page's title; rich text uses `<h2>`/`<h3>`. On a CMS template that styles rich-text headings by tag, new items match the existing items' tag, and an `<h1>` there is a template fix (its text styles give `<h2>`/`<h3>` the same look), not a content change | Several `<h1>`s blur what the page is about; a tag swap alone changes the design |
+| Heading | One `<h1>` per page, and heading levels in order (no `<h2>` straight to `<h5>`: set the tag by the outline, the look by a class), the page's title; rich text uses `<h2>`/`<h3>`. On a CMS template that styles rich-text headings by tag, new items match the existing items' tag, and an `<h1>` there is a template fix (its text styles give `<h2>`/`<h3>` the same look), not a content change | Several `<h1>`s blur what the page is about; a tag swap alone changes the design |
 | Lead | Answer-first: the first sentence says what the feature is and does, naming it ("Smart Scheduling books meetings inside the text thread…") | Answer engines quote the first direct answer they find |
 | FAQ | 3–8 questions customers ask, each ending in "?"; each answer 40–320 characters, starts with the answer, and makes sense quoted alone | Answer engines quote short, self-contained answers |
 | Alt text | Every image: what it shows, in a sentence, 10–125 characters; never a file name or "image of…" | Screen readers, image search, and engines that read images through their alt |
 | Address | The slug carries the keyword, six words at most | Readable, stable addresses |
 | Canonical | The page says its own address (`<link rel="canonical">`) | One address per page, no duplicates |
-| Link preview | One `og:image`: the page's own | Several make previews pick one at random |
-| Structured data | JSON-LD: `WebPage` + `SoftwareApplication` (the feature, with the brand's offer or rating from `web.schema.product`) + `FAQPage` (+ `VideoObject` with a video) on the feature page; `PodcastEpisode` (with its transcript) on the episode page | Tells engines what the page is about, its questions and answers, and what the episode says |
+| Link preview | One `og:image`: the page's own; an `og:title`, `og:description` and `twitter:card` | Several images make previews pick one at random; without the rest a preview is a bare link |
+| Page structure | A `<main>` around the page's own content | Tells engines which part of the page is its content |
+| Content pages | On video and episode pages: the opening text (the video's summary, the episode's subtitle) names the feature and says what it does within its first 100 words; at least one link to the site's own pages (in the text, or link fields such as related videos), each with anchor text that names its page, never "click here" | Answer engines quote the opening; internal links tie the page to the feature it explains |
+| Structured data | JSON-LD: `WebPage` + `SoftwareApplication` (the feature, with the brand's offer or rating from `web.schema.product`) + `FAQPage` (+ `VideoObject` with a video) on the feature page; `PodcastEpisode` (with its transcript) on the episode page; `VideoObject` on the video page (`seo --live` warns when either is missing, for the template's owner to add: `docs/schema.md`, "Who owns each page") | Tells engines what the page is about, its questions and answers, and what the episode says |
 
 Malformed data (an FAQ entry without an answer, JSON-LD that does not parse)
 is an error; everything else is a warning — SEO never blocks a build.
@@ -36,9 +39,9 @@ is an error; everything else is a warning — SEO never blocks a build.
 | `build` | the web page: canonical (`web.pageUrl` in the brand, e.g. `https://www.acme.example/features/{slug}`), one `<h1>`, the FAQ section, JSON-LD in the head; `page.json` carries `keyword`, `url`, `faq` and `structuredData` for the publisher |
 | `qa` | the built page as an engine reads it (`seo` findings in `qa.json`) |
 | Web publisher (`site.json`) | the item's or page's SEO fields from the brief, alt text on every image, rich-text headings in the existing items' tag, the FAQ where the template has a place for it, JSON-LD as page code on a page of components; `site-plan` warns on each |
-| Podcast producer (`podcast.json`) | the episode page's SEO title and description, image alt text, the transcript; `podcast-check`-style validation warns on each |
-| Web publisher (`video.json`) | the video page's meta title and description, its slug, the cover and thumbnail alt text, the transcript; `video-plan` warns on each (`docs/video.md`) |
-| `seo <slug> [--live] [--url <url>]` | all of the above for one feature, the JSON-LD for its feature and episode pages written to `output/<slug>/seo/`, and with `--live` (the recorded published pages) or `--url` the pages as served — read only |
+| Podcast producer (`podcast.json`) | the episode page's SEO title and description (the brand's limits), the answer-first subtitle, image alt text, the transcript; `podcast-check`-style validation warns on each |
+| Web publisher (`video.json`) | the video page's meta title and description (the brand's limits), its slug, the cover and thumbnail alt text, the answer-first summary and its links, the transcript; `video-plan` warns on each (`docs/video.md`) |
+| `seo <slug> [--live] [--url <url>]` | all of the above for one feature, the JSON-LD for its feature and episode pages written to `output/<slug>/seo/`, and with `--live` (the recorded published pages: feature, episode and video) or `--url` the pages as served — read only |
 
 ## Structured data on CMS pages
 

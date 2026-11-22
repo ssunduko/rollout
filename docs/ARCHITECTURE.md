@@ -2,8 +2,9 @@
 
 Rollout turns a plain-English feature description into a branded one-pager
 PDF, a matching web page and a social pack, and — on request — the
-help-center article, the feature page on the website and a podcast episode
-made from the feature's video. It is built on the
+help-center article, the feature page on the website, a podcast episode
+made from the feature's video and the HubSpot launch email and social posts.
+It is built on the
 **sidecar pattern**, used at two levels:
 
 1. **Data sidecars.** Every primary artifact has a machine-readable JSON file
@@ -40,6 +41,7 @@ flowchart LR
     HW[rollout-help-writer]
     WP[rollout-web-publisher]
     PP[rollout-podcast-producer]
+    HM[rollout-hubspot-marketer]
   end
   subgraph library["library/ (durable, reused)"]
     BR[features/&lt;slug&gt;/brief.json]
@@ -47,6 +49,7 @@ flowchart LR
     HJ[features/&lt;slug&gt;/help.json]
     STJ[features/&lt;slug&gt;/site.json]
     PJ[features/&lt;slug&gt;/podcast.json]
+    HSJ[features/&lt;slug&gt;/hubspot.json]
     SC[scenes/&lt;id&gt;/scene.json + scene.html]
     RN[renders/&lt;hash&gt;/still.png · anim.gif]
     IX[index.json<br/><i>derived</i>]
@@ -59,6 +62,7 @@ flowchart LR
     R6[help.mjs + helpcenter.mjs<br/>+ imagestore.mjs]
     R7[website.mjs]
     R8[podcast.mjs]
+    R9[hubspot.mjs]
     R4[qa.mjs]
   end
   subgraph output["output/&lt;slug&gt;/ (regenerable)"]
@@ -67,6 +71,7 @@ flowchart LR
     SOC[assets/social/]
     HLP[help/article.html + preview]
     POD[podcast/episode.mp3 + transcript]
+    HSO[hubspot/email + posts + preview]
     BJS[build.json]
     QJ[qa/qa.json + screenshots]
   end
@@ -78,6 +83,7 @@ flowchart LR
     ST[(podcast studio)]
     PH[(podcast host)]
     PD[(podcast directory)]
+    HS[(HubSpot)]
   end
   MD & FJ --> CW --> BR
   BR & MD & IA --> VD --> SC
@@ -106,7 +112,16 @@ flowchart LR
   PH -->|RSS| PD
   PD -->|link, embed| R8
   PP -->|episode page, MCP| WS
+  BR & SOC --> HM --> HSJ
+  HSJ & SOC --> R9 --> HSO
+  R9 -->|images, token| HS
+  HM -->|draft email + posts, MCP| HS
 ```
+
+HubSpot is reached two ways: the pipeline with the private app's token
+(File Manager uploads; recipient lists, on request), the agent with the
+HubSpot connector (the email and the posts as drafts). Each has its own
+permissions ([hubspot.md](hubspot.md), "Two connections").
 
 ## The sidecars
 
@@ -128,6 +143,8 @@ flowchart LR
 | `library/features/<slug>/video.json` | the brief, the feature video | web-publisher agent | `videopage.mjs`, the web-publisher agent | the feature video's page: its YouTube link, the video in the video source, and the item's fields by slug — title, description, summary, transcript, cover, related videos, SEO ([video.md](video.md)) |
 | `library/features/<slug>/video.published.json` | video.json | `videopage.mjs` | the web-publisher agent | the video transcribed, the page's item (id, path, URL, draft, when it last changed) and its uploaded images by hash |
 | `library/features/<slug>/podcast.published.json` | podcast.json | `podcast.mjs` | the podcast-producer agent | the video version transcribed, the studio project, the episode's directory link and embed (and when it was saved to the signed-in person's library), the episode page |
+| `library/features/<slug>/hubspot.json` | the social pack | hubspot-marketer agent | `hubspot.mjs`, the hubspot-marketer agent | the launch email (subject, preview text, headline, sections, CTA, image) and one social post per network ([hubspot.md](hubspot.md)) |
+| `library/features/<slug>/hubspot.published.json` | hubspot.json | `hubspot.mjs` | the hubspot-marketer agent | the images uploaded to the File Manager by content, the draft email's and posts' ids and links |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | the web-publisher agent, a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -204,7 +221,14 @@ flowchart LR
    (`video-plan`); on the user's approval `video-site-assets` uploads its
    images, the agent creates the draft item through the site builder's MCP
    server, and `video-site-record` records it.
-10. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+10. On request, `rollout-hubspot-marketer` → writes `hubspot.json` from the
+   brief and the social pack, `rollout.mjs hubspot` builds the email and
+   posts with a preview; on the user's approval `hubspot-assets` uploads the
+   images with the private app's token and the agent gets HubSpot's
+   previews; on approval of those, it creates the email and posts as drafts
+   through the HubSpot connector and records them (`hubspot-record`).
+   Recipient lists are the user's; scheduling and sending too.
+11. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -233,6 +257,7 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/podcast.mjs` | the podcast episode: transcribes the video, has the studio produce the episode, finds it on the directory and saves it to the signed-in person's library, records the episode page (adapters in `videosource/`: `gdrive`, `podcaststudio/`: `elevenlabs`, `podcastdirectory/`: `spotify`) |
 | `pipeline/videopage.mjs` | the feature video's page: reads the site's video collection, transcribes the video (through `podcast.mjs`), checks video.json, uploads its images, records the item |
 | `pipeline/cmsitem.mjs` | what every page kept as a CMS item shares (the episode page, the video page): the collection inventory, reference text of recent items, image upload by hash, the item record |
+| `pipeline/hubspot.mjs` | the HubSpot launch: hubspot.json checks (lengths, hashtags, links), utm tagging, the email's layout in HubSpot's editor format, the preview, the token's account and scopes, File Manager uploads by content, the drafts' record |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

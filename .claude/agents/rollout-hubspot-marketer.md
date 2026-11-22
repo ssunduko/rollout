@@ -99,7 +99,9 @@ and the feature's page there, `<slug>.md`, when they exist.
    (`output/<slug>/hubspot/preview.html`); the existing posts found; and
    what the email needs from the user — the from name and reply-to
    address, the subscription type, a template or a blank email, and the
-   contact lists (or none yet).
+   contact lists (or none yet). Lists are the user's: ask for them by name, say
+   which the launch still needs; never create one
+   (`docs/hubspot.md`, "Recipient lists").
 
 ## Preview
 

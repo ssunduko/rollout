@@ -8,7 +8,7 @@ Copy this folder's shape for a real brand (gitignored).
 |---|---|
 | Brand | `brand/example/` (`BRAND_DIR=brand/example`) |
 | Target | `targets/demo-app.json` — logs into `DEMO_APP_URL` with `DEMO_APP_USERNAME` / `DEMO_APP_PASSWORD` |
-| Help center, website, podcast | none: the example stops at the built previews |
+| Help center, website, podcast, HubSpot, changelog, in-app news | none: the example stops at the built previews (`help.json`, `hubspot.json`, `changelog.json` and `news.json` build, and are never sent: their records would put a real service's ids in this committed folder) |
 | Features | [smart-scheduling](smart-scheduling.md) |
 
 ## Rules

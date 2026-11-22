@@ -1,0 +1,21 @@
+# Text files are stored and checked out with LF line endings on every
+# machine, whatever core.autocrlf says, so a file saved on Windows never shows
+# as changed on every line.
+* text=auto eol=lf
+
+# Binary: never converted or diffed as text.
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.otf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.zip binary

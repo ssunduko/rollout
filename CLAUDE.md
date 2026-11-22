@@ -13,7 +13,7 @@ page on the website, and the
 `rollout-podcast-producer` agent for the podcast episode, and the
 `rollout-hubspot-marketer` agent for the HubSpot launch email and social
 posts, and the `rollout-changelog-writer` agent for the product changelog
-entry.
+entry, and the `rollout-news-writer` agent for the in-app news item.
 
 ## Ground rules
 
@@ -46,6 +46,10 @@ entry.
   `library/features/<slug>/changelog.json` and sent to the changelog
   service (Canny) as a draft only on request; publishing it and emailing
   its subscribers are separate approvals: `docs/changelog.md`.
+  The in-app news item is built into `output/<slug>/news/` from
+  `library/features/<slug>/news.json` and sent to the news service
+  (Intercom) as a draft only on request; setting it live and its
+  notification badge are separate approvals: `docs/news.md`.
   Every page put on the website is
   written for search and answer engines (keyword, SEO text, FAQ, alt text,
   structured data), checked by `seo <slug>`: `docs/seo.md`. Structured

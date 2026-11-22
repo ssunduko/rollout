@@ -57,3 +57,5 @@ section of the agent that owned the fix:
 ## rollout-hubspot-marketer
 
 ## rollout-changelog-writer
+
+## rollout-news-writer

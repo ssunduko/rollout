@@ -4,7 +4,7 @@ Rollout turns a plain-English feature description into a branded one-pager
 PDF, a matching web page and a social pack, and — on request — the
 help-center article, the feature page on the website, a podcast episode
 made from the feature's video, the HubSpot launch email and social posts and
-the product changelog entry.
+the product changelog entry and the in-app news item.
 It is built on the
 **sidecar pattern**, used at two levels:
 
@@ -44,6 +44,7 @@ flowchart LR
     PP[rollout-podcast-producer]
     HM[rollout-hubspot-marketer]
     CL[rollout-changelog-writer]
+    NW[rollout-news-writer]
   end
   subgraph library["library/ (durable, reused)"]
     BR[features/&lt;slug&gt;/brief.json]
@@ -53,6 +54,7 @@ flowchart LR
     PJ[features/&lt;slug&gt;/podcast.json]
     HSJ[features/&lt;slug&gt;/hubspot.json]
     CLJ[features/&lt;slug&gt;/changelog.json]
+    NJ[features/&lt;slug&gt;/news.json]
     SC[scenes/&lt;id&gt;/scene.json + scene.html]
     RN[renders/&lt;hash&gt;/still.png · anim.gif]
     IX[index.json<br/><i>derived</i>]
@@ -67,6 +69,7 @@ flowchart LR
     R8[podcast.mjs]
     R9[hubspot.mjs]
     R10[changelog.mjs]
+    R11[news.mjs]
     R4[qa.mjs]
   end
   subgraph output["output/&lt;slug&gt;/ (regenerable)"]
@@ -77,6 +80,7 @@ flowchart LR
     POD[podcast/episode.mp3 + transcript]
     HSO[hubspot/email + posts + preview]
     CLO[changelog/entry.md + preview]
+    NO[news/item.html + preview]
     BJS[build.json]
     QJ[qa/qa.json + screenshots]
   end
@@ -90,6 +94,7 @@ flowchart LR
     PD[(podcast directory)]
     HS[(HubSpot)]
     CS[(changelog service)]
+    NS[(news service)]
   end
   MD & FJ --> CW --> BR
   BR & MD & IA --> VD --> SC
@@ -127,6 +132,10 @@ flowchart LR
   CLJ --> R10 --> CLO
   R10 -->|draft; publish, notify on approval| CS
   CS -->|read back: url, status, lastSaved| R10
+  MD & BR --> NW --> NJ
+  NS -->|existing items, newsfeeds| NW
+  NJ --> R11 --> NO
+  R11 -->|draft; live, badge on approval| NS
 ```
 
 HubSpot is reached two ways: the pipeline with the private app's token
@@ -139,7 +148,7 @@ permissions ([hubspot.md](hubspot.md), "Two connections").
 | Sidecar | Beside | Written by | Read by | Carries |
 |---|---|---|---|---|
 | `brand/<id>/brand.json` | logos, icons, fonts | a person, once per brand | every stage | name, contact, social, nav, colours, fonts (woff2, woff, ttf, otf), the capture cursor, voice, rules |
-| `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials, the help center, image store, website, podcast, HubSpot and changelog connections |
+| `.env` | the repo | a person, per deployment | `env.mjs` | which brand, `BRAND_*` overrides, CTA defaults, folders, render settings, target credentials, the help center, image store, website, podcast, HubSpot, changelog and news connections |
 | `targets/<name>.json` | `profiles/<name>/` | a person, once per app | `target.mjs`, `capture.mjs` | app URL, sign-in, viewport, hide/blur/block, secrets (as `env:` refs) |
 | `input/<slug>/feature.json` | `feature.md`, `assets/` | a person (from the template) | agents, `brief.mjs` | name, status, audience, section count, overrides, asset list |
 | `library/features/<slug>/brief.json` | the feature's scenes | copywriter agent | `onepager.mjs`, `webpage.mjs` | all copy, which scene illustrates what, the one-pager's footer links |
@@ -158,6 +167,8 @@ permissions ([hubspot.md](hubspot.md), "Two connections").
 | `library/features/<slug>/hubspot.published.json` | hubspot.json | `hubspot.mjs` | the hubspot-marketer agent | the images uploaded to the File Manager by content, the draft email's and posts' ids and links |
 | `library/features/<slug>/changelog.json` | the brief | changelog-writer agent | `changelog.mjs`, the changelog-writer agent | the changelog entry: title, types, summary, sections, image and video by URL, call to action, labels, and how to send it (draft or published, notify) ([changelog.md](changelog.md)) |
 | `library/features/<slug>/changelog.published.json` | changelog.json | `changelog.mjs` | the changelog-writer agent | the entry in the changelog: id, URL, status, types, labels, when it was last saved |
+| `library/features/<slug>/news.json` | the brief | news-writer agent | `news.mjs`, the news-writer agent | the in-app news item: title, summary, sections, cover image, image and video by URL, call to action, labels, newsfeeds, reactions, and how to send it (draft or live, notify) ([news.md](news.md)) |
+| `library/features/<slug>/news.published.json` | news.json | `news.mjs` | the news-writer agent | the item in the news service: id, state, newsfeeds, labels, silent, when it last changed |
 | `output/<slug>/build.json` | the PDF and web folder | `rollout.mjs build` | QA, people | brand and exact render hashes used |
 | `output/<slug>/web/page.json` | `index.html` | `webpage.mjs` | the web-publisher agent, a CMS import | the page as structured content |
 | `output/<slug>/qa/qa.json` | screenshots | `qa.mjs` | QA agent | measured verdict and findings |
@@ -248,7 +259,14 @@ permissions ([hubspot.md](hubspot.md), "Two connections").
    draft, or updates the entry already there — refusing if it was edited
    there since it was read. Publishing (`--live`) and emailing subscribers
    (`--notify`) are separate approvals.
-12. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
+12. On request, `rollout-news-writer` → finds the news item that may already
+   announce the feature (`news-find`), writes `news.json`, `rollout.mjs news`
+   builds its HTML body and a preview; on the user's approval `news-publish`
+   creates it in the news service as a draft, or updates the item already
+   there — refusing if it was edited there since it was read. Setting it live
+   (`--live`) and the notification badge (`--notify`) are separate
+   approvals.
+13. `rollout.mjs serve <slug> --open` → the page on a local server, shown in
    the browser to confirm it renders.
 
 C4 diagrams of the same architecture (context, containers, pipeline
@@ -279,6 +297,7 @@ components, one rollout as a sequence) are in [`c4/`](c4/README.md).
 | `pipeline/cmsitem.mjs` | what every page kept as a CMS item shares (the episode page, the video page): the collection inventory, reference text of recent items, image upload by hash, the item record |
 | `pipeline/hubspot.mjs` | the HubSpot launch: hubspot.json checks (lengths, hashtags, links), utm tagging, the email's layout in HubSpot's editor format, the preview, the token's account and scopes, File Manager uploads by content, the drafts' record |
 | `pipeline/changelog.mjs` | the changelog entry: changelog.json checks, the entry's Markdown and preview, finding entries, the send and its guards (edited since read, live, notify), the record (adapters in `changelog/`: `canny`) |
+| `pipeline/news.mjs` | the in-app news item: news.json checks, the item's HTML body and preview, finding items, the send and its guards (edited since read, live, notify, sender, newsfeed), the record (adapters in `news/`: `intercom`) |
 | `pipeline/imagestore.mjs` | uploads the help article's new images where the help center can copy them, while publishing (adapters in `imagestore/`: `s3`) |
 | `pipeline/qa.mjs` | measured checks + screenshots (web page loaded through `serve.mjs`) |
 | `pipeline/serve.mjs` | static server for a built web folder: QA and `rollout.mjs serve` |

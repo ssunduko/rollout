@@ -1,6 +1,6 @@
 @startuml dynamic-rollout
 ' C4 dynamic diagram — one rollout, from description to served page, then
-' the help article, the website pages, the podcast, the HubSpot launch and the changelog entry,
+' the help article, the website pages, the podcast, the HubSpot launch, the changelog entry and the in-app news item,
 ' each only on request.
 ' Approval gates (mutating captures, QA fixes, every publish) go through the person.
 ' Render: see docs/c4/README.md
@@ -31,6 +31,8 @@ Container(hsmarketer, "rollout-hubspot-marketer", "agent")
 System_Ext(hubspot, "HubSpot", "API (private app token) + connector (MCP)")
 Container(clwriter, "rollout-changelog-writer", "agent")
 System_Ext(canny, "Canny")
+Container(newswriter, "rollout-news-writer", "agent")
+System_Ext(intercomnews, "Intercom News")
 
 Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
 Rel(skill, copywriter, "Write the brief")
@@ -103,6 +105,14 @@ Rel(clwriter, library, "changelog.json; changelog {slug} builds the entry and pr
 Rel(author, skill, "Approves: create or update, draft or published, notify or not")
 Rel(clwriter, canny, "changelog-publish --yes [--live] [--notify]; changelog.published.json")
 Rel(author, canny, "Reviews the draft (Changelog → Drafts); publishes or deletes it there, or approves --live")
+
+Rel(author, skill, "Asks for the in-app news item")
+Rel(skill, newswriter, "Plan the item")
+Rel(newswriter, intercomnews, "news-check / news-find: newsfeeds, senders, labels, items that may announce the feature")
+Rel(newswriter, library, "news.json; news {slug} builds the body and preview")
+Rel(author, skill, "Approves: create or update, draft or live, badge or not")
+Rel(newswriter, intercomnews, "news-publish --yes [--live] [--notify]; news.published.json")
+Rel(author, intercomnews, "Reviews the draft; sets it live or deletes it; pastes the body into a post")
 
 SHOW_LEGEND()
 @enduml

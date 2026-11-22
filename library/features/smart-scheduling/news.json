@@ -1,0 +1,22 @@
+{
+  "$comment": "The in-app news item for Smart Scheduling (docs/news.md), written by the rollout-news-writer agent from input/smart-scheduling/feature.md and the brief.",
+  "feature": "Smart Scheduling",
+  "title": "Book meetings right inside the conversation",
+  "summary": "Smart Scheduling is here: offer open times from your team's calendars in one click, and the meeting is booked, confirmed and reminded automatically.",
+  "coverImage": "https://www.acme.example/images/smart-scheduling-cover.png",
+  "sections": [
+    {
+      "title": "How it works",
+      "bullets": [
+        "Click Suggest times in the composer to add three open slots",
+        "Customers reply with a number or a tap to book",
+        "Confirmations and reminders go out on their own"
+      ]
+    }
+  ],
+  "cta": { "label": "See how it works", "url": "https://www.acme.example/features/smart-scheduling" },
+  "labels": ["New feature"],
+  "newsfeedIds": [],
+  "reactions": ["🎉", "👍", "😐"],
+  "publish": { "state": "draft", "notify": false }
+}

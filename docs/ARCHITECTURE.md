@@ -143,6 +143,11 @@ HubSpot is reached two ways: the pipeline with the private app's token
 HubSpot connector (the email and the posts as drafts). Each has its own
 permissions ([hubspot.md](hubspot.md), "Two connections").
 
+The help center and the in-app news can be one service (Intercom): two
+adapters, `helpcenter/intercom.mjs` and `news/intercom.mjs`, over the same
+workspace. The news stage uses the help center's token, URL and author
+unless its own `NEWS_*` keys are set ([news.md](news.md), "Configuration").
+
 ## The sidecars
 
 | Sidecar | Beside | Written by | Read by | Carries |

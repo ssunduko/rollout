@@ -93,6 +93,18 @@ Then ask Claude Code: **"roll out my-feature"**. The `feature-rollout` skill:
    upload to your show, finds it on Spotify once published (saving it to
    your Spotify library after a one-time `spotify-login`) and builds its
    draft page on your website
+9. `rollout-hubspot-marketer` writes the launch email and one social post
+   per network from the brief and the social pack; once you approve, it gets
+   HubSpot's previews, then creates the email and posts as drafts — you pick
+   the lists, schedule and send (`docs/hubspot.md`)
+10. `rollout-changelog-writer` finds the changelog entry that may already
+   announce the feature, writes the new or revised entry, and sends it to
+   the changelog (Canny) as a draft once you approve; publishing it and
+   emailing subscribers are separate approvals (`docs/changelog.md`)
+11. `rollout-news-writer` does the same for the in-app news item in the
+   messenger's newsfeed (Intercom): a draft once you approve; setting it live
+   and its notification badge are separate approvals. Its body also pastes
+   into an in-app post, which no API creates (`docs/news.md`)
 
 The example `input/smart-scheduling/` is fully built for the fictional
 example brand (`brand/example/`), captured from the example app

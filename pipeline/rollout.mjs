@@ -828,16 +828,16 @@ const commands = {
     for (const [id, s] of Object.entries(scenes)) console.log(`  ${id}  [${s.tags.join(', ')}]  ${s.animated ? 'animated' : 'still'}  renders: ${Object.keys(s.renders).join(', ') || 'none'}`);
   },
 
-  hubspot() {
-    const slug = assertSlug(args[0]);
-    if (!loadHubspot(slug)) throw new Error(`no library/features/${slug}/hubspot.json — ask the hubspot marketer to write it (docs/hubspot.md)`);
-    const { dir, email, posts, blockers } = buildHubspot({ slug, brand: brandForFeature(slug) });
-    if (email) console.log(`  email    "${email.subject}"  -> ${rel(path.join(dir, 'email.layout.json'))}`);
-    for (const p of posts) console.log(`  ${p.network.padEnd(9)} ${p.length}/${p.limit} characters${p.image ? `  ${p.image.file}` : ''}`);
-    blockers.forEach((b) => console.log(`  todo     ${b}`));
-    console.log(`  preview  ${rel(path.join(dir, 'preview.html'))}`);
-  },
-
+  hubspot() {
+    const slug = assertSlug(args[0]);
+    if (!loadHubspot(slug)) throw new Error(`no library/features/${slug}/hubspot.json — ask the hubspot marketer to write it (docs/hubspot.md)`);
+    const { dir, email, posts, blockers } = buildHubspot({ slug, brand: brandForFeature(slug) });
+    if (email) console.log(`  email    "${email.subject}"  -> ${rel(path.join(dir, 'email.layout.json'))}`);
+    for (const p of posts) console.log(`  ${p.network.padEnd(9)} ${p.length}/${p.limit} characters${p.image ? `  ${p.image.file}` : ''}`);
+    blockers.forEach((b) => console.log(`  todo     ${b}`));
+    console.log(`  preview  ${rel(path.join(dir, 'preview.html'))}`);
+  },
+
   async 'hubspot-check'() {
     const t = await tokenInfo();
     console.log(`  account  hub ${t.hubId ?? '?'}  app ${t.appId ?? '?'}`);

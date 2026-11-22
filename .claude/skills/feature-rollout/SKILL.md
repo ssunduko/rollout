@@ -1,6 +1,6 @@
 ---
 name: feature-rollout
-description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets, help-center article or podcast episode from a feature description or video (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website", "make the podcast for <slug> from its video", "put the video page for <slug> on the website"). Orchestrates the copywriter, visual-designer, QA, help-writer, web-publisher and podcast-producer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request, and the podcast episode made from the feature video, for the user to upload to the show, with its website page, on request, and the feature video's own page on the website (an item of its video collection), on request.
+description: Use when asked to create a feature one-pager, rollout PDF, feature web page, launch assets, help-center article, podcast episode or HubSpot launch email and social posts from a feature description or video (e.g. "roll out smart-scheduling", "make the one-pager and web page for input/<slug>", "publish the help article for <slug>", "put the feature page for <slug> on the website", "make the podcast for <slug> from its video", "put the video page for <slug> on the website", "make the HubSpot launch email and posts for <slug>"). Orchestrates the copywriter, visual-designer, QA, help-writer, web-publisher, podcast-producer and hubspot-marketer agents over the sidecar pipeline and delivers output/<slug>/<Feature> One-Pager.pdf, output/<slug>/web/, the social pack in output/<slug>/assets/social/ and the help article in output/<slug>/help/, created or updated in the help center on request, and the feature page on the website — an item of its feature CMS collection, or built from its components — as a draft, on request, and the podcast episode made from the feature video, for the user to upload to the show, with its website page, on request, and the feature video's own page on the website (an item of its video collection), on request, and the HubSpot launch email and social posts, as drafts, on request.
 ---
 
 # Feature rollout
@@ -155,7 +155,25 @@ repo root.
    "Build the video page for <slug>; approved: <create | update <id>>,
    draft." Publishing the item is the user's, as for the feature page.
 
-11. **Deliver.** Report:
+11. **HubSpot launch (on request).** When the user wants the launch email
+   and social posts, run the `rollout-hubspot-marketer` agent: "Write the
+   HubSpot launch for <slug>." It writes
+   `library/features/<slug>/hubspot.json` (`docs/hubspot.md`) from the brief
+   and the social pack and builds `output/<slug>/hubspot/`. Show the user
+   its report: the email's subject, preview text and body, each post with
+   its image and channel, any posts the team already made about the launch,
+   and `output/<slug>/hubspot/preview.html`. **Ask before previewing**: for
+   the email, the from name and reply-to address, the subscription type, a
+   template or blank, and the lists; for the posts, which channels (and,
+   where a network has several, which one). On a yes: "Preview the HubSpot
+   launch for <slug>; approved: email <…>; posts on <channels>." It uploads
+   the images and returns HubSpot's previews. **Show them and ask again**;
+   only on a yes: "Create the HubSpot launch for <slug>; previews
+   approved." Everything is created as a draft; scheduling and sending are
+   the user's, in HubSpot. If
+   `hubspot-check` fails, say which `.env` key is missing (`HUBSPOT_PRIVATE_APP_TOKEN`, or the private app lacks the `files` scope).
+
+12. **Deliver.** Report:
    - `output/<slug>/<Feature> One-Pager.pdf`
    - `output/<slug>/web/index.html` (self-contained folder; `page.json` is the
      same content as data for CMS import)
@@ -170,6 +188,8 @@ repo root.
      title and description to upload, its Spotify link once found, and the
      episode page (a draft)
    - when it was built, the video page's item id and path (a draft)
+   - when it was made, `output/<slug>/hubspot/` and, when created, the
+     HubSpot email's and posts' ids (drafts)
    - which scenes were new and which were reused.
    Offer to open the PDF. Publishing anywhere external (a CMS, a
    shared drive, a ticket) only on the user's explicit go-ahead.
@@ -185,6 +205,9 @@ repo root.
 - Help article tweak: edit `library/features/<slug>/help.json` (or ask the
   help writer), `help <slug>`, then publish it again on the user's yes —
   it updates the article recorded in `publish`.
+- Launch email or post tweak: edit `library/features/<slug>/hubspot.json`
+  (or ask the hubspot marketer), then `hubspot <slug>`; a draft already in
+  HubSpot is changed there, or recreated on the user's yes.
 - Another brand: point `BRAND_DIR` at another folder in `brand/` (or use
   `BRAND_*` overrides) and `build` — layouts and kit scenes re-render in the
   new brand; captures are reused (the app paints itself).

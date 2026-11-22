@@ -43,6 +43,11 @@
 //   node pipeline/rollout.mjs video-plan <slug>                     check library/features/<slug>/video.json against the collection
 //   node pipeline/rollout.mjs video-site-assets <slug> --yes        upload the video page's images to the site's assets
 //   node pipeline/rollout.mjs video-site-record <slug> <itemId>     after the video page is built: record it (video.published.json)
+//   node pipeline/rollout.mjs hubspot <slug>                        the launch email and social posts (library/features/<slug>/hubspot.json) -> output/<slug>/hubspot/
+//   node pipeline/rollout.mjs hubspot-check                         check the private app token (HUBSPOT_PRIVATE_APP_TOKEN): its account and scopes
+//   node pipeline/rollout.mjs hubspot-assets <slug> --yes           upload the email's and posts' images to HubSpot's File Manager (only on the user's approval)
+//   node pipeline/rollout.mjs hubspot-record <slug> --email <id> [--url <link>] | --network <NETWORK> --guid <id> [--channel <id>] [--url <link>]
+//                                                                    after the agent created them in HubSpot (drafts): record their ids
 //   node pipeline/rollout.mjs qa <slug>                            measure outputs, write screenshots + qa.json
 //   node pipeline/rollout.mjs serve <slug> [--open]                 serve the web page on WEB_PORT until stopped; --open shows it in the browser
 //   node pipeline/rollout.mjs library [list|search <words>|show <id>|fork <from> <to>|index]
@@ -94,10 +99,11 @@ import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
 import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
 import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
+import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, canUpload, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = new Set(rest.filter((a) => a.startsWith('--')));
-const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state', '--url', '--look', '--fg', '--bg', '--size', '--brand']);
+const VALUED = new Set(['--name', '--open', '--setup', '--out', '--state', '--url', '--look', '--fg', '--bg', '--size', '--brand', '--email', '--network', '--guid', '--channel']);
 const args = rest.filter((a, i) => !a.startsWith('--') && !VALUED.has(rest[i - 1]));
 const renderOpts = () => ({ force: flags.has('--force'), allowMutations: flags.has('--allow-mutations') });
 const option = (name) => { const i = rest.indexOf(name); return i >= 0 ? rest[i + 1] : undefined; };
@@ -820,6 +826,47 @@ const commands = {
     for (const [slug, f] of Object.entries(features)) console.log(`  ${slug}  ${f.feature}  — ${f.scenes.length} scenes`);
     console.log(`scenes (${Object.keys(scenes).length})`);
     for (const [id, s] of Object.entries(scenes)) console.log(`  ${id}  [${s.tags.join(', ')}]  ${s.animated ? 'animated' : 'still'}  renders: ${Object.keys(s.renders).join(', ') || 'none'}`);
+  },
+
+  hubspot() {
+    const slug = assertSlug(args[0]);
+    if (!loadHubspot(slug)) throw new Error(`no library/features/${slug}/hubspot.json — ask the hubspot marketer to write it (docs/hubspot.md)`);
+    const { dir, email, posts, blockers } = buildHubspot({ slug, brand: brandForFeature(slug) });
+    if (email) console.log(`  email    "${email.subject}"  -> ${rel(path.join(dir, 'email.layout.json'))}`);
+    for (const p of posts) console.log(`  ${p.network.padEnd(9)} ${p.length}/${p.limit} characters${p.image ? `  ${p.image.file}` : ''}`);
+    blockers.forEach((b) => console.log(`  todo     ${b}`));
+    console.log(`  preview  ${rel(path.join(dir, 'preview.html'))}`);
+  },
+
+  async 'hubspot-check'() {
+    const t = await tokenInfo();
+    console.log(`  account  hub ${t.hubId ?? '?'}  app ${t.appId ?? '?'}`);
+    console.log(`  scopes   ${t.scopes.join(', ') || 'none'}`);
+    if (!canUpload(t.scopes)) {
+      console.log('  error    the private app lacks the "files" (or "files.write") scope: hubspot-assets cannot upload (add it to the app in HubSpot)');
+      process.exitCode = 1;
+    } else console.log('  files    the token can upload (hubspot-assets)');
+  },
+
+  async 'hubspot-assets'() {
+    const slug = assertSlug(args[0]);
+    if (!flags.has('--yes')) throw new Error('hubspot-assets uploads to HubSpot: run it with --yes once the user approved');
+    await uploadHubspotAssets({ slug });
+    buildHubspot({ slug, brand: brandForFeature(slug) });
+  },
+
+  'hubspot-record'() {
+    const slug = assertSlug(args[0]);
+    // one call per created item: the email, or one post with its channel and link
+    const email = option('--email') ? { id: option('--email'), url: option('--url') } : null;
+    const network = option('--network');
+    const post = network ? { network: network.toUpperCase(), guid: option('--guid'), channel: option('--channel'), url: option('--url') } : null;
+    if (post && !post.guid) throw new Error('hubspot-record: a post needs --guid <broadcastGuid>');
+    if (!email && !post) throw new Error('hubspot-record: give --email <id> [--url <link>], or --network <NETWORK> --guid <id> [--channel <id>] [--url <link>]');
+    if (email && post) throw new Error('hubspot-record: record the email and each post in separate calls');
+    const r = recordCreated(slug, { email, post });
+    console.log(`  recorded  ${[r.email && `email ${r.email.id}`, ...Object.entries(r.posts ?? {}).map(([n, p]) => `${n} ${p.id}`)].filter(Boolean).join(', ')}`);
+    if (loadHubspot(slug) && !validateHubspot(slug).errors.length) buildHubspot({ slug, brand: brandForFeature(slug), log: () => {} });
   },
 
   async schema() {

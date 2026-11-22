@@ -1,6 +1,7 @@
 @startuml dynamic-rollout
 ' C4 dynamic diagram — one rollout, from description to served page, then
-' the help article and the website page, each only on request.
+' the help article, the website pages, the podcast and the HubSpot launch,
+' each only on request.
 ' Approval gates (mutating captures, QA fixes, every publish) go through the person.
 ' Render: see docs/c4/README.md
 !include <C4/C4_Dynamic>
@@ -26,6 +27,8 @@ Container(podproducer, "rollout-podcast-producer", "agent")
 System_Ext(drive, "Google Drive")
 System_Ext(elevenlabs, "ElevenLabs")
 System_Ext(spotify, "Spotify")
+Container(hsmarketer, "rollout-hubspot-marketer", "agent")
+System_Ext(hubspot, "HubSpot", "API (private app token) + connector (MCP)")
 
 Rel(author, skill, "Writes input/{slug}/feature.md, asks to roll it out")
 Rel(skill, copywriter, "Write the brief")
@@ -80,6 +83,16 @@ Rel(webpublisher, elevenlabs, "video-transcribe: the video as text (unchanged: r
 Rel(webpublisher, library, "video.json; reports the plan (video-plan)")
 Rel(author, skill, "Approves: create or update, draft")
 Rel(webpublisher, webflow, "video-site-assets; MCP creates the draft video item; video-site-record")
+
+Rel(author, skill, "Asks for the HubSpot launch email and posts")
+Rel(skill, hsmarketer, "Write the launch")
+Rel(hsmarketer, library, "hubspot.json; hubspot {slug} builds output/{slug}/hubspot/")
+Rel(hsmarketer, hubspot, "Connector: company channels, existing posts on the launch")
+Rel(author, skill, "Approves: from name, reply-to, subscription type, lists, channels")
+Rel(hsmarketer, hubspot, "hubspot-check, hubspot-assets --yes (token); previews, confirmed=false (connector)")
+Rel(author, skill, "Approves the previews")
+Rel(hsmarketer, hubspot, "Connector: creates the email and posts as drafts; hubspot-record")
+Rel(author, hubspot, "Schedules and sends")
 
 SHOW_LEGEND()
 @enduml

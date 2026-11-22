@@ -116,6 +116,7 @@ example brand (`brand/example/`), captured from the example app
 | `podcast-find <slug>` | Once you uploaded and published the episode in the show: find it on the directory and record its link; signed in (`spotify-login`), save it to your library once |
 | `podcast-site <slug>` · `podcast-site-assets <slug> --yes` · `podcast-site-record <slug> <itemId>` | The website's episode collection; upload the page's images; record the built episode page |
 | `video-transcribe <slug>` · `video-site <slug>` · `video-plan <slug>` · `video-site-assets <slug> --yes` · `video-site-record <slug> <itemId>` | The feature video's page: the video as text (shared with the podcast); the website's video collection and the next sort order; check `video.json`; upload its images; record the built item (`docs/video.md`) |
+| `hubspot <slug>` · `hubspot-check` · `hubspot-assets <slug> --yes` · `hubspot-record <slug> --email <id> | --network <N> --guid <id> [--channel <id>] [--url <link>]` | The HubSpot launch: build the email and social posts from `hubspot.json` into `output/<slug>/hubspot/`; check the connection; upload their images to HubSpot's File Manager, after your approval; record the drafts the agent created (`docs/hubspot.md`) |
 | `qa <slug>` | Measured checks + screenshots in `output/<slug>/qa/` (PDF pages; web page served over HTTP, desktop + mobile) |
 | `serve <slug> [--open]` | Serve `output/<slug>/web/` on `WEB_PORT` (default 4400) and optionally open it in the browser |
 | `library [list\|search <words>\|show <id>\|fork <from> <to>\|index]` | The asset library |
@@ -148,6 +149,7 @@ runs them on every pull request. See `test/README.md`.
 | `library/renders/` | stills and GIFs, content-addressed | `scenes.mjs` / `capture.mjs` |
 | `library/index.json` | searchable index (derived) | `library.mjs` |
 | `output/<slug>/` | PDF, web folder, social pack, help article, website inventory and assets, podcast episode and transcripts, build and QA records | `rollout.mjs` |
+| `output/<slug>/hubspot/` | the launch email (settings, HubSpot layout) and social posts, with a preview | `rollout.mjs hubspot` |
 | `output/schema/<brand>/` | structured data: CMS template head code, static pages' JSON-LD | `rollout.mjs schema` |
 | `output/images/<brand>/` | general-purpose icon images in the brand's colours | `rollout.mjs icons make` |
 | `pipeline/lucide/` | the Lucide icon set (path data, tags) and its ISC licence | — |
@@ -187,6 +189,7 @@ runs them on every pull request. See `test/README.md`.
 | `HELP_IMAGE_STORE`, `HELP_IMAGE_BUCKET`, `HELP_IMAGE_REGION`, `HELP_IMAGE_PREFIX`, `HELP_IMAGE_ENDPOINT`, `HELP_IMAGE_URL_TTL`, `HELP_IMAGE_BASE_URL`, `AWS_*` | | Where the help article's images are hosted (`docs/help.md`) |
 | `HELP_FRAME_PAD`, `HELP_FRAME_RADIUS`, `HELP_FRAME_BORDER` | `24`, `12`, `WEB_FRAME_BORDER` | The frame drawn into help-article images |
 | `WEBSITE`, `WEBFLOW_API_URL`, `WEBFLOW_API_TOKEN`, `WEBFLOW_SITE_ID`, `WEBFLOW_FEATURES_COLLECTION_ID`, `WEBFLOW_PAGE_FOLDER_ID`, `WEBFLOW_COMPONENT_GROUP` | | The website connection (`docs/website.md`) |
+| `HUBSPOT_PRIVATE_APP_TOKEN`, `HUBSPOT_API_URL`, `HUBSPOT_FILES_FOLDER` | | The HubSpot private app's token: the launch's images (`files`), and recipient lists on request (`crm.lists.*`, `crm.objects.contacts.*`) (`docs/hubspot.md`) |
 | `PODCAST_VIDEO_SOURCE`, `PODCAST_STUDIO`, `PODCAST_DIRECTORY` | | The podcast's services: `gdrive`, `elevenlabs`, `spotify` (`docs/podcast.md`) |
 | `GOOGLE_OAUTH_*` or `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`, `ELEVENLABS_*`, `SPOTIFY_*`, `WEBFLOW_PODCASTS_COLLECTION_ID`, `PODCAST_VIDEO_MAX_MB` | | Their keys, the show's two voices, the show, the website's episode collection |
 | `WEBFLOW_VIDEOS_COLLECTION_ID` | | The website's video collection, for the feature video's page (`docs/video.md`) |
@@ -217,6 +220,7 @@ brand's renders stay in the library.
 - `docs/schema.md` — structured data for every page type: CMS template code, static pages, checking published pages
 - `docs/podcast.md` — the podcast episode from the feature video, its services and page
 - `docs/video.md` — the feature video's own page, an item of the site's video collection
+- `docs/hubspot.md` — the HubSpot launch: marketing email and social posts, as drafts
 - `test/README.md` — the tests: what they cover and how they stay off real data
 - `docs/c4/` — C4 architecture diagrams (PlantUML)
 

@@ -10,7 +10,9 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 `rollout-help-writer` agent for the help-center article, and the
 `rollout-web-publisher` agent for the feature page and the feature video's
 page on the website, and the
-`rollout-podcast-producer` agent for the podcast episode.
+`rollout-podcast-producer` agent for the podcast episode, and the
+`rollout-hubspot-marketer` agent for the HubSpot launch email and social
+posts.
 
 ## Ground rules
 
@@ -36,6 +38,9 @@ page on the website, and the
   to upload to the show: `docs/podcast.md`. The feature video's own page is
   an item of the site's video collection, built as a draft and only on
   request, from `library/features/<slug>/video.json`: `docs/video.md`.
+  The HubSpot launch email and social posts are built into
+  `output/<slug>/hubspot/` from `library/features/<slug>/hubspot.json` and
+  created in HubSpot as drafts only on request: `docs/hubspot.md`.
   Every page put on the website is
   written for search and answer engines (keyword, SEO text, FAQ, alt text,
   structured data), checked by `seo <slug>`: `docs/seo.md`. Structured

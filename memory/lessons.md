@@ -53,3 +53,5 @@ section of the agent that owned the fix:
 ## rollout-web-publisher
 
 ## rollout-podcast-producer
+
+## rollout-hubspot-marketer

@@ -123,10 +123,40 @@ another adapter with the same calls (`pipeline/changelog.mjs`).
   the summary, then the video embedded with image syntax (`![](<video URL>)`:
   Canny turns an image whose URL is a video into a player), then sections
   under `#` headings, images as `![alt](<URL>)`, and links. The preview
-  shows the video as a placeholder. Check the first entry in Canny before
-  publishing it.
+  shows the video as a placeholder.
+- **Canny stores the details exactly as sent**: read back, a draft's
+  `markdownDetails` is `entry.md` unchanged. How Canny draws them (the video
+  player, the image, the headings) shows only in Canny: look at the first
+  draft there before publishing one.
+- **A draft is seen only in Canny's admin** (Changelog → Drafts). Its `url`
+  is the public address it will have once published.
+- **An entry does not say whether notify is on**: the list returns no
+  `notify`, so the record cannot show it. What emails subscribers is
+  guarded before sending (`publish.notify` and `--notify`).
+- **The pipeline never deletes an entry.** A draft no longer wanted is
+  deleted in Canny.
 - **Rate limits** are per key (from 5 requests a second on the free plan); a
   429 names how long to wait.
+
+## Trying it: a sample draft
+
+To see how entries render in a real changelog without announcing anything,
+send a sample draft under a slug of its own:
+
+1. Write `library/features/<sample-slug>/changelog.json` with a title that
+   says it is a sample ("[Sample draft] … - do not publish"),
+   `publish.status` `draft` and `publish.notify` `false`. Reuse an image and
+   a video URL from a recent entry to check that they render.
+2. `changelog <sample-slug>`, then `changelog-publish <sample-slug> --yes`
+   (no `--live`, no `--notify`).
+3. Look at it in Canny (Changelog → Drafts), then delete it there, and the
+   sample's folders in `library/features/` and `output/`.
+
+Never send the committed example feature (`smart-scheduling`) to a real
+changelog: its folder is committed, so its record
+(`changelog.published.json`) would put a real entry's id and URL in the
+repository. A sample slug's folder is git-ignored like every real
+feature's.
 
 ## When something is refused
 

@@ -126,6 +126,7 @@ flowchart LR
   CS -->|existing entries| CL
   CLJ --> R10 --> CLO
   R10 -->|draft; publish, notify on approval| CS
+  CS -->|read back: url, status, lastSaved| R10
 ```
 
 HubSpot is reached two ways: the pipeline with the private app's token

@@ -102,6 +102,7 @@ Rel(clwriter, canny, "changelog-check / changelog-find: labels, entries that may
 Rel(clwriter, library, "changelog.json; changelog {slug} builds the entry and preview")
 Rel(author, skill, "Approves: create or update, draft or published, notify or not")
 Rel(clwriter, canny, "changelog-publish --yes [--live] [--notify]; changelog.published.json")
+Rel(author, canny, "Reviews the draft (Changelog → Drafts); publishes or deletes it there, or approves --live")
 
 SHOW_LEGEND()
 @enduml

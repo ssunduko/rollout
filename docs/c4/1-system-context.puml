@@ -44,6 +44,7 @@ Rel(claude, hubspot, "Creates the email and posts as drafts", "HubSpot connector
 Rel(author, hubspot, "Picks the lists; schedules and sends")
 Rel(hubspot, reader, "Delivers the launch email and posts", "email, social")
 Rel(rollout, changelog, "Finds, creates or updates the entry; publishes on approval", "Canny REST API")
+Rel(author, changelog, "Reviews drafts; publishes or deletes them")
 Rel(changelog, reader, "Shows the entry; emails subscribers when approved", "HTTPS, email")
 Rel(author, reader, "Shares the one-pager PDF and social pack", "email, sales, social")
 

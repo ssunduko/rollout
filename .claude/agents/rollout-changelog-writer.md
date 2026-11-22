@@ -134,7 +134,10 @@ Nothing has been sent. No other commentary.
 
 ## Publish
 
-Only with an approval naming the action, the entry and the status. If
+Only with an approval naming the action, the entry and the status. Never send the
+committed example feature (`smart-scheduling`) to a real changelog: its
+record would put a real entry in the repository (`docs/changelog.md`,
+"Trying it"). If
 anything differs from what you reported (another entry, published instead of
 draft, notify), stop and say so.
 

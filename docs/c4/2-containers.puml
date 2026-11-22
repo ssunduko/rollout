@@ -9,7 +9,7 @@ title Rollout — Containers
 Person(author, "Product marketer", "Writes the feature description, approves mutations, QA fixes and every publish.")
 
 System_Boundary(rollout, "Rollout") {
-  Container(skill, "feature-rollout skill", "Claude Code skill", "Orchestrates one rollout: input → copy → visuals → build → QA → serve; help article, website pages, podcast and HubSpot launch on request.")
+  Container(skill, "feature-rollout skill", "Claude Code skill", "Orchestrates one rollout: input → copy → visuals → build → QA → serve; help article, website pages, podcast, HubSpot launch and changelog entry on request.")
   Container(copywriter, "rollout-copywriter", "Claude Code agent", "Writes the brief: headline, lead, intro, sections, scene ids, SEO — within the layout limits.")
   Container(designer, "rollout-visual-designer", "Claude Code agent", "Probes the signed-in app, writes capture and kit scenes and social.json, inspects stills, GIFs and web cuts.")
   Container(qa_agent, "rollout-qa", "Claude Code agent, read-only", "Reviews PDF pages and the served web page; returns PASS/FAIL with proposed fixes.")
@@ -20,15 +20,17 @@ System_Boundary(rollout, "Rollout") {
 
   Container(hsmarketer, "rollout-hubspot-marketer", "Claude Code agent", "Writes hubspot.json — the launch email and one post per network — from the brief and the social pack; after approval gets HubSpot's previews, then creates the email and posts as drafts through the HubSpot connector. Never schedules, sends or creates lists.")
 
-  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record; podcast-check/transcribe/find/site*, podcast, google-login, spotify-login; video-transcribe/site/plan/site-assets/site-record; hubspot, hubspot-check/assets/record.")
+  Container(clwriter, "rollout-changelog-writer", "Claude Code agent", "Finds the changelog entry that may already announce the feature, writes changelog.json (new or revised), sends it as a draft after approval; publishes and notifies only when approved.")
+
+  Container(cli, "Pipeline CLI", "Node.js, pipeline/rollout.mjs", "Deterministic core: validate, scene(s), build, social, qa, serve, probe, login, library; help, help-find/get/publish; site, site-find/plan/get/assets/record; podcast-check/transcribe/find/site*, podcast, google-login, spotify-login; video-transcribe/site/plan/site-assets/site-record; hubspot, hubspot-check/assets/record; changelog, changelog-check/find/publish.")
   Container(kit, "Scene kit", "CSS + seekable JS runtime", "pipeline/kit/: branded HTML scenes for the hero and coming-soon UI, rendered frame-exactly.")
   Container(demo, "Example app", "Node.js HTTP server, demo-app/", "A stand-in product with a real login, for trying the pipeline end to end.")
 
   ContainerDb(input, "Feature input", "Markdown + JSON, input/{slug}/", "feature.md, feature.json sidecar, optional assets — written by a person.")
   ContainerDb(brand, "Brand sidecars", "JSON + assets, brand/{id}/", "brand.json (colours, fonts, capture cursor, voice, rules, web chrome, help), logos, icons, fonts (woff2/woff/ttf/otf), integration logos.")
-  ContainerDb(config, "Deployment config", ".env, targets/, profiles/", "Which brand, render settings; help center, image store, website, podcast and HubSpot connections (tokens, the show's voices); target apps, sign-in, blur/hide; signed-in Chrome profiles (gitignored).")
-  ContainerDb(library, "Library", "JSON + HTML + PNG/GIF, library/", "Durable: features/{slug}/ brief.json, social.json, help.json, site.json, podcast.json, video.json, hubspot.json and the *.published.json records; scenes/{id}/, content-addressed renders/{hash}/, derived index.json.")
-  ContainerDb(output, "Build output", "PDF + HTML + JSON, output/{slug}/", "Regenerable: {Feature} One-Pager.pdf, web/ (index.html, page.json, assets), assets/social/, help/, site/ (inventory, assets.json), podcast/ (episode.mp3, transcripts), hubspot/ (email, layout, posts, preview), build.json, qa/.")
+  ContainerDb(config, "Deployment config", ".env, targets/, profiles/", "Which brand, render settings; help center, image store, website, podcast, HubSpot and changelog connections (tokens, the show's voices); target apps, sign-in, blur/hide; signed-in Chrome profiles (gitignored).")
+  ContainerDb(library, "Library", "JSON + HTML + PNG/GIF, library/", "Durable: features/{slug}/ brief.json, social.json, help.json, site.json, podcast.json, video.json, hubspot.json, changelog.json and the *.published.json records; scenes/{id}/, content-addressed renders/{hash}/, derived index.json.")
+  ContainerDb(output, "Build output", "PDF + HTML + JSON, output/{slug}/", "Regenerable: {Feature} One-Pager.pdf, web/ (index.html, page.json, assets), assets/social/, help/, site/ (inventory, assets.json), podcast/ (episode.mp3, transcripts), hubspot/ (email, layout, posts, preview), changelog/ (entry.md, preview), build.json, qa/.")
 }
 
 System_Ext(app, "Product application", "Logged-in SaaS app; captures look, never touch.")
@@ -43,6 +45,7 @@ System_Ext(drive, "Google Drive", "Feature videos (Drive API v3, signed in by go
 System_Ext(elevenlabs, "ElevenLabs", "Speech to Text; Text to Dialogue (voices the script); voices")
 System_Ext(hubspot_api, "HubSpot API", "File Manager uploads; lists and their contacts, on request (REST, the private app's token and scopes)")
 System_Ext(hubspot_mcp, "HubSpot connector", "Marketing email, social posts and channels, segments (Claude connector, signed in as the user; its own permissions)")
+System_Ext(canny, "Canny", "Changelog entries: list, create, update, change status (REST, the secret API key)")
 System_Ext(spotify, "Spotify Web API", "The show's episodes, read with Client Credentials; the signed-in person's library (Authorization Code, spotify-login)")
 
 Rel(author, skill, "'roll out {slug}', 'publish …'", "Claude Code")
@@ -65,6 +68,10 @@ Rel(hsmarketer, cli, "hubspot, hubspot-check, hubspot-assets, hubspot-record", "
 Rel(hsmarketer, hubspot_mcp, "Channels, existing posts; previews, then the draft email and posts", "MCP")
 Rel(cli, hubspot_api, "Uploads images; reports the token's scopes", "HTTPS REST")
 Rel(hubspot_mcp, hubspot_api, "Writes to the same portal")
+Rel(skill, clwriter, "Runs (on request)")
+Rel(clwriter, library, "Writes changelog.json")
+Rel(clwriter, cli, "changelog, changelog-check, changelog-find, changelog-publish", "shell")
+Rel(cli, canny, "Finds, creates, updates and publishes entries", "HTTPS REST")
 Rel(skill, cli, "build, social, qa, serve", "shell")
 
 Rel(copywriter, input, "Reads")
@@ -85,7 +92,7 @@ Rel(cli, brand, "Reads")
 Rel(cli, config, "Reads")
 Rel(cli, library, "Reads sidecars; writes renders, index and publish records")
 Rel(cli, kit, "Renders kit scenes with")
-Rel(cli, output, "Writes PDF, web/, social, help/, site/, podcast/, hubspot/, build.json, qa/")
+Rel(cli, output, "Writes PDF, web/, social, help/, site/, podcast/, hubspot/, changelog/, build.json, qa/")
 Rel(cli, chrome, "Renders, captures, screenshots", "CDP")
 Rel(cli, ffmpeg, "Encodes GIFs, frames images", "process")
 Rel(cli, app, "Signs in, runs steps, records", "HTTPS + CDP screencast")

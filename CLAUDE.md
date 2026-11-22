@@ -12,7 +12,8 @@ To make one, use the `feature-rollout` skill ("roll out <slug>"). It runs the
 page on the website, and the
 `rollout-podcast-producer` agent for the podcast episode, and the
 `rollout-hubspot-marketer` agent for the HubSpot launch email and social
-posts.
+posts, and the `rollout-changelog-writer` agent for the product changelog
+entry.
 
 ## Ground rules
 
@@ -41,6 +42,10 @@ posts.
   The HubSpot launch email and social posts are built into
   `output/<slug>/hubspot/` from `library/features/<slug>/hubspot.json` and
   created in HubSpot as drafts only on request: `docs/hubspot.md`.
+  The changelog entry is built into `output/<slug>/changelog/` from
+  `library/features/<slug>/changelog.json` and sent to the changelog
+  service (Canny) as a draft only on request; publishing it and emailing
+  its subscribers are separate approvals: `docs/changelog.md`.
   Every page put on the website is
   written for search and answer engines (keyword, SEO text, FAQ, alt text,
   structured data), checked by `seo <slug>`: `docs/seo.md`. Structured

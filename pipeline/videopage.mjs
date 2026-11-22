@@ -17,7 +17,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { env, escapeHtml as e, featurePaths, readJson, writeJson, SLUG_RE } from './env.mjs';
 import { featureKeyword } from './brief.mjs';
-import { checkCmsFields } from './seo.mjs';
+import { checkCmsFields, seoLimits } from './seo.mjs';
+import { brandForFeature } from './brand.mjs';
 import { readCollectionInventory, writeReferences, uploadFieldAssets, itemRecord } from './cmsitem.mjs';
 import { transcribeVideo } from './podcast.mjs';
 
@@ -93,7 +94,10 @@ export function validateVideoPage(slug) {
     if ('url' in val && !/^https:\/\//.test(String(val.url ?? ''))) errors.push(`site.fields["${k}"].url is an https link to an image`);
   }
   // what search and answer engines read of the page (pipeline/seo.mjs)
-  warnings.push(...checkCmsFields(f, { keyword: featureKeyword(slug), where: 'site.fields' }));
+  // with the site's own limits (web.seo.limits) and, as a content page, an
+  // answer-first summary linked to the site's pages
+  const brand = brandForFeature(slug);
+  warnings.push(...checkCmsFields(f, { keyword: featureKeyword(slug), where: 'site.fields', limits: seoLimits(brand), aeo: true, site: brand.website }));
 
   const inv = readInventory(slug);
   if (!inv) {

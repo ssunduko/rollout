@@ -155,8 +155,9 @@ a podcast link field. Publishing both is the user's (`docs/website.md`,
 "Publishing").
 
 The page is written for search and answer engines (`docs/seo.md`):
-- its SEO title (30–60 characters) and description (120–160) name the feature;
+- its SEO title and description name the feature, within the site's limits (the brand's `web.seo.limits`, else 30–60 and 120–160 characters);
+- its opening (the subtitle) answers first: the feature named, and what it does, within the first 100 words;
 - the image has alt text;
 - the transcript is on the page, since that is what answer engines read of an episode.
 
-Validation warns on each. `seo <slug>` writes the episode's `PodcastEpisode` structured data to `output/<slug>/seo/episode.jsonld.json`.
+Validation warns on each. Once published, `seo <slug> --live` also checks the page carries a `PodcastEpisode` in its structured data. `seo <slug>` writes the episode's `PodcastEpisode` structured data to `output/<slug>/seo/episode.jsonld.json`.

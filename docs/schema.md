@@ -64,6 +64,44 @@ of each):
   podcast's show, `free: true` gives a webinar a free offer.
 - `organization.name` overrides the brand name as the publisher (the name the
   site's own `Organization` block uses).
+- `owner` (on a template or a page) names who writes its structured data:
+  left out, or `rollout`, Rollout does; any other value names the tool that
+  does, and Rollout then generates nothing for it (see "Who owns each page").
+
+## Who owns each page
+
+A page should carry one description of itself: one article, one breadcrumb,
+one profile. Two tools writing structured data for the same page type — one
+into the site builder's schema setting, one into the template's head code —
+give it two of each, under different `@id`s, which search engines read as two
+different things.
+
+So each template and static page has one owner, set in `web.schema`:
+
+```json
+"templates": {
+  "blog":   { "type": "article", "owner": "site-schema-tool", "…": "…" },
+  "videos": { "type": "video", "…": "…" }
+},
+"pages": {
+  "/pricing": { "name": "Pricing", "owner": "site-schema-tool" }
+}
+```
+
+For one owned elsewhere, `schema templates` writes no file (and removes one
+left from an earlier run, so nobody pastes it), and `schema preview` and
+`schema page` refuse. Before giving a page type to Rollout, read what its
+published pages carry with `schema check`; before giving one away, remove
+Rollout's code from the template's head.
+
+`schema check` warns when a page carries a kind of node that belongs once —
+`BreadcrumbList`, `WebPage`, `ProfilePage`, `FAQPage`, an article, `Product`,
+`SoftwareApplication`, `VideoObject`, `PodcastEpisode`, `Event` — more than
+once across its blocks (nodes with the same `@id` count once): the sign that
+two tools write it.
+
+To add what an owner leaves out (a `VideoObject` on video pages, say), add it
+in the owner's block, with the owner's `@id`s, rather than as a second block.
 
 ## CMS templates
 
@@ -129,7 +167,8 @@ must name a node that some block on the page defines with that `@id` —
 usually the site-wide `Organization` — resolved against the page's address,
 so `#organization` and `https://site/blog/x#organization` are the same. A
 reference nothing defines leaves the property empty for search engines, and
-fails. A failing page fails the command.
+fails. It warns on a kind of node said twice on one page ("Who owns each
+page"). A failing page fails the command.
 `seo <slug> --live` runs the same checks on a feature's pages
 (`docs/seo.md`). After a change goes live, confirm with Google's Rich Results
 Test.

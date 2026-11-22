@@ -106,9 +106,9 @@ import { readIndex, rebuildIndex, searchScenes, loadScene, forkScene, sceneDir }
 import { loadTarget, listTargets } from './target.mjs';
 import { probe, manualLogin } from './capture.mjs';
 import { targetNameFor } from './scenes.mjs';
-import { auditHtml, featureJsonLd, episodeJsonLd } from './seo.mjs';
+import { auditHtml, featureJsonLd, episodeJsonLd, seoLimits } from './seo.mjs';
 import { searchIcons, writeImages, LOOKS, lucideVersion } from './icons.mjs';
-import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences } from './schema.mjs';
+import { PAGE_TYPES, schemaContext, templateCode, pageJsonLd, faqFromHtml, validateJsonLd, nodesOf, fillTemplate, ITEM_FIELDS, unresolvedReferences, duplicateNodes, ownerOf, ownedByRollout } from './schema.mjs';
 import { withBrowser } from './chrome.mjs';
 import { loadHubspot, validateHubspot, buildHubspot, tokenInfo, canUpload, uploadHubspotAssets, recordCreated, hubspotDir } from './hubspot.mjs';
 import { loadNews, buildNews, newsService, matchItems, publishNews, readNewsRecord, newsLiveDir, newsRecordFile } from './news.mjs';
@@ -535,12 +535,23 @@ const commands = {
     for (const [k, data] of Object.entries(report.structuredData)) writeJson(path.join(dir, `${k}.jsonld.json`), data);
     console.log(`structured data  ${Object.keys(report.structuredData).map((k) => rel(path.join(dir, `${k}.jsonld.json`))).join(', ')}`);
 
-    // the published pages, as served
+    // the published pages, as served: each with the brand's limits and the
+    // type it should describe itself as (the video page its VideoObject, the
+    // episode page its PodcastEpisode)
     const urls = [...rest.flatMap((a, i) => (a === '--url' && rest[i + 1] ? [rest[i + 1]] : []))];
-    if (flags.has('--live')) urls.push(...[siteRec?.url ?? absolute(siteRec?.path), podRec?.site?.url ?? absolute(podRec?.site?.path)].filter(Boolean));
+    const expectOf = new Map();
+    if (flags.has('--live')) {
+      const vidRec = readVideoPageRecord(slug);
+      const live = [
+        [siteRec?.url ?? absolute(siteRec?.path), []],
+        [podRec?.site?.url ?? absolute(podRec?.site?.path), ['PodcastEpisode']],
+        [vidRec?.site?.url ?? absolute(vidRec?.site?.path), ['VideoObject']],
+      ].filter(([u]) => u);
+      for (const [u, types] of live) { urls.push(u); expectOf.set(u, types); }
+    }
     for (const url of [...new Set(urls)]) {
       const res = await fetch(url, { headers: { 'user-agent': 'rollout-seo-audit' }, redirect: 'follow' });
-      const a = auditHtml(await res.text(), { keyword });
+      const a = auditHtml(await res.text(), { keyword, limits: seoLimits(brand), expect: expectOf.get(url) ?? [] });
       if (!res.ok) a.findings.unshift({ level: 'fail', message: `HTTP ${res.status}` });
       report.pages.push({ url, status: res.status, title: a.title, description: a.description, canonical: a.canonical, h1: a.h1, structuredData: a.jsonLd, questions: a.questions.length, findings: a.findings });
       console.log(`page  ${url}  [HTTP ${res.status}]`);
@@ -1004,8 +1015,15 @@ const commands = {
       const ws = flags.has('--check') ? await website(brand) : null;
       let problems = 0;
       for (const [name, t] of templates) {
-        const { code: html, bindings, missing } = templateCode(t.type, t.fields, schemaContext(brand, { template: t }));
         const file = path.join(dir, 'templates', `${name}.html`);
+        if (!ownedByRollout(t)) {
+          // another tool writes this template's structured data: no code to paste, and none left over
+          const stale = fs.existsSync(file);
+          if (stale) fs.rmSync(file);
+          console.log(`${name}  owned by ${ownerOf(t)}: not generated${stale ? ` (removed the old ${rel(file)})` : ''}`);
+          continue;
+        }
+        const { code: html, bindings, missing } = templateCode(t.type, t.fields, schemaContext(brand, { template: t }));
         fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.writeFileSync(file, `<!-- ${name}: ${PAGE_TYPES[t.type].label}. Paste into the ${name} template's Page settings > Custom code > Inside <head> tag (docs/schema.md). -->
 ${html}
@@ -1029,6 +1047,7 @@ ${html}
       const [name, slug] = more;
       const t = conf.templates?.[name];
       if (!t) throw new Error(`no web.schema.templates["${name}"] — templates: ${Object.keys(conf.templates ?? {}).join(', ')}`);
+      if (!ownedByRollout(t)) throw new Error(`${name} is owned by ${ownerOf(t)}: Rollout generates no code for it (web.schema.templates.${name}.owner; schema check <url> shows what the live page carries)`);
       if (!t.collectionId) throw new Error(`${name}: no collectionId to read the item from`);
       const ws = await website(brand);
       const col = await ws.collection(t.collectionId);
@@ -1062,6 +1081,11 @@ ${html}
       const p = `/${String(more[0] ?? '').replace(/^\/+/, '')}`;
       const page = conf.pages?.[p];
       if (!page) throw new Error(`no web.schema.pages["${p}"] in ${rel(brand.dir)}/brand.json — pages: ${Object.keys(conf.pages ?? {}).join(', ') || 'none'}`);
+      const file = path.join(dir, 'pages', `${p.split('/').filter(Boolean).join('_') || 'home'}.json`);
+      if (!ownedByRollout(page)) {
+        if (fs.existsSync(file)) fs.rmSync(file);
+        throw new Error(`${p} is owned by ${ownerOf(page)}: Rollout generates no code for it (web.schema.pages["${p}"].owner; schema check <url> shows what the live page carries)`);
+      }
       const ctx = schemaContext(brand, { page });
       let faq = page.faq ?? null;
       if (flags.has('--faq-live')) {
@@ -1071,7 +1095,6 @@ ${html}
         console.log(`  faq      ${faq.length} questions read from the live page`);
       }
       const data = pageJsonLd('page', { path: p, name: page.name, description: page.description, image: page.image, dateModified: page.dateModified }, ctx, { faq });
-      const file = path.join(dir, 'pages', `${p.split('/').filter(Boolean).join('_') || 'home'}.json`);
       writeJson(file, data);
       const findings = validateJsonLd(data);
       findings.forEach((f) => console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`));
@@ -1100,6 +1123,8 @@ ${html}
         const refs = unresolvedReferences(docs, res.url || url);
         for (const f of refs) { fails++; console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`); }
         if (docs.length && !refs.length) console.log('  refs     ok');
+        // the same kind of node twice: usually two tools writing this page's structured data
+        for (const f of duplicateNodes(docs, res.url || url)) console.log(`  ${f.level.padEnd(8)} ${f.type}: ${f.message}`);
       }
       if (fails) { console.log(`${fails} failing`); process.exitCode = 1; }
       return;

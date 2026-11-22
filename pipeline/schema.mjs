@@ -426,6 +426,14 @@ const ruleFor = (t) => {
 };
 const has = (node, key) => key.split('|').some((k) => !isEmpty(node[k]));
 
+// Who writes a template's or page's structured data: its `owner` in
+// web.schema, else Rollout. Another owner (another tool, the site builder's
+// schema setting) means Rollout generates nothing for it, so a page never
+// carries two blocks describing the same thing.
+export const ROLLOUT = 'rollout';
+export const ownerOf = (entry) => String(entry?.owner ?? ROLLOUT).trim() || ROLLOUT;
+export const ownedByRollout = (entry) => ownerOf(entry).toLowerCase() === ROLLOUT;
+
 // Every node of a JSON-LD document: @graph members and arrays, flattened.
 export const nodesOf = (d) => (Array.isArray(d) ? d.flatMap(nodesOf) : d?.['@graph'] ? nodesOf(d['@graph']) : d && typeof d === 'object' ? [d] : []);
 
@@ -515,6 +523,34 @@ const resolveId = (id, pageUrl) => {
   try { return pageUrl ? new URL(id, pageUrl).href : id; } catch { return id; }
 };
 const isReference = (v) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 1 && typeof v['@id'] === 'string';
+
+// Kinds of node a page should describe once: two of them on one page usually
+// means two tools write its structured data (docs/schema.md, "Who owns each
+// page"). Organization, Person, WebSite and the like legitimately repeat.
+export const ONCE_PER_PAGE = ['BreadcrumbList', 'WebPage', 'ProfilePage', 'AboutPage', 'ContactPage', 'FAQPage',
+  'Article', 'BlogPosting', 'NewsArticle', 'Product', 'SoftwareApplication', 'VideoObject', 'PodcastEpisode', 'Event'];
+
+// The page's top-level nodes of a kind that should appear once, found more
+// than once across its blocks: [{ level: 'warn', type, message }]. Nodes with
+// the same @id are one node said twice, and are not counted again.
+export function duplicateNodes(docs, pageUrl = null) {
+  const seen = new Map();
+  for (const n of [docs].flat().flatMap(nodesOf)) {
+    const id = typeof n['@id'] === 'string' ? resolveId(n['@id'], pageUrl) : null;
+    for (const t of [n['@type']].flat().filter((x) => ONCE_PER_PAGE.includes(x))) {
+      const s = seen.get(t) ?? { count: 0, ids: new Set() };
+      if (id && s.ids.has(id)) continue;
+      if (id) s.ids.add(id);
+      s.count += 1;
+      seen.set(t, s);
+    }
+  }
+  return [...seen].filter(([, s]) => s.count > 1).map(([t, s]) => ({
+    level: 'warn',
+    type: t,
+    message: `${s.count} ${t} nodes on one page — two tools may both write its structured data; give the page type one owner (web.schema owner, docs/schema.md)`,
+  }));
+}
 
 // Every reference on the page that no node defines: [{ level: 'fail', type,
 // message }]. docs are the page's parsed JSON-LD blocks; a node defines its

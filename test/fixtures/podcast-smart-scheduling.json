@@ -23,7 +23,7 @@
   "site": {
     "fields": {
       "name": "Episode 7: Smart Scheduling Books the Right Time in One Tap",
-      "slug": "episode-7-smart-scheduling",
+      "slug": "episode-7-smart-scheduling", "subtitle": "Smart Scheduling books meetings inside the text thread: the hosts show how open times, calendars and reminders work.",
       "main-image": { "asset": "assets/social/podcast-1280x720.png", "alt": "Smart Scheduling" }
     }
   }

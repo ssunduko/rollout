@@ -152,7 +152,10 @@ cover image and the SEO fields. Read `docs/video.md` first.
    - the video field: `video.url` as a watch link;
    - the sort order: the next one `video-site` prints, for a new page;
    - the summary: one paragraph in `<p>` — what the video shows, in the
-     product's words, as the reference pages do;
+     product's words, as the reference pages do. It is the page's opening:
+     answer first — its first sentence names the feature and says what it
+     does — and link the feature page with anchor text that names it, never
+     "click here";
    - the transcription: `transcript.html`, corrected only where the speech
      to text misheard a product or brand name (the brand's spelling,
      `brand.json` voice); never reworded;
@@ -162,8 +165,9 @@ cover image and the SEO fields. Read `docs/video.md` first.
      from the inventory — each one's link (`https://<site>/videos/<slug>`),
      name and thumbnail (`{ "url": "<that item's cover-image url>",
      "alt": "<its name>" }`); never invent one;
-   - meta title and description: the brief's `seo`; keywords as the
-     reference pages list them.
+   - meta title and description: the brief's `seo`, within the site's
+     limits (the brand's `web.seo.limits`, which `video-plan` checks);
+     keywords as the reference pages list them.
 5. `video-plan <slug>` must show no errors and no SEO warning you can fix.
 6. Report: create or update (which item), each field and its value (the
    transcript by length), the related videos and why, and what you were
